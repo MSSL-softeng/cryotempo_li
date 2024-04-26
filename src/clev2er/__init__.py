@@ -1,7 +1,7 @@
 """
-# CLEV2ER L2 Algorithm Framework
+# CryoTEMPO Land Ice L2 Processor
 
-A generic python algorithm framework, available from https://github.com/cpomsoft/clev2er.
+A generic python algorithm framework, available from https://github.com/mssl-softeng/clev2er.
 The framework is designed for (but not 
 restricted to) Level-1b to Level-2 processing of ESA radar altimetry mission data. Initial usage 
 is expected for the ESA CryoSat-2 and CRISTAL missions. The key features of the framework are 
@@ -76,13 +76,13 @@ Clone the git public repository in to a suitable directory on your system.
 This will create a directory called **/clev2er** in your current directory.
 
 with https:  
-`git clone https://github.com/cpomsoft/clev2er.git`  
+`git clone https://github.com/mssl-softeng/clev2er.git`  
 
 or with ssh:  
-`git clone git@github.com:cpomsoft/clev2er.git`  
+`git clone git@github.com:mssl-softeng/clev2er.git`  
 
 or with the GitHub CLI:  
-`gh repo clone cpomsoft/clev2er`  
+`gh repo clone mssl-softeng/clev2er`  
 
 ## Shell Environment Setup
 
@@ -680,7 +680,7 @@ failures before you commit. The same tests are also run when you commit (and mus
 
 ### Automatic Documentation
 
-This user manual is hosted on GitHub pages (https://cpomsoft.github.io/clev2er)
+This user manual is hosted on GitHub pages (https://mssl-softeng.github.io/clev2er)
 
 Content is created from doctrings
 (optionally containing Markdown: https://www.markdownguide.org/basic-syntax/#code )
