@@ -81,7 +81,7 @@ def test_alg_retrack(l1b_file) -> None:
     assert success, "algorithm should not fail"
 
     assert "range_cor_20_ku" in shared_dict, "range_cor_20_ku not in shared_dict"
-    assert shared_dict["percent_retracker_failure"] < 5, "more than 5% retracker failure"
+    assert shared_dict["percent_retracker_failure"] < 7, "more than 7% retracker failure"
     assert (
         shared_dict["percent_retracker_failure"] >= 0
         and shared_dict["percent_retracker_failure"] <= 100

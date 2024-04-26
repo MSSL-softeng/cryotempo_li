@@ -39,8 +39,12 @@ def test_run_chain(mp_enabled):
     config["chain"]["use_multi_processing"] = mp_enabled
 
     # Need to set MP mode, so Linux doesn't default to fork()
-    if mp_enabled:
+    try:
+        # Try setting the multiprocessing start method
         mp.set_start_method("spawn")
+    except RuntimeError:
+        # Handle the case where the start method has already been set
+        print("Multiprocessing start method has already been set.")
 
     algorithm_list_file = (
         f"{base_dir}/config/algorithm_lists/{chain_name}" f"/{chain_name}_A001.yml"

@@ -314,7 +314,7 @@ def mp_logger_process(queue, config) -> None:
     """
     # create a logger
     logger = logging.getLogger("mp")
-    if config["log_files"]["debug_mode"]:
+    if config["log_files"]["debug"]:
         log_format = "[%(levelname)-2s] : %(asctime)s : %(name)-12s :  %(message)s"
     else:
         log_format = "[%(levelname)-2s] : %(asctime)s :  %(message)s"
@@ -334,7 +334,7 @@ def mp_logger_process(queue, config) -> None:
     logger.addHandler(file_handler_info)
 
     # include all allowed log levels up to DEBUG
-    if config["log_files"]["debug_mode"]:
+    if config["log_files"]["debug"]:
         file_handler_debug = logging.FileHandler(config["log_files"]["debug"] + ".mp", mode="w")
         file_handler_debug.setFormatter(log_formatter)
         file_handler_debug.setLevel(logging.DEBUG)

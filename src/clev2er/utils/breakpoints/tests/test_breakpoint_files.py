@@ -13,7 +13,7 @@ log = logging.getLogger(__name__)
 def test_breakpoint_files():
     """pytest function for write_breakpoint_file()"""
     config = {
-        "breakpoint_files": {"default_dir": "/tmp/bp"},
+        "breakpoint_files": {"default_dir": "/tmp"},
     }  # to be used to pass def dir & filenames
     # when this feature implemented.
 
