@@ -7,6 +7,9 @@ import pytest
 
 from clev2er.utils.dems.dems import Dem
 
+pytestmark = pytest.mark.requires_external_data
+
+
 log = logging.getLogger(__name__)
 
 

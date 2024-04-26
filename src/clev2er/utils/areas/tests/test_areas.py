@@ -4,6 +4,8 @@ import pytest
 
 from clev2er.utils.areas.areas import Area
 
+pytestmark = pytest.mark.non_core
+
 
 def test_bad_area_name():
     """pytest to check for handling of invalid area names"""

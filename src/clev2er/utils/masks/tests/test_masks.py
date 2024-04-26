@@ -5,6 +5,8 @@ import pytest
 
 from clev2er.utils.masks.masks import Mask
 
+pytestmark = pytest.mark.requires_external_data
+
 
 @pytest.mark.parametrize(
     "mask_name,indices_inside,lats,lons,grid_values",

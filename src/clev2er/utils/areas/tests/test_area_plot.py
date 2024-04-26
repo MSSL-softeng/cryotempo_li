@@ -10,6 +10,8 @@ from clev2er.utils.areas.areas import Area
 
 # pylint: disable=R0801
 
+pytestmark = pytest.mark.non_core
+
 
 @pytest.mark.parametrize(
     "area",
