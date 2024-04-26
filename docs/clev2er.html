@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="generator" content="pdoc 14.3.0"/>
+    <meta name="generator" content="pdoc 14.4.0"/>
     <title>clev2er API documentation</title>
 
     <style>/*! * Bootstrap Reboot v5.0.0 (https://getbootstrap.com/) * Copyright 2011-2021 The Bootstrap Authors * Copyright 2011-2021 Twitter, Inc. * Licensed under MIT (https://github.com/twbs/bootstrap/blob/main/LICENSE) * Forked from Normalize.css, licensed MIT (https://github.com/necolas/normalize.css/blob/master/LICENSE.md) */*,::after,::before{box-sizing:border-box}@media (prefers-reduced-motion:no-preference){:root{scroll-behavior:smooth}}body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,"Noto Sans","Liberation Sans",sans-serif,"Apple Color Emoji","Segoe UI Emoji","Segoe UI Symbol","Noto Color Emoji";font-size:1rem;font-weight:400;line-height:1.5;color:#212529;background-color:#fff;-webkit-text-size-adjust:100%;-webkit-tap-highlight-color:transparent}hr{margin:1rem 0;color:inherit;background-color:currentColor;border:0;opacity:.25}hr:not([size]){height:1px}h1,h2,h3,h4,h5,h6{margin-top:0;margin-bottom:.5rem;font-weight:500;line-height:1.2}h1{font-size:calc(1.375rem + 1.5vw)}@media (min-width:1200px){h1{font-size:2.5rem}}h2{font-size:calc(1.325rem + .9vw)}@media (min-width:1200px){h2{font-size:2rem}}h3{font-size:calc(1.3rem + .6vw)}@media (min-width:1200px){h3{font-size:1.75rem}}h4{font-size:calc(1.275rem + .3vw)}@media (min-width:1200px){h4{font-size:1.5rem}}h5{font-size:1.25rem}h6{font-size:1rem}p{margin-top:0;margin-bottom:1rem}abbr[data-bs-original-title],abbr[title]{-webkit-text-decoration:underline dotted;text-decoration:underline dotted;cursor:help;-webkit-text-decoration-skip-ink:none;text-decoration-skip-ink:none}address{margin-bottom:1rem;font-style:normal;line-height:inherit}ol,ul{padding-left:2rem}dl,ol,ul{margin-top:0;margin-bottom:1rem}ol ol,ol ul,ul ol,ul ul{margin-bottom:0}dt{font-weight:700}dd{margin-bottom:.5rem;margin-left:0}blockquote{margin:0 0 1rem}b,strong{font-weight:bolder}small{font-size:.875em}mark{padding:.2em;background-color:#fcf8e3}sub,sup{position:relative;font-size:.75em;line-height:0;vertical-align:baseline}sub{bottom:-.25em}sup{top:-.5em}a{color:#0d6efd;text-decoration:underline}a:hover{color:#0a58ca}a:not([href]):not([class]),a:not([href]):not([class]):hover{color:inherit;text-decoration:none}code,kbd,pre,samp{font-family:SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace;font-size:1em;direction:ltr;unicode-bidi:bidi-override}pre{display:block;margin-top:0;margin-bottom:1rem;overflow:auto;font-size:.875em}pre code{font-size:inherit;color:inherit;word-break:normal}code{font-size:.875em;color:#d63384;word-wrap:break-word}a>code{color:inherit}kbd{padding:.2rem .4rem;font-size:.875em;color:#fff;background-color:#212529;border-radius:.2rem}kbd kbd{padding:0;font-size:1em;font-weight:700}figure{margin:0 0 1rem}img,svg{vertical-align:middle}table{caption-side:bottom;border-collapse:collapse}caption{padding-top:.5rem;padding-bottom:.5rem;color:#6c757d;text-align:left}th{text-align:inherit;text-align:-webkit-match-parent}tbody,td,tfoot,th,thead,tr{border-color:inherit;border-style:solid;border-width:0}label{display:inline-block}button{border-radius:0}button:focus:not(:focus-visible){outline:0}button,input,optgroup,select,textarea{margin:0;font-family:inherit;font-size:inherit;line-height:inherit}button,select{text-transform:none}[role=button]{cursor:pointer}select{word-wrap:normal}select:disabled{opacity:1}[list]::-webkit-calendar-picker-indicator{display:none}[type=button],[type=reset],[type=submit],button{-webkit-appearance:button}[type=button]:not(:disabled),[type=reset]:not(:disabled),[type=submit]:not(:disabled),button:not(:disabled){cursor:pointer}::-moz-focus-inner{padding:0;border-style:none}textarea{resize:vertical}fieldset{min-width:0;padding:0;margin:0;border:0}legend{float:left;width:100%;padding:0;margin-bottom:.5rem;font-size:calc(1.275rem + .3vw);line-height:inherit}@media (min-width:1200px){legend{font-size:1.5rem}}legend+*{clear:left}::-webkit-datetime-edit-day-field,::-webkit-datetime-edit-fields-wrapper,::-webkit-datetime-edit-hour-field,::-webkit-datetime-edit-minute,::-webkit-datetime-edit-month-field,::-webkit-datetime-edit-text,::-webkit-datetime-edit-year-field{padding:0}::-webkit-inner-spin-button{height:auto}[type=search]{outline-offset:-2px;-webkit-appearance:textfield}::-webkit-search-decoration{-webkit-appearance:none}::-webkit-color-swatch-wrapper{padding:0}::file-selector-button{font:inherit}::-webkit-file-upload-button{font:inherit;-webkit-appearance:button}output{display:inline-block}iframe{border:0}summary{display:list-item;cursor:pointer}progress{vertical-align:baseline}[hidden]{display:none!important}</style>
@@ -40,7 +40,7 @@
 
             <h2>Contents</h2>
             <ul>
-  <li><a href="#clev2er-l2-algorithm-framework">CLEV2ER L2 Algorithm Framework</a>
+  <li><a href="#cryotempo-land-ice-l2-processor">CryoTEMPO Land Ice L2 Processor</a>
   <ul>
     <li><a href="#main-features">Main Features</a></li>
     <li><a href="#processing-chains-already-implemented-in-framework">Processing chains already implemented in framework:</a></li>
@@ -82,9 +82,9 @@
                     <h1 class="modulename">
 clev2er    </h1>
 
-                        <div class="docstring"><h1 id="clev2er-l2-algorithm-framework">CLEV2ER L2 Algorithm Framework</h1>
+                        <div class="docstring"><h1 id="cryotempo-land-ice-l2-processor">CryoTEMPO Land Ice L2 Processor</h1>
 
-<p>A generic python algorithm framework, available from <a href="https://github.com/cpomsoft/clev2er">https://github.com/cpomsoft/clev2er</a>.
+<p>A generic python algorithm framework, available from <a href="https://github.com/mssl-softeng/clev2er">https://github.com/mssl-softeng/clev2er</a>.
 The framework is designed for (but not 
 restricted to) Level-1b to Level-2 processing of ESA radar altimetry mission data. Initial usage 
 is expected for the ESA CryoSat-2 and CRISTAL missions. The key features of the framework are 
@@ -181,13 +181,13 @@ directly supported.</p>
 This will create a directory called <strong>/clev2er</strong> in your current directory.</p>
 
 <p>with https: <br />
-<code>git clone https://github.com/cpomsoft/clev2er.git</code>  </p>
+<code>git clone https://github.com/mssl-softeng/clev2er.git</code>  </p>
 
 <p>or with ssh: <br />
-<code>git clone git@github.com:cpomsoft/clev2er.git</code>  </p>
+<code>git clone git@github.com:mssl-softeng/clev2er.git</code>  </p>
 
 <p>or with the GitHub CLI: <br />
-<code>gh repo clone cpomsoft/clev2er</code>  </p>
+<code>gh repo clone mssl-softeng/clev2er</code>  </p>
 
 <h2 id="shell-environment-setup">Shell Environment Setup</h2>
 
@@ -827,7 +827,7 @@ failures before you commit. The same tests are also run when you commit (and mus
 
 <h3 id="automatic-documentation">Automatic Documentation</h3>
 
-<p>This user manual is hosted on GitHub pages (<a href="https://cpomsoft.github.io/clev2er">https://cpomsoft.github.io/clev2er</a>)</p>
+<p>This user manual is hosted on GitHub pages (<a href="https://mssl-softeng.github.io/clev2er">https://mssl-softeng.github.io/clev2er</a>)</p>
 
 <p>Content is created from doctrings
 (optionally containing Markdown: <a href="https://www.markdownguide.org/basic-syntax/#code">https://www.markdownguide.org/basic-syntax/#code</a> )
@@ -858,9 +858,9 @@ markdown to describe the directories beneath it.</p>
                         <label class="view-source-button" for="mod-clev2er-view-source"><span>View Source</span></label>
 
                         <div class="pdoc-code codehilite"><pre><span></span><span id="L-1"><a href="#L-1"><span class="linenos">  1</span></a><span class="sd">&quot;&quot;&quot;</span>
-</span><span id="L-2"><a href="#L-2"><span class="linenos">  2</span></a><span class="sd"># CLEV2ER L2 Algorithm Framework</span>
+</span><span id="L-2"><a href="#L-2"><span class="linenos">  2</span></a><span class="sd"># CryoTEMPO Land Ice L2 Processor</span>
 </span><span id="L-3"><a href="#L-3"><span class="linenos">  3</span></a>
-</span><span id="L-4"><a href="#L-4"><span class="linenos">  4</span></a><span class="sd">A generic python algorithm framework, available from https://github.com/cpomsoft/clev2er.</span>
+</span><span id="L-4"><a href="#L-4"><span class="linenos">  4</span></a><span class="sd">A generic python algorithm framework, available from https://github.com/mssl-softeng/clev2er.</span>
 </span><span id="L-5"><a href="#L-5"><span class="linenos">  5</span></a><span class="sd">The framework is designed for (but not </span>
 </span><span id="L-6"><a href="#L-6"><span class="linenos">  6</span></a><span class="sd">restricted to) Level-1b to Level-2 processing of ESA radar altimetry mission data. Initial usage </span>
 </span><span id="L-7"><a href="#L-7"><span class="linenos">  7</span></a><span class="sd">is expected for the ESA CryoSat-2 and CRISTAL missions. The key features of the framework are </span>
@@ -935,13 +935,13 @@ markdown to describe the directories beneath it.</p>
 </span><span id="L-76"><a href="#L-76"><span class="linenos"> 76</span></a><span class="sd">This will create a directory called **/clev2er** in your current directory.</span>
 </span><span id="L-77"><a href="#L-77"><span class="linenos"> 77</span></a>
 </span><span id="L-78"><a href="#L-78"><span class="linenos"> 78</span></a><span class="sd">with https:  </span>
-</span><span id="L-79"><a href="#L-79"><span class="linenos"> 79</span></a><span class="sd">`git clone https://github.com/cpomsoft/clev2er.git`  </span>
+</span><span id="L-79"><a href="#L-79"><span class="linenos"> 79</span></a><span class="sd">`git clone https://github.com/mssl-softeng/clev2er.git`  </span>
 </span><span id="L-80"><a href="#L-80"><span class="linenos"> 80</span></a>
 </span><span id="L-81"><a href="#L-81"><span class="linenos"> 81</span></a><span class="sd">or with ssh:  </span>
-</span><span id="L-82"><a href="#L-82"><span class="linenos"> 82</span></a><span class="sd">`git clone git@github.com:cpomsoft/clev2er.git`  </span>
+</span><span id="L-82"><a href="#L-82"><span class="linenos"> 82</span></a><span class="sd">`git clone git@github.com:mssl-softeng/clev2er.git`  </span>
 </span><span id="L-83"><a href="#L-83"><span class="linenos"> 83</span></a>
 </span><span id="L-84"><a href="#L-84"><span class="linenos"> 84</span></a><span class="sd">or with the GitHub CLI:  </span>
-</span><span id="L-85"><a href="#L-85"><span class="linenos"> 85</span></a><span class="sd">`gh repo clone cpomsoft/clev2er`  </span>
+</span><span id="L-85"><a href="#L-85"><span class="linenos"> 85</span></a><span class="sd">`gh repo clone mssl-softeng/clev2er`  </span>
 </span><span id="L-86"><a href="#L-86"><span class="linenos"> 86</span></a>
 </span><span id="L-87"><a href="#L-87"><span class="linenos"> 87</span></a><span class="sd">## Shell Environment Setup</span>
 </span><span id="L-88"><a href="#L-88"><span class="linenos"> 88</span></a>
@@ -1539,7 +1539,7 @@ markdown to describe the directories beneath it.</p>
 </span><span id="L-680"><a href="#L-680"><span class="linenos">680</span></a>
 </span><span id="L-681"><a href="#L-681"><span class="linenos">681</span></a><span class="sd">### Automatic Documentation</span>
 </span><span id="L-682"><a href="#L-682"><span class="linenos">682</span></a>
-</span><span id="L-683"><a href="#L-683"><span class="linenos">683</span></a><span class="sd">This user manual is hosted on GitHub pages (https://cpomsoft.github.io/clev2er)</span>
+</span><span id="L-683"><a href="#L-683"><span class="linenos">683</span></a><span class="sd">This user manual is hosted on GitHub pages (https://mssl-softeng.github.io/clev2er)</span>
 </span><span id="L-684"><a href="#L-684"><span class="linenos">684</span></a>
 </span><span id="L-685"><a href="#L-685"><span class="linenos">685</span></a><span class="sd">Content is created from doctrings</span>
 </span><span id="L-686"><a href="#L-686"><span class="linenos">686</span></a><span class="sd">(optionally containing Markdown: https://www.markdownguide.org/basic-syntax/#code )</span>

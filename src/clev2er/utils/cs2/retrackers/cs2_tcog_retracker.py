@@ -620,8 +620,7 @@ def retrack_tcog_waveforms_cs2(
                     plot_start_index = max(plot_start_index, 0)
 
                     plot_end_index = first_peak_ind + int(wf_bin_numi.size / 80)
-                    if plot_end_index > (wf_bin_numi.size - 1):
-                        plot_end_index = wf_bin_numi.size - 1
+                    plot_end_index = min(plot_end_index, wf_bin_numi.size - 1)
 
                     ax2.plot(
                         wf_bin_numi[plot_start_index:plot_end_index],
