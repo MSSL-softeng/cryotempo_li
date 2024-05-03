@@ -47,6 +47,20 @@ pytestmark = pytest.mark.requires_external_data
             [-36.33, -64.057, 98.364],  # lons
             [1],  # grid values in mask to indicate inside
         ),
+        (
+            "greenland_icesheet_2km_grid_mask_mouginot2019",
+            [0],  # indices of points inside
+            [65.23],  # lats
+            [-48.46],  # lons
+            [7],  # grid values in mask to indicate inside
+        ),
+        (
+            "greenland_icesheet_2km_grid_mask_mouginot2019",
+            [0],  # indices of points inside
+            [64.01],  # lats
+            [-42.82],  # lons
+            [6],  # grid values in mask to indicate inside
+        ),
     ],
 )
 def test_mask_points_inside(  # too-many-arguments, pylint: disable=R0913
@@ -94,8 +108,44 @@ def test_mask_points_inside(  # too-many-arguments, pylint: disable=R0913
             [-38, 16, -58],  # lons
             [
                 2,
-                99,
                 0,
+                0,
+            ],  # expected surface type, grounded ice (2), out of mask (99), ocean(0)
+        ),
+        (
+            "greenland_icesheet_2km_grid_mask_mouginot2019",
+            [
+                65.23,
+                64.01,
+                64.49,
+                80.59,
+                74.38,
+                70.59,
+                69.57,
+                79.67,
+                -80.0,
+            ],  # lats
+            [
+                -48.46,
+                -42.82,
+                -37.08,
+                -51.14,
+                -52.89,
+                -49.61,
+                -30.96,
+                -30.01,
+                75,
+            ],  # lons
+            [
+                7,  # 'SW'
+                6,  # 'SE'
+                0,  # 'Outside'
+                3,  # 'NO'
+                5,  # 'NW'
+                2,  # 'CW'
+                1,  # 'CE'
+                4,  # 'NE'
+                0,  # 'Outside'
             ],  # expected surface type, grounded ice (2), out of mask (99), ocean(0)
         ),
     ],
@@ -113,7 +163,7 @@ def test_mask_grid_mask_values(mask_name, lats, lons, expected_surface_type) -> 
     """
     thismask = Mask(mask_name, store_in_shared_memory=False)
 
-    mask_values = thismask.grid_mask_values(lats, lons, unknown_value=99)
+    mask_values = thismask.grid_mask_values(lats, lons, unknown_value=0)
 
     thismask.clean_up()  # free up shared memory
 
@@ -127,9 +177,10 @@ def test_mask_grid_mask_values(mask_name, lats, lons, expected_surface_type) -> 
                 mask_values[index]
             ), f"Surface type at {lats[index]},{lons[index]} should be {expected}"
         else:
-            assert (
-                expected == mask_values[index]
-            ), f"Surface type at {lats[index]},{lons[index]} should be {expected}"
+            assert expected == mask_values[index], (
+                f"Surface type at {lats[index]},{lons[index]} should be"
+                f"{expected} but is {mask_values[index]}"
+            )
 
 
 def test_mask_loading():
