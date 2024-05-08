@@ -1,5 +1,4 @@
-"""Class for area masking
-"""
+"""Class for area masking"""
 
 import hashlib
 import logging
@@ -24,7 +23,7 @@ mask_list = [
     "greenland_bedmachine_v3_grid_mask",  # Greenland Bedmachine v3 surface type mask
     "antarctica_iceandland_dilated_10km_grid_mask",  # Antarctic ice (grounded+floating) and
     # ice free land mask (source BedMachine v2) ,
-    # dilated by 10km out into the ocean
+    # dilated by 10km out into the ocean. NetCDF compressed version.
     "greenland_iceandland_dilated_10km_grid_mask",  # Greenland ice (grounded+floating) and ice free
     # land mask  (source BedMachine v3) , dilated by
     # 10km out into the ocean
@@ -37,7 +36,7 @@ mask_list = [
     "greenland_icesheet_2km_grid_mask_rignot2016",
     # Greenland ice sheet grounded ice mask, from 2km grid, source: Rignot 2016. Can select basins
     "greenland_icesheet_2km_grid_mask_mouginot2019",
-    # Greenland ice sheet grounded ice mask, from 2km grid, source: Mouginot 2019
+    # Greenland ice sheet grounded ice mask, from 2km grid, source: Mouginot 2019. Can select basins
 ]
 
 # pylint: disable=too-many-instance-attributes
@@ -244,14 +243,14 @@ class Mask:
             if not mask_path:
                 mask_file = (
                     f'{environ["CPDATA_DIR"]}/RESOURCES/surface_discrimination_masks'
-                    "/antarctica/bedmachine_v2/dilated_10km_mask.npz"
+                    "/antarctica/bedmachine_v2/ant_dilated_grid_mask.nc"
                 )
             else:
                 mask_file = mask_path
 
             if not isfile(mask_file):
                 self.log.error("mask file %s does not exist", mask_file)
-                raise FileNotFoundError("mask file does not exist")
+                raise FileNotFoundError(f"mask file {mask_file} does not exist")
 
             self.num_x = 13333
             self.num_y = 13333
@@ -261,10 +260,10 @@ class Mask:
             self.minym = -3333000
             self.binsize = 500  # meters
             self.crs_bng = CRS("epsg:3031")  # Polar Stereo - South (71S, 0E)
-            self.load_npz_mask(mask_file)
             self.mask_grid_possible_values = [0, 1]  # values in the mask_grid
             self.grid_value_names = ["outside", "inside Antarctic dilated mask"]
             self.grid_colors = ["blue", "darkgrey"]
+            self.load_netcdf_mask(mask_file, flip=False, nc_mask_var="mask")
 
             self.mask_long_name = "Dilated by 10km in to  Ocean"
         # -----------------------------------------------------------------------------
@@ -277,14 +276,14 @@ class Mask:
             if not mask_path:
                 mask_file = (
                     f'{environ["CPDATA_DIR"]}/RESOURCES/surface_discrimination_masks'
-                    "/greenland/bedmachine_v3/dilated_10km_mask.npz"
+                    "/greenland/bedmachine_v3/grn_dilated_grid_mask.nc"
                 )
             else:
                 mask_file = mask_path
 
             if not isfile(mask_file):
                 self.log.error("mask file %s does not exist", mask_file)
-                raise FileNotFoundError("mask file does not exist")
+                raise FileNotFoundError(f"mask file {mask_file} does not exist")
 
             self.num_x = 10218
             self.num_y = 18346
@@ -292,13 +291,16 @@ class Mask:
             self.bad_mask_value = 255  # value in unknown grid cells in mask
             self.binsize = 150  # meters
             self.minxm = -652925
-            self.minym = -632675 - (self.num_y * self.binsize)
-            self.crs_bng = CRS("epsg:3413")  # Polar Stereo - South (70N, 45W)
-            self.load_npz_mask(mask_file)
+            self.minym = -3384575
+            self.crs_bng = CRS("epsg:3413")  # Polar Stereo - North (70N, 45W)
             self.mask_grid_possible_values = [0, 1]  # values in the mask_grid
             self.grid_value_names = ["outside", "inside Greenland dilated mask"]
             self.grid_colors = ["blue", "darkgrey"]
             self.mask_long_name = "Dilated by 10km in to  Ocean"
+
+            with Dataset(mask_file) as nc:
+                self.mask_grid = np.array(nc.variables["mask"][:]).astype("i1")
+            self.mask_grid = np.transpose(self.mask_grid)
 
         # -----------------------------------------------------------------------------
 
