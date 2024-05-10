@@ -85,16 +85,16 @@ def test_alg_basin_ids(l1b_file) -> None:
     success, _ = thisalg.process(l1b, shared_dict)
     assert success, "algorithm should not fail"
 
-    assert "basin_mask_values_rignot" in shared_dict, "basin_mask_values_rignot missing"
-    assert "basin_mask_values_zwally" in shared_dict, "basin_mask_values_zwally missing"
-
     # Test that the mask values arrays have the correct length
-
-    assert len(shared_dict["basin_mask_values_rignot"]) == len(l1b["lat_20_ku"][:].data)
-    assert len(shared_dict["basin_mask_values_zwally"]) == len(l1b["lat_20_ku"][:].data)
 
     # Test values returned are within expected ranges for Zwally
     if shared_dict["hemisphere"] == "south":
+        assert "basin_mask_values_rignot" in shared_dict, "basin_mask_values_rignot missing"
+        assert "basin_mask_values_zwally" in shared_dict, "basin_mask_values_zwally missing"
+
+        assert len(shared_dict["basin_mask_values_rignot"]) == len(l1b["lat_20_ku"][:].data)
+        assert len(shared_dict["basin_mask_values_zwally"]) == len(l1b["lat_20_ku"][:].data)
+
         # expected range 0..27 for Zwally basins
         assert np.logical_and(
             shared_dict["basin_mask_values_zwally"] >= 0,
@@ -105,4 +105,15 @@ def test_alg_basin_ids(l1b_file) -> None:
         assert np.logical_and(
             shared_dict["basin_mask_values_rignot"] >= 0,
             shared_dict["basin_mask_values_rignot"] <= 19,
+        ).all()
+    else:
+        assert "basin_mask_values_rignot" in shared_dict, "basin_mask_values_rignot missing"
+        assert "basin_mask_values_mouginot" in shared_dict, "basin_mask_values_mouginot missing"
+
+        assert len(shared_dict["basin_mask_values_rignot"]) == len(l1b["lat_20_ku"][:].data)
+        assert len(shared_dict["basin_mask_values_mouginot"]) == len(l1b["lat_20_ku"][:].data)
+
+        assert np.logical_and(
+            shared_dict["basin_mask_values_mouginot"] >= 0,
+            shared_dict["basin_mask_values_mouginot"] <= 8,
         ).all()
