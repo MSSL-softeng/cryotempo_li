@@ -235,8 +235,8 @@ def geolocate_sin(l1b, config, dem_ant, dem_grn, range_cor_20_ku, ind_wfm_retrac
     Args:
         l1b (_type_): _description_
         config (_type_): _description_
-        dem_ant (_type_): _description_
-        dem_grn (_type_): _description_
+        dem_ant (Dem): Antarctic DEM
+        dem_grn (Dem): Greenland DEM
         range_cor_20_ku (_type_): _description_
         ind_wfm_retrack_20_ku (_type_): _description_
 
