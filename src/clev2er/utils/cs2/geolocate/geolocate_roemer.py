@@ -143,7 +143,8 @@ def find_poca(
         alt_pt (float): altitude at nadir (m)
 
     Returns:
-        (float,float,float,float,bool): poca_x, poca_y, poca_z, slope_correction_to_height,
+        (float,float,float,float,float,bool): poca_x, poca_y, poca_z, slope_correction_to_height,
+        range_to_satellite_of_poca,
         flg_success
     """
 
@@ -168,7 +169,7 @@ def find_poca(
     [dem_rpoca, dempoca_ind] = np.nanmin(dem_range_vec), np.nanargmin(dem_range_vec)
 
     if np.isnan(zdem[dempoca_ind]) | (zdem[dempoca_ind] == -9999):
-        return -999, -999, -999, -999, 0
+        return -999, -999, -999, -999, -999, 0
 
     # compute relocation correction to apply to assumed nadir altimeter elevation to move to poca
     slope_correction_to_height = dem_rpoca + zdem[dempoca_ind] - alt_pt
@@ -180,6 +181,7 @@ def find_poca(
         ydem[dempoca_ind],
         zdem[dempoca_ind],
         slope_correction_to_height,
+        dem_rpoca,
         flg_success,
     )
 
@@ -239,6 +241,9 @@ def geolocate_roemer(
 
     across_track_beam_width = config["instrument"]["across_track_beam_width_lrm"]  # meters
     pulse_limited_footprint_size_lrm = config["instrument"]["pulse_limited_footprint_size_lrm"]  # m
+    reference_bin_index = config["instrument"]["ref_bin_index_lrm"]
+    range_bin_size = config["instrument"]["range_bin_size_lrm"]  # meters
+    num_bins = config["instrument"]["num_range_bins_lrm"]
 
     # Additional options
     include_dhdt_correction = config["lrm_roemer_geolocation"]["include_dhdt_correction"]
@@ -251,6 +256,7 @@ def geolocate_roemer(
 
     median_filter_dem_segment = config["lrm_roemer_geolocation"]["median_filter"]
     median_filter_width = 7  # Adjusted to be close to CS2 PLF width of 1600m. TODO : add to config
+    reject_outside_range_window = config["lrm_roemer_geolocation"]["reject_outside_range_window"]
 
     # ------------------------------------------------------------------------------------
 
@@ -379,6 +385,7 @@ def geolocate_roemer(
                 this_poca_y,
                 this_poca_z,
                 slope_correction_to_height,
+                range_to_sat_of_poca,
                 flg_success,
             ) = find_poca(zdem, xdem, ydem, nadir_x[i], nadir_y[i], altitudes[i])
 
@@ -480,6 +487,7 @@ def geolocate_roemer(
                     this_poca_y,
                     this_poca_z,
                     slope_correction_to_height,
+                    range_to_sat_of_poca,
                     flg_success,
                 ) = find_poca(zdem, xdem, ydem, nadir_x[i], nadir_y[i], altitudes[i])
                 if not flg_success:
@@ -490,6 +498,20 @@ def geolocate_roemer(
                 poca_z[i] = this_poca_z
 
                 # print(f"2nd poca: {this_poca_x} {this_poca_y} {this_poca_z}")
+
+            if reject_outside_range_window:
+                range_to_window_start = (
+                    geo_corrected_tracker_range[i] - (reference_bin_index) * range_bin_size
+                )
+                range_to_window_end = (
+                    geo_corrected_tracker_range[i]
+                    + (num_bins - reference_bin_index) * range_bin_size
+                )
+                if (range_to_sat_of_poca < range_to_window_start) or (
+                    range_to_sat_of_poca > range_to_window_end
+                ):
+                    slope_ok[i] = False
+                    continue
 
             slope_correction[i] = slope_correction_to_height
             dist_reloc = np.sqrt((this_poca_x - nadir_x[i]) ** 2 + (this_poca_y - nadir_y[i]) ** 2)
