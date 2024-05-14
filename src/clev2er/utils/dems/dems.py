@@ -35,6 +35,7 @@ dem_list = [
     "rema_ant_1km",  # Antarctic REMA v1.1 at 1km
     "rema_ant_1km_v2",  # Antarctic REMA v2.0 at 1km
     "rema_ant_200m",  # Antarctic REMA v1.1 at 200m
+    "rema_ant_gapless_100m",  # Antarctic REMA v1.1 at 100m with gaps filled (Dong, 2022)"
     "arcticdem_1km",  # ArcticDEM v3.0 at 1km
     "arcticdem_1km_v4.1",  # ArcticDEM v4.1 at 1km
     "arcticdem_1km_greenland_v4.1",  # ArcticDEM v4.1 at 1km, subarea greenland
@@ -476,6 +477,24 @@ class Dem:
             self.crs_bng = CRS("epsg:3031")  # Polar Stereo - South -71S
             self.southern_hemisphere = True
             self.void_value = -9999
+            self.dtype = np.float32
+            self.reference_year = 2010  # YYYY, the year the DEM's elevations are referenced to
+
+        elif self.name == "rema_ant_gapless_100m":
+            # REMA Antarctic 100m DEM  v1.1 (PGC 2018)
+            # The void areas will contain null values (-9999) in lieu of the terrain elevations.
+
+            filename = "GaplessREMA100.tif"
+            filled_filename = "GaplessREMA100.tif"
+            default_dir = f'{os.environ["CPDATA_DIR"]}/SATS/RA/DEMS/rema_gapless_100m'
+            self.src_url = "https://figshare.com/ndownloader/files/33972245"
+            self.src_url_filled = "https://figshare.com/ndownloader/files/33972245"
+            self.dem_version = "1.0"
+            self.src_institute = "PGC, filled by Dong(2022)"
+            self.long_name = "REMA Gapless"
+            self.crs_bng = CRS("epsg:3031")  # Polar Stereo - South -71S
+            self.southern_hemisphere = True
+            self.void_value = -32767
             self.dtype = np.float32
             self.reference_year = 2010  # YYYY, the year the DEM's elevations are referenced to
 

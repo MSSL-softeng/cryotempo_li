@@ -55,6 +55,7 @@ log = logging.getLogger(__name__)
         ("rema_ant_1km", [-77], [106], [3516]),  # Vostok
         ("rema_ant_1km_v2", [-77], [106], [3516]),  # Vostok
         ("rema_ant_200m", [-77], [106], [3516]),  # Vostok
+        ("rema_ant_gapless_100m", [-77], [106], [3516]),  # Vostok
         ("awi_ant_1km_floating", [-80], [182], [0]),  # Ross Ice Shelf
         ("awi_ant_1km_grounded", [-77], [106], [3516]),  # Vostok
         ("awi_ant_1km", [-77], [106], [3516]),  # Vostok),# Vostok
