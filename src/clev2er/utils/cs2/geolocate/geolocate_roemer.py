@@ -257,6 +257,8 @@ def geolocate_roemer(
     median_filter_dem_segment = config["lrm_roemer_geolocation"]["median_filter"]
     median_filter_width = 7  # Adjusted to be close to CS2 PLF width of 1600m. TODO : add to config
     reject_outside_range_window = config["lrm_roemer_geolocation"]["reject_outside_range_window"]
+    range_window_lower_trim = config["lrm_roemer_geolocation"]["range_window_lower_trim"]
+    range_window_upper_trim = config["lrm_roemer_geolocation"]["range_window_upper_trim"]
 
     # ------------------------------------------------------------------------------------
 
@@ -501,11 +503,14 @@ def geolocate_roemer(
 
             if reject_outside_range_window:
                 range_to_window_start = (
-                    geo_corrected_tracker_range[i] - (reference_bin_index) * range_bin_size
+                    range_window_lower_trim
+                    + geo_corrected_tracker_range[i]
+                    - (reference_bin_index) * range_bin_size
                 )
                 range_to_window_end = (
                     geo_corrected_tracker_range[i]
-                    + (num_bins - reference_bin_index) * range_bin_size
+                    + ((num_bins - reference_bin_index) * range_bin_size)
+                    - range_window_upper_trim
                 )
                 if (range_to_sat_of_poca < range_to_window_start) or (
                     range_to_sat_of_poca > range_to_window_end
