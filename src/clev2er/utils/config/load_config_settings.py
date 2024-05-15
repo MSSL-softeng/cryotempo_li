@@ -83,8 +83,8 @@ def load_algorithm_list(
         if not os.path.isdir(algorithm_list_dir):
             raise OSError(f"Could not find algorithm list directory : {algorithm_list_dir}")
 
-        if version < 0 or version > 100:
-            raise ValueError(f"version ({version}) must be between 1 and 100")
+        if version < 0 or version > 999:
+            raise ValueError(f"version ({version}) must be between 1 and 999")
 
         if baseline:
             if not baseline.isalpha():

@@ -873,8 +873,8 @@ def main() -> None:
             sys.exit("ERROR: --baseline <BASELINE>, must be a single char A..Z")
 
     if args.version:
-        if args.version > 100:
-            sys.exit("ERROR: --version <version>, must be an integer 1..100")
+        if args.version > 999:
+            sys.exit("ERROR: --version <version>, must be an integer 1..999")
 
     # -------------------------------------------------------------------------
     # Load main XML controller configuration file
