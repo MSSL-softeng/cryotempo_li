@@ -187,7 +187,13 @@ class Algorithm(BaseAlgorithm):
 
         # Run the slope correction to calculate POCA lat,lon and height
         # If geolocation fails, lat,lon are set to nadir and height to np.nan
-        height_20_ku, lat_poca_20_ku, lon_poca_20_ku, slope_ok = geolocate_roemer(
+        (
+            height_20_ku,
+            lat_poca_20_ku,
+            lon_poca_20_ku,
+            slope_ok,
+            relocation_distance,
+        ) = geolocate_roemer(
             l1b,
             thisdem,
             thisdem_fine,
@@ -212,6 +218,7 @@ class Algorithm(BaseAlgorithm):
         shared_dict["longitudes"] = lon_poca_20_ku
         shared_dict["height_20_ku"] = height_20_ku
         shared_dict["roemer_slope_ok"] = slope_ok
+        shared_dict["relocation_distance"] = relocation_distance
 
         # Return success (True,'')
         return (True, "")

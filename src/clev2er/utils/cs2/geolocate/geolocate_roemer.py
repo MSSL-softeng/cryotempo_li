@@ -212,7 +212,7 @@ def geolocate_roemer(
     geo_corrected_tracker_range: np.ndarray,
     retracker_correction: np.ndarray,
     waveforms_to_include: np.ndarray,
-) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     """Geolocate CS2 LRM measurements using an adapted Roemer (Roemer et al, 2007) method
 
     Args:
@@ -225,8 +225,8 @@ def geolocate_roemer(
         retracker_correction (np.ndarray) : retracker correction to range (m)
         waveforms_to_include (np.ndarray) : boolean array of waveforms to include (False == reject)
     Returns:
-        (np.ndarray, np.ndarray, np.ndarray, np.ndarray):
-        (height_20_ku, lat_poca_20_ku, lon_poca_20_ku, slope_ok)
+        (np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray):
+        (height_20_ku, lat_poca_20_ku, lon_poca_20_ku, slope_ok, relocation_distance)
     """
 
     if thisdem is None:
@@ -279,6 +279,7 @@ def geolocate_roemer(
     slope_correction = np.full_like(nadir_x, dtype=float, fill_value=np.nan)
     slope_ok = np.full_like(nadir_x, dtype=bool, fill_value=True)
     height_20_ku = np.full_like(nadir_x, dtype=float, fill_value=np.nan)
+    relocation_distance = np.full_like(nadir_x, dtype=float, fill_value=np.nan)
 
     # if using a dh/dt correction to the DEM we need to calculate the time diff in years
     if include_dhdt_correction:
@@ -519,8 +520,10 @@ def geolocate_roemer(
                     continue
 
             slope_correction[i] = slope_correction_to_height
-            dist_reloc = np.sqrt((this_poca_x - nadir_x[i]) ** 2 + (this_poca_y - nadir_y[i]) ** 2)
-            if dist_reloc > max_poca_reloc_distance:
+            relocation_distance[i] = np.sqrt(
+                (this_poca_x - nadir_x[i]) ** 2 + (this_poca_y - nadir_y[i]) ** 2
+            )
+            if relocation_distance[i] > max_poca_reloc_distance:
                 slope_ok[i] = False
 
         if config["lrm_roemer_geolocation"]["use_sliding_window"]:
@@ -664,4 +667,4 @@ def geolocate_roemer(
             height_20_ku[idx] += l1b["dop_cor_20_ku"][idx]
             height_20_ku[idx] -= sdop
 
-    return (height_20_ku, lat_poca_20_ku, lon_poca_20_ku, slope_ok)
+    return (height_20_ku, lat_poca_20_ku, lon_poca_20_ku, slope_ok, relocation_distance)

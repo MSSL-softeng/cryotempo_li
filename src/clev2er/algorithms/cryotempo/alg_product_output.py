@@ -564,6 +564,21 @@ class Algorithm(BaseAlgorithm):
         )
         nc_var[:] = shared_dict["uncertainty"]
 
+        # Additional Parameters
+
+        if self.config["product_output"]["include_additional_parameters"]:
+            # Relocation_distance
+            nc_var = dset.createVariable("relocation_distance", "double", ("time",))
+            nc_var.units = "m"
+            nc_var.coordinates = "longitude latitude"
+            nc_var.long_name = "relocation distance of POCA from Nadir"
+            nc_var.standard_name = "distance"
+            nc_var.comment = "Relocation distance from nadir to POCA in m"
+            if "relocation_distance" in shared_dict:
+                nc_var[:] = shared_dict["relocation_distance"]
+            else:
+                nc_var[:] = np.full_like(time_20_ku, np.nan, dtype=float)
+
         # ----------------------------------------------------------------
         # Close netCDF dataset
         dset.close()

@@ -78,7 +78,7 @@ def test_alg_geolocate_roemer(l1b_file, l2i_file) -> None:
     assert base_dir is not None
 
     # Load merged config file for chain
-    config, _, _, _, _ = load_config_files("cryotempo", baseline="C", version=1)
+    config, _, _, _, _ = load_config_files("cryotempo")
 
     # Set to Sequential Processing
     config["chain"]["use_multi_processing"] = False
