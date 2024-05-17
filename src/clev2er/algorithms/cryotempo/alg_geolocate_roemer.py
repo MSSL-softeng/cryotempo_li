@@ -176,6 +176,10 @@ class Algorithm(BaseAlgorithm):
         # \/    down the chain in the 'shared_dict' dict     \/
         # -------------------------------------------------------------------
 
+        if shared_dict["instr_mode"] != "LRM":
+            self.log.info("algorithm skipped as not LRM file")
+            return (True, "algorithm skipped as not LRM file")
+
         if shared_dict["hemisphere"] == "south":
             thisdem = self.dem_ant
             thisdem_fine = self.dem_ant_fine
