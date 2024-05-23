@@ -2,12 +2,15 @@
 
 """
 import logging
+from datetime import datetime, timedelta  # date and time functions
 
 import numpy as np
 from scipy.optimize import OptimizeWarning
 
 from clev2er.utils.cs2.geolocate import sarin_phase
+from clev2er.utils.cs2.geolocate.geolocate_roemer import datetime2year
 from clev2er.utils.cs2.geolocate.lrm_slope import ecef_to_llh_pyproj, llh_to_ecef_pyproj
+from clev2er.utils.dhdt_data.dhdt import Dhdt
 
 # too-many-branches, pylint: disable=R0912
 # too-many-arguments, pylint: disable=R0913
@@ -229,7 +232,9 @@ def phase_to_angle(
     return angle
 
 
-def geolocate_sin(l1b, config, dem_ant, dem_grn, range_cor_20_ku, ind_wfm_retrack_20_ku):
+def geolocate_sin(
+    l1b, config, dem_ant, dem_grn, thisdhdt: Dhdt | None, range_cor_20_ku, ind_wfm_retrack_20_ku
+):
     """djb to document
 
     Args:
@@ -237,6 +242,7 @@ def geolocate_sin(l1b, config, dem_ant, dem_grn, range_cor_20_ku, ind_wfm_retrac
         config (_type_): _description_
         dem_ant (Dem): Antarctic DEM
         dem_grn (Dem): Greenland DEM
+        thisdhdt (Dhdt|None) : Dh/dt correction class object
         range_cor_20_ku (_type_): _description_
         ind_wfm_retrack_20_ku (_type_): _description_
 
@@ -260,6 +266,26 @@ def geolocate_sin(l1b, config, dem_ant, dem_grn, range_cor_20_ku, ind_wfm_retrac
     sat_vel_vec_20_ku = l1b["sat_vel_vec_20_ku"][:].data
     inter_base_vec_20_ku = l1b["inter_base_vec_20_ku"][:].data
     alt_20_ku = l1b["alt_20_ku"][:].data
+
+    include_dhdt_correction = config["sin_geolocation"]["include_dhdt_correction"]
+
+    if lat_20_ku[0] < 0:
+        thisdem = dem_ant
+    else:
+        thisdem = dem_grn
+
+    # if using a dh/dt correction to the DEM we need to calculate the time diff in years
+    if include_dhdt_correction:
+        time_20_ku = l1b["time_20_ku"][:].data[0]
+
+        track_year_dt = datetime(2000, 1, 1, 0) + timedelta(seconds=time_20_ku)
+        track_year = datetime2year(track_year_dt)
+        if track_year < 2010:
+            raise ValueError(f"track_year: {track_year} should not be < 2010 in dhdt correction")
+        if thisdem.reference_year == 0:
+            raise ValueError(f"thisdem.reference_year has not been set for DEM {thisdem.name}")
+
+        year_difference = track_year - thisdem.reference_year
 
     # Find number of records
     nrec = len(lat_20_ku)
@@ -401,21 +427,25 @@ def geolocate_sin(l1b, config, dem_ant, dem_grn, range_cor_20_ku, ind_wfm_retrac
     # --------------------------------------------------------------------------
     if config["sin_geolocation"]["unwrap"]:
         # Get the DEM height at both locations
-        if lat_20_ku[0] < 0:
-            unwrap_dem = dem_ant.interp_dem(
-                lat_unwrap_20_ku, lon_unwrap_20_ku, method="linear", xy_is_latlon=True
-            )
 
-            orig_dem = dem_ant.interp_dem(
-                final_lat_20_ku, final_lon_20_ku, method="linear", xy_is_latlon=True
-            )
-        else:
-            unwrap_dem = dem_grn.interp_dem(
-                lat_unwrap_20_ku, lon_unwrap_20_ku, method="linear", xy_is_latlon=True
-            )
-            orig_dem = dem_grn.interp_dem(
-                final_lat_20_ku, final_lon_20_ku, method="linear", xy_is_latlon=True
-            )
+        # Transform to X,Y locs in DEM projection
+        unwrap_x, unwrap_y = thisdem.lonlat_to_xy_transformer.transform(
+            lon_unwrap_20_ku, lat_unwrap_20_ku
+        )  # pylint: disable=unpacking-non-sequence
+
+        final_x, final_y = thisdem.lonlat_to_xy_transformer.transform(
+            final_lon_20_ku, final_lat_20_ku
+        )  # pylint: disable=unpacking-non-sequence
+
+        unwrap_dem = thisdem.interp_dem(unwrap_x, unwrap_y, method="linear", xy_is_latlon=False)
+        orig_dem = thisdem.interp_dem(final_x, final_y, method="linear", xy_is_latlon=False)
+
+        # Correct DEM elevations for dh/dt changes
+        if include_dhdt_correction:
+            if thisdhdt is not None:
+                # find dh/dt * year_difference at each DEM location
+                unwrap_dem += thisdhdt.interp_dhdt(unwrap_x, unwrap_y) * year_difference
+                orig_dem += thisdhdt.interp_dhdt(final_x, final_y) * year_difference
 
         # Work out which is best
         idx = np.where(
