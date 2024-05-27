@@ -136,7 +136,10 @@ class Algorithm(BaseAlgorithm):
                 self.config["lrm_roemer_geolocation"]["dhdt_grn_name"],
                 config=self.config,
             )
-            self.dhdt_ant = None  # Not implemented yet!
+            self.dhdt_ant: Dhdt | None = Dhdt(
+                self.config["lrm_roemer_geolocation"]["dhdt_ant_name"],
+                config=self.config,
+            )
         else:
             self.dhdt_grn = None
             self.dhdt_ant = None
