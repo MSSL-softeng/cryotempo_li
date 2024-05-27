@@ -129,20 +129,26 @@ class Algorithm(BaseAlgorithm):
                     store_in_shared_memory=init_shared_mem,
                     thislog=self.log,
                 )
+
+        # Define the attributes outside the if-else block
+        self.dhdt_grn = None
+        self.dhdt_ant = None
+
         # Load dh/dt data set if required
         if self.config["lrm_roemer_geolocation"]["include_dhdt_correction"]:
             self.log.info("Roemer dhdt correction enabled")
-            self.dhdt_grn: Dhdt | None = Dhdt(
-                self.config["lrm_roemer_geolocation"]["dhdt_grn_name"],
-                config=self.config,
-            )
-            self.dhdt_ant: Dhdt | None = Dhdt(
-                self.config["lrm_roemer_geolocation"]["dhdt_ant_name"],
-                config=self.config,
-            )
-        else:
-            self.dhdt_grn = None
-            self.dhdt_ant = None
+
+            if not self.config.get("ais_only"):
+                self.dhdt_grn = Dhdt(
+                    self.config["sin_geolocation"]["dhdt_grn_name"],
+                    config=self.config,
+                )
+
+            if not self.config.get("grn_only"):
+                self.dhdt_ant = Dhdt(
+                    self.config["sin_geolocation"]["dhdt_ant_name"],
+                    config=self.config,
+                )
 
         # Important Note :
         #     each Dem classes instance must run Dem.clean_up() in Algorithm.finalize()
