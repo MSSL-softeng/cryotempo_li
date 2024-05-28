@@ -169,9 +169,6 @@ def find_poca(
     try:
         [dem_rpoca, dempoca_ind] = np.nanmin(dem_range_vec), np.nanargmin(dem_range_vec)
     except Exception:  # pylint: disable=W0718
-        print(f"xdem={xdem}")
-        print(f"ydem={ydem}")
-        print(f"zdem={zdem}")
         return -999, -999, -999, -999, -999, 0
 
     if np.isnan(zdem[dempoca_ind]) | (zdem[dempoca_ind] == -9999):
@@ -493,7 +490,13 @@ def geolocate_roemer(
                 if include_dhdt_correction:
                     if thisdhdt is not None:
                         # find dh/dt * year_difference at each DEM location
-                        zdem += thisdhdt.interp_dhdt(xdem, ydem) * year_difference
+                        # find dh/dt * year_difference at each DEM location
+                        interpolated_dhdt = thisdhdt.interp_dhdt(xdem, ydem) * year_difference
+
+                        # Create a boolean mask where True indicates non-NaN values
+                        non_nan_mask = ~np.isnan(interpolated_dhdt)
+
+                        zdem[non_nan_mask] += interpolated_dhdt[non_nan_mask]
 
                 # Find the POCA location and slope correction to height
                 (
