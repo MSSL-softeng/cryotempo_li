@@ -20,7 +20,6 @@ from tifffile import imread  # to support large TIFF files
 
 log = logging.getLogger(__name__)
 
-
 # List of supported dh/dt data
 #   - add to this list if you add a new dh/dt data resource
 dhdt_list = [
@@ -174,6 +173,8 @@ class Dhdt:
         Raises:
             ValueError: if self.name not found in allowed list
         """
+        self.log.debug("Loading %s", self.name)
+
         if self.name == "grn_is2_is1_smith":
             self.filename = "gris_dhdt.tif"  # or gris_dhdt_filt.tif
             self.default_dir = f'{os.environ["CPDATA_DIR"]}/RESOURCES/dhdt_data/smith2020_is2_is1'

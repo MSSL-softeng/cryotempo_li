@@ -142,12 +142,14 @@ class Algorithm(BaseAlgorithm):
                 self.dhdt_grn = Dhdt(
                     self.config["lrm_roemer_geolocation"]["dhdt_grn_name"],
                     config=self.config,
+                    thislog=self.log,
                 )
 
             if not self.config.get("grn_only"):
                 self.dhdt_ant = Dhdt(
                     self.config["lrm_roemer_geolocation"]["dhdt_ant_name"],
                     config=self.config,
+                    thislog=self.log,
                 )
 
         # Important Note :
@@ -193,6 +195,7 @@ class Algorithm(BaseAlgorithm):
             thisdem = self.dem_ant
             thisdem_fine = self.dem_ant_fine
             thisdhdt = self.dhdt_ant
+            self.log.debug("Selecting southern hemisphere dhdt and dem")
         else:
             thisdem = self.dem_grn
             thisdem_fine = self.dem_grn_fine
