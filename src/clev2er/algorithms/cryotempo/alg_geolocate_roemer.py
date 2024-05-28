@@ -140,13 +140,13 @@ class Algorithm(BaseAlgorithm):
 
             if not self.config.get("ais_only"):
                 self.dhdt_grn = Dhdt(
-                    self.config["sin_geolocation"]["dhdt_grn_name"],
+                    self.config["lrm_roemer_geolocation"]["dhdt_grn_name"],
                     config=self.config,
                 )
 
             if not self.config.get("grn_only"):
                 self.dhdt_ant = Dhdt(
-                    self.config["sin_geolocation"]["dhdt_ant_name"],
+                    self.config["lrm_roemer_geolocation"]["dhdt_ant_name"],
                     config=self.config,
                 )
 
