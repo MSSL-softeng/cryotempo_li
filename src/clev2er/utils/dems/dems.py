@@ -35,7 +35,10 @@ dem_list = [
     "rema_ant_1km",  # Antarctic REMA v1.1 at 1km
     "rema_ant_1km_v2",  # Antarctic REMA v2.0 at 1km
     "rema_ant_200m",  # Antarctic REMA v1.1 at 200m
-    "rema_ant_gapless_100m",  # Antarctic REMA v1.1 at 100m with gaps filled (Dong, 2022)"
+    "rema_gapless_100m",  # REMA (v1.1)Gapless DEM Antarctica at 100m,:
+    # https://doi.org/10.1016/j.isprsjprs.2022.01.024
+    "rema_gapless_1km",  # REMA (v1.1)Gapless DEM Antarctica at 1km,:
+    # https://doi.org/10.1016/j.isprsjprs.2022.01.024
     "arcticdem_1km",  # ArcticDEM v3.0 at 1km
     "arcticdem_1km_v4.1",  # ArcticDEM v4.1 at 1km
     "arcticdem_1km_greenland_v4.1",  # ArcticDEM v4.1 at 1km, subarea greenland
@@ -134,8 +137,8 @@ class Dem:
                 pixel_width = transform[0]
                 pixel_height = -transform[4]  # Negative because the height is
                 # typically negative in GeoTIFFs
-                if pixel_width != pixel_height:
-                    raise ValueError(f"pixel_width {pixel_width} != pixel_height {pixel_width}")
+                if int(pixel_width) != int(pixel_height):
+                    raise ValueError(f"pixel_width {pixel_width} != pixel_height {pixel_height}")
         except RasterioIOError as exc:
             raise IOError(f"Could not read GeoTIFF: {exc}") from exc
         return (
@@ -473,25 +476,45 @@ class Dem:
             )
             self.dem_version = "1.1"
             self.src_institute = "PGC"
-            self.long_name = "REMA"
+            self.long_name = "REMA-1.1-Gapless-1km"
             self.crs_bng = CRS("epsg:3031")  # Polar Stereo - South -71S
             self.southern_hemisphere = True
             self.void_value = -9999
             self.dtype = np.float32
             self.reference_year = 2010  # YYYY, the year the DEM's elevations are referenced to
 
-        elif self.name == "rema_ant_gapless_100m":
-            # REMA Antarctic 100m DEM  v1.1 (PGC 2018)
-            # The void areas will contain null values (-9999) in lieu of the terrain elevations.
+        # --------------------------------------------------------------------------------
+        elif self.name == "rema_gapless_100m":
+            # REMA v1.1 at 100m with Gapless post-processing as per
+            # https://doi.org/10.1016/j.isprsjprs.2022.01.024
 
             filename = "GaplessREMA100.tif"
             filled_filename = "GaplessREMA100.tif"
             default_dir = f'{os.environ["CPDATA_DIR"]}/SATS/RA/DEMS/rema_gapless_100m'
-            self.src_url = "https://figshare.com/ndownloader/files/33972245"
-            self.src_url_filled = "https://figshare.com/ndownloader/files/33972245"
-            self.dem_version = "1.0"
-            self.src_institute = "PGC, filled by Dong(2022)"
-            self.long_name = "REMA Gapless"
+            self.src_url = "https://figshare.com/articles/dataset/Gapless-REMA100/19122212"
+            self.src_url_filled = "https://figshare.com/articles/dataset/Gapless-REMA100/19122212"
+            self.dem_version = "1.1(REMA)/2.0(Gapless)"
+            self.src_institute = "PGC/Dong(2022)"
+            self.long_name = "REMA-1.1-Gapless-100m"
+            self.crs_bng = CRS("epsg:3031")  # Polar Stereo - South -71S
+            self.southern_hemisphere = True
+            self.void_value = -32767
+            self.dtype = np.float32
+            self.reference_year = 2010  # YYYY, the year the DEM's elevations are referenced to
+
+        # --------------------------------------------------------------------------------
+        elif self.name == "rema_gapless_1km":
+            # REMA v1.1 at 100m with Gapless post-processing as per
+            # https://doi.org/10.1016/j.isprsjprs.2022.01.024
+
+            filename = "GaplessREMA1km.tif"
+            filled_filename = "GaplessREMA1km.tif"
+            default_dir = f'{os.environ["CPDATA_DIR"]}/SATS/RA/DEMS/rema_gapless_100m'
+            self.src_url = "https://figshare.com/articles/dataset/Gapless-REMA100/19122212"
+            self.src_url_filled = "https://figshare.com/articles/dataset/Gapless-REMA100/19122212"
+            self.dem_version = "1.1(REMA)/2.0(Gapless)"
+            self.src_institute = "PGC/Dong(2022)"
+            self.long_name = "REMA-1.1-Gapless-100m"
             self.crs_bng = CRS("epsg:3031")  # Polar Stereo - South -71S
             self.southern_hemisphere = True
             self.void_value = -32767
