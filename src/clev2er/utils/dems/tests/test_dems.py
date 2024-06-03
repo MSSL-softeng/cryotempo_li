@@ -1,5 +1,5 @@
-"""pytests for Dem class
-"""
+"""pytests for Dem class"""
+
 import logging
 
 import numpy as np
@@ -24,6 +24,8 @@ log = logging.getLogger(__name__)
         ),  # GIS location, elevations from CS2 CryoTEMPO Baseline-B
         ("rema_gapless_100m_zarr", [-77], [106], [3516]),  # Vostok
         ("rema_gapless_1km_zarr", [-77], [106], [3516]),  # Vostok
+        ("rema_ant_1km_v2_zarr", [-77], [106], [3516]),  # Vostok
+        ("arcticdem_1km_greenland_v4.1_zarr", [79.328], [-34.424], [1983.98]),
         # (
         #     "awi_grn_1km",
         #     [79.3280254299693],

@@ -148,7 +148,7 @@ lrm_roemer_geolocation:
   #
   # DEM selection
   antarctic_dem: rema_gapless_100m_zarr   # Dem class name to use for finding approx POCA over AIS
-  antarctic_dem_fine: rema_gapless_100m_zarr   # Dem class for final POCA. Can be the same as antarctic_dem
+  antarctic_dem_fine: rema_gapless_100m_zarr  # Dem class for final POCA. Can be the same as antarctic_dem
   greenland_dem: arcticdem_100m_greenland_v4.1_zarr # Dem class name to use for finding approx POCA over GIS
   greenland_dem_fine: arcticdem_100m_greenland_v4.1_zarr # Dem class for final POCA. Can be the same as greenland_dem
   fine_grid_sampling: 10  # sampling rate, when doing re-sampling of _fine DEM for PLF
@@ -167,8 +167,10 @@ lrm_roemer_geolocation:
   include_slope_doppler_correction: True
 
 reference_dem:
-  antarctic_dem: rema_ant_1km   # Dem class name to use for reference parameter
-  greenland_dem: arcticdem_1km  # Dem class name to use for reference parameter
+  antarctic_dem: rema_ant_1km_v2_zarr   # Dem class name to use for reference parameter
+  greenland_dem: arcticdem_1km_greenland_v4.1_zarr  # Dem class name to use for reference parameter
+  # antarctic_dem: rema_gapless_100m_zarr   # Dem class name to use for reference parameter
+  # greenland_dem: "arcticdem_100m_greenland_v4.1_zarr"  # Dem class name to use for reference parameter
 
 height_filters:
   # maximum difference to the reference dem elevation in m

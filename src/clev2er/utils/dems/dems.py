@@ -49,6 +49,7 @@ dem_list = [
     "arcticdem_1km",  # ArcticDEM v3.0 at 1km
     "arcticdem_1km_v4.1",  # ArcticDEM v4.1 at 1km
     "arcticdem_1km_greenland_v4.1",  # ArcticDEM v4.1 at 1km, subarea greenland
+    "arcticdem_1km_greenland_v4.1_zarr",  # ArcticDEM v4.1 at 1km, subarea greenland
     "arcticdem_100m_greenland",  # ArcticDEM v3.0, 100m resolution, subarea greenland
     "arcticdem_100m_greenland_v4.1",  # ArcticDEM v4.1, 100m resolution, subarea greenland
     "arcticdem_100m_greenland_v4.1_zarr",  # Zarr format of ArcticDEM v4.1, 100m resolution, grn
@@ -223,6 +224,10 @@ class Dem:
 
             except Exception as exc:  # pylint: disable=broad-exception-caught
                 self.log.error("Shared memory for %s could not be closed %s", self.name, exc)
+        else:
+            if self.zarr_type:
+                self.zdem = None
+                self.zdem_flip = None
 
     def load_npz(self, npz_file: str):
         """Load DEM from npz format file
@@ -696,6 +701,29 @@ class Dem:
             self.southern_hemisphere = False
             self.void_value = -9999
             self.dtype = np.float32
+        # --------------------------------------------------------------------------------
+        elif self.name == "arcticdem_1km_greenland_v4.1_zarr":
+            # 1km DEM (subarea of Greenland) extracted from ArcticDem v4.1
+            # The void areas will contain null values (-9999) in lieu of the terrain elevations.
+            filename = "arcticdem_mosaic_1km_v4.1_subarea_greenland.zarr"
+            filled_filename = (
+                "arcticdem_mosaic_1km_v4.1_subarea_greenland.zarr"  # No filled version available
+            )
+            default_dir = f'{os.environ["CPDATA_DIR"]}/SATS/RA/DEMS/arctic_dem_1km_v4.1'
+            self.src_url = (
+                "https://data.pgc.umn.edu/elev/dem/setsm/ArcticDEM/mosaic"
+                "/latest/1km/arcticdem_mosaic_1km_v4.1_dem.tif"
+            )
+            self.reference_year = 2010  # YYYY, the year the DEM's elevations are referenced to
+            self.src_url_filled = ""
+            self.dem_version = "4.1"
+            self.src_institute = "PGC"
+            self.long_name = "ArcticDem 1km, Greenland"
+            self.crs_bng = CRS("epsg:3413")  # Polar Stereo - North -latitude of origin 70N, 45
+            self.southern_hemisphere = False
+            self.void_value = -9999
+            self.dtype = np.float32
+            self.zarr_type = True
         # --------------------------------------------------------------------------------
         elif self.name == "arcticdem_100m_greenland_v4.1":
             # 100m DEM (subarea of Greenland) extracted from ArcticDem v4.1
