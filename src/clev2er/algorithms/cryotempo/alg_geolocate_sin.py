@@ -80,14 +80,14 @@ class Algorithm(BaseAlgorithm):
             self.dem_ant = None
         else:
             self.dem_ant = Dem(
-                "rema_ant_1km",
+                self.config["sin_geolocation"]["antarctic_dem"],
                 config=self.config,
                 store_in_shared_memory=init_shared_mem,
                 thislog=self.log,
             )
 
         self.dem_grn = Dem(
-            "arcticdem_1km",
+            self.config["sin_geolocation"]["greenland_dem"],
             config=self.config,
             store_in_shared_memory=init_shared_mem,
             thislog=self.log,

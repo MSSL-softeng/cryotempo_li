@@ -110,6 +110,8 @@ sin_geolocation:
   # solution (as determined by delta from a DEM)
   unwrap: True
   unwrap_trigger_m: 0
+  antarctic_dem: rema_ant_1km   # Dem class name to use for ambiguity detection
+  greenland_dem: arcticdem_1km  # Dem class name to use for ambiguity detection
 
 lrm_lepta_geolocation:
   # Configuration for the LRM LEPTA slope correction method (based on Li et al, 2022)
@@ -145,10 +147,10 @@ lrm_roemer_geolocation:
   use_sliding_window: False # searches for approx POCA using sliding PLF (slower) 
   #
   # DEM selection
-  antarctic_dem: rema_gapless_100m   # Dem class name to use for finding approx POCA over AIS
-  antarctic_dem_fine: rema_gapless_100m   # Dem class for final POCA. Can be the same as antarctic_dem
-  greenland_dem: arcticdem_100m_greenland_v4.1 # Dem class name to use for finding approx POCA over GIS
-  greenland_dem_fine: arcticdem_100m_greenland_v4.1 # Dem class for final POCA. Can be the same as greenland_dem
+  antarctic_dem: rema_gapless_100m_zarr   # Dem class name to use for finding approx POCA over AIS
+  antarctic_dem_fine: rema_gapless_100m_zarr   # Dem class for final POCA. Can be the same as antarctic_dem
+  greenland_dem: arcticdem_100m_greenland_v4.1_zarr # Dem class name to use for finding approx POCA over GIS
+  greenland_dem_fine: arcticdem_100m_greenland_v4.1_zarr # Dem class for final POCA. Can be the same as greenland_dem
   fine_grid_sampling: 10  # sampling rate, when doing re-sampling of _fine DEM for PLF
   median_filter: False # Apply 3x3 median filter to BLF DEM segments extracted around each nadir point
   reject_outside_range_window: True 
@@ -163,6 +165,10 @@ lrm_roemer_geolocation:
 
   # Additional height corrections
   include_slope_doppler_correction: True
+
+reference_dem:
+  antarctic_dem: rema_ant_1km   # Dem class name to use for reference parameter
+  greenland_dem: arcticdem_1km  # Dem class name to use for reference parameter
 
 height_filters:
   # maximum difference to the reference dem elevation in m
