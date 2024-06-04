@@ -1,4 +1,4 @@
-""" clev2er.algorithms.cryotempo.alg_geolocate_sin"""
+"""clev2er.algorithms.cryotempo.alg_geolocate_sin"""
 
 # These imports required by Algorithm template
 from typing import Tuple
@@ -99,8 +99,8 @@ class Algorithm(BaseAlgorithm):
         self.dhdt_ant = None
 
         # Load dh/dt data set if required
-        if self.config["lrm_roemer_geolocation"]["include_dhdt_correction"]:
-            self.log.info("Roemer dhdt correction enabled")
+        if self.config["sin_geolocation"]["include_dhdt_correction"]:
+            self.log.info("dhdt correction to DEMs enabled")
             self.dhdt_grn = Dhdt(
                 self.config["sin_geolocation"]["dhdt_grn_name"],
                 config=self.config,
@@ -159,7 +159,7 @@ class Algorithm(BaseAlgorithm):
             this_dhdt = self.dhdt_grn
 
         self.log.info("Calling SIN geolocation")
-        height_20_ku, lat_poca_20_ku, lon_poca_20_ku = geolocate_sin(
+        height_20_ku, lat_poca_20_ku, lon_poca_20_ku, ambiguity_flags, unwrap_flags = geolocate_sin(
             l1b,
             self.config,
             self.dem_ant,
@@ -174,6 +174,8 @@ class Algorithm(BaseAlgorithm):
         np.seterr(under="ignore")  # otherwise next line can fail
         shared_dict["lon_poca_20_ku"] = lon_poca_20_ku % 360.0
         shared_dict["height_20_ku"] = height_20_ku
+        shared_dict["ambiguity_flags"] = ambiguity_flags
+        shared_dict["unwrap_flags"] = unwrap_flags
 
         # Calculate final product latitudes, longitudes from POCA, set to
         # nadir where no POCA available

@@ -1,6 +1,5 @@
-"""geolocate_sin.py
+"""geolocate_sin.py"""
 
-"""
 import logging
 from datetime import datetime, timedelta  # date and time functions
 
@@ -253,7 +252,8 @@ def geolocate_sin(
         e: _description_
 
     Returns:
-        _type_: _description_
+        np.ndarray,np.ndarray,np.ndarray, np.ndarray,np.ndarray : height_20_ku, final_lat_20_ku,
+        final_lon_20_ku, ambiguity_flags, unwrap_flags
     """
     # Do phase estimation
     # Use phase, vectors to get lat/lon/height
@@ -305,6 +305,8 @@ def geolocate_sin(
     angle_unwrap_20_ku = np.zeros(nrec)
     delta_unwrap_h = np.zeros(nrec)
     height_unwrap_20_ku = np.zeros(nrec)
+
+    unwrap_flags = np.full_like(height_20_ku, dtype=bool, fill_value=False)
 
     config_fitter = config["sin_geolocation"]["phase_method"]
     if config_fitter == 1:
@@ -446,6 +448,8 @@ def geolocate_sin(
                 # find dh/dt * year_difference at each DEM location
                 unwrap_dem += thisdhdt.interp_dhdt(unwrap_x, unwrap_y) * year_difference
                 orig_dem += thisdhdt.interp_dhdt(final_x, final_y) * year_difference
+            else:
+                raise ValueError("No dh/dt correction data loaded, but dh/dt correction set")
 
         # Work out which is best
         idx = np.where(
@@ -460,6 +464,7 @@ def geolocate_sin(
 
         # Use the alternate solution if better
         if len(idx) > 0:
+            unwrap_flags[idx] = True
             height_20_ku[idx] = height_unwrap_20_ku[idx]
             final_lat_20_ku[idx] = lat_unwrap_20_ku[idx]
             final_lon_20_ku[idx] = lon_unwrap_20_ku[idx]
@@ -468,4 +473,9 @@ def geolocate_sin(
     log.debug("bad counts 1=%d 2=%d 3=%d", bad_1, bad_2, bad_3)
     log.info("Processed %d records", i + 1)
 
-    return height_20_ku, final_lat_20_ku, final_lon_20_ku
+    ambiguity_flags = np.array(
+        np.abs(height_20_ku - orig_dem) >= config["sin_geolocation"]["unwrap_trigger_m"]
+    )
+    print(ambiguity_flags)
+
+    return height_20_ku, final_lat_20_ku, final_lon_20_ku, ambiguity_flags, unwrap_flags
