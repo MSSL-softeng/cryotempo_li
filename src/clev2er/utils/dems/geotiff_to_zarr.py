@@ -190,8 +190,6 @@ DEMConverter(void_value=-9999).convert_geotiff_to_zarr(
     "/cpdata/SATS/RA/DEMS/rema_1km_dem_v2/rema_mosaic_1km_v2.0_filled_cop30_dem.zarr",
     "/cpdata/SATS/RA/DEMS/rema_1km_dem_v2/rema_mosaic_1km_v2.0_filled_cop30_dem_flipped.zarr",
 )
-
-
 DEMConverter(void_value=-32767).convert_geotiff_to_zarr(
     "/cpdata/SATS/RA/DEMS/rema_gapless_100m/GaplessREMA100.tif",
     "/cpdata/SATS/RA/DEMS/rema_gapless_100m/GaplessREMA100.zarr",
