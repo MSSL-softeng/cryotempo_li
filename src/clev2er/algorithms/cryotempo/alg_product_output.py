@@ -1,4 +1,4 @@
-""" clev2er.algorithms.templates.alg_template"""
+"""clev2er.algorithms.templates.alg_template"""
 
 import logging
 import os
@@ -563,6 +563,24 @@ class Algorithm(BaseAlgorithm):
             "precision measured at orbital cross-overs per 0.1 degree band of slope."
         )
         nc_var[:] = shared_dict["uncertainty"]
+
+        if self.config["product_output"]["include_additional_parameters"]:
+            if "product_output" in self.config:
+                if self.config["product_output"].get("include_additional_parameters", False):
+                    # unwrap_flags
+                    nc_var = dset.createVariable("unwrap_flags", "i1", ("time",))
+                    nc_var.units = "m"
+                    nc_var.coordinates = "longitude latitude"
+                    nc_var.long_name = "unwrap flags for SIN geolocation"
+                    nc_var.comment = "unwrap_flags 1= unwrapped, 0=not unwrapped"
+                    nc_var[:] = shared_dict["unwrap_flags"].astype(np.int8)
+                    # ambiguity_flags
+                    nc_var = dset.createVariable("ambiguity_flags", "i1", ("time",))
+                    nc_var.units = "m"
+                    nc_var.coordinates = "longitude latitude"
+                    nc_var.long_name = "ambiguity flags for SIN geolocation"
+                    nc_var.comment = "ambiguity_flags 1= ambiguity found, 0=not found"
+                    nc_var[:] = shared_dict["ambiguity_flags"].astype(np.int8)
 
         # ----------------------------------------------------------------
         # Close netCDF dataset

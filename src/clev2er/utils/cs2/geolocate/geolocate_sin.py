@@ -476,6 +476,5 @@ def geolocate_sin(
     ambiguity_flags = np.array(
         np.abs(height_20_ku - orig_dem) >= config["sin_geolocation"]["unwrap_trigger_m"]
     )
-    print(ambiguity_flags)
 
     return height_20_ku, final_lat_20_ku, final_lon_20_ku, ambiguity_flags, unwrap_flags
