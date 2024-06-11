@@ -81,14 +81,14 @@ class Algorithm(BaseAlgorithm):
             self.dem_ant = None
         else:
             self.dem_ant = Dem(
-                "rema_ant_1km_zarr",
+                "rema_ant_1km",  # "rema_ant_1km_zarr"
                 config=self.config,
                 store_in_shared_memory=init_shared_mem,
                 thislog=self.log,
             )
 
         self.dem_grn = Dem(
-            "arcticdem_1km_zarr",
+            "arcticdem_1km",  # "arcticdem_1km_greenland_v4.1_zarr",
             config=self.config,
             store_in_shared_memory=init_shared_mem,
             thislog=self.log,
