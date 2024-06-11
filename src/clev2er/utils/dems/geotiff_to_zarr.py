@@ -2,6 +2,8 @@
 chunk size equivalent to the CS2 beamwidth
 """
 
+import sys
+
 import numpy as np
 import rasterio
 import zarr
@@ -181,53 +183,63 @@ class DEMConverter:
 
 # Example usage
 DEMConverter(void_value=-9999).convert_geotiff_to_zarr(
-    "/cpdata/SATS/RA/DEMS/rema_1km_dem/REMA_1km_dem_filled.tif",
-    "/cpdata/SATS/RA/DEMS/rema_1km_dem/REMA_1km_dem_filled.zarr",
-    "/cpdata/SATS/RA/DEMS/rema_1km_dem/REMA_1km_dem_filled_flipped.zarr",
-)
-DEMConverter(void_value=-9999).convert_geotiff_to_zarr(
-    "/cpdata/SATS/RA/DEMS/rema_1km_dem_v2/rema_mosaic_1km_v2.0_filled_cop30_dem.tif",
-    "/cpdata/SATS/RA/DEMS/rema_1km_dem_v2/rema_mosaic_1km_v2.0_filled_cop30_dem.zarr",
-    "/cpdata/SATS/RA/DEMS/rema_1km_dem_v2/rema_mosaic_1km_v2.0_filled_cop30_dem_flipped.zarr",
-)
-DEMConverter(void_value=-32767).convert_geotiff_to_zarr(
-    "/cpdata/SATS/RA/DEMS/rema_gapless_100m/GaplessREMA100.tif",
-    "/cpdata/SATS/RA/DEMS/rema_gapless_100m/GaplessREMA100.zarr",
-    "/cpdata/SATS/RA/DEMS/rema_gapless_100m/GaplessREMA100_flipped.zarr",
-)
-DEMConverter(void_value=-32767).convert_geotiff_to_zarr(
-    "/cpdata/SATS/RA/DEMS/rema_gapless_100m/GaplessREMA1km.tif",
-    "/cpdata/SATS/RA/DEMS/rema_gapless_100m/GaplessREMA1km.zarr",
-    "/cpdata/SATS/RA/DEMS/rema_gapless_100m/GaplessREMA1km_flipped.zarr",
-)
-DEMConverter(void_value=-9999).convert_geotiff_to_zarr(
-    "/cpdata/SATS/RA/DEMS/arctic_dem_100m_v4.1/arcticdem_mosaic_100m_v4.1_subarea_greenland.tif",
-    "/cpdata/SATS/RA/DEMS/arctic_dem_100m_v4.1/arcticdem_mosaic_100m_v4.1_subarea_greenland.zarr",
-    (
-        "/cpdata/SATS/RA/DEMS/arctic_dem_100m_v4.1/"
-        "arcticdem_mosaic_100m_v4.1_subarea_greenland_flipped.zarr"
-    ),
-)
-DEMConverter(void_value=-9999).convert_geotiff_to_zarr(
     "/cpdata/SATS/RA/DEMS/arctic_dem_1km/arcticdem_mosaic_1km_v3.0.tif",
     "/cpdata/SATS/RA/DEMS/arctic_dem_1km/arcticdem_mosaic_1km_v3.0.zarr",
     "/cpdata/SATS/RA/DEMS/arctic_dem_1km/arcticdem_mosaic_1km_v3.0_flipped.zarr",
 )
-DEMConverter(void_value=-9999).convert_geotiff_to_zarr(
-    "/cpdata/SATS/RA/DEMS/arctic_dem_1km/arcticdem_mosaic_1km_v3.0_subarea_greenland.tif",
-    "/cpdata/SATS/RA/DEMS/arctic_dem_1km/arcticdem_mosaic_1km_v3.0_subarea_greenland.zarr",
-    "/cpdata/SATS/RA/DEMS/arctic_dem_1km/arcticdem_mosaic_1km_v3.0_subarea_greenland_flipped.zarr",
-)
-DEMConverter(void_value=-9999).convert_geotiff_to_zarr(
-    "/cpdata/SATS/RA/DEMS/arctic_dem_1km_v4.1/arcticdem_mosaic_1km_v4.1_dem.tif",
-    "/cpdata/SATS/RA/DEMS/arctic_dem_1km_v4.1/arcticdem_mosaic_1km_v4.1_dem.zarr",
-    "/cpdata/SATS/RA/DEMS/arctic_dem_1km_v4.1/arcticdem_mosaic_1km_v4.1_dem_flipped.zarr",
-)
-DEMConverter(void_value=-9999).convert_geotiff_to_zarr(
-    "/cpdata/SATS/RA/DEMS/arctic_dem_1km_v4.1/arcticdem_mosaic_1km_v4.1_subarea_greenland.tif",
-    "/cpdata/SATS/RA/DEMS/arctic_dem_1km_v4.1/arcticdem_mosaic_1km_v4.1_subarea_greenland.zarr",
-    (
-        "/cpdata/SATS/RA/DEMS/arctic_dem_1km_v4.1/"
-        "arcticdem_mosaic_1km_v4.1_subarea_greenland_flipped.zarr"
-    ),
-)
+
+sys.exit(1)
+
+# # Example usage
+# DEMConverter(void_value=-9999).convert_geotiff_to_zarr(
+#     "/cpdata/SATS/RA/DEMS/rema_1km_dem/REMA_1km_dem_filled.tif",
+#     "/cpdata/SATS/RA/DEMS/rema_1km_dem/REMA_1km_dem_filled.zarr",
+#     "/cpdata/SATS/RA/DEMS/rema_1km_dem/REMA_1km_dem_filled_flipped.zarr",
+# )
+# DEMConverter(void_value=-9999).convert_geotiff_to_zarr(
+#     "/cpdata/SATS/RA/DEMS/rema_1km_dem_v2/rema_mosaic_1km_v2.0_filled_cop30_dem.tif",
+#     "/cpdata/SATS/RA/DEMS/rema_1km_dem_v2/rema_mosaic_1km_v2.0_filled_cop30_dem.zarr",
+#     "/cpdata/SATS/RA/DEMS/rema_1km_dem_v2/rema_mosaic_1km_v2.0_filled_cop30_dem_flipped.zarr",
+# )
+# DEMConverter(void_value=-32767).convert_geotiff_to_zarr(
+#     "/cpdata/SATS/RA/DEMS/rema_gapless_100m/GaplessREMA100.tif",
+#     "/cpdata/SATS/RA/DEMS/rema_gapless_100m/GaplessREMA100.zarr",
+#     "/cpdata/SATS/RA/DEMS/rema_gapless_100m/GaplessREMA100_flipped.zarr",
+# )
+# DEMConverter(void_value=-32767).convert_geotiff_to_zarr(
+#     "/cpdata/SATS/RA/DEMS/rema_gapless_100m/GaplessREMA1km.tif",
+#     "/cpdata/SATS/RA/DEMS/rema_gapless_100m/GaplessREMA1km.zarr",
+#     "/cpdata/SATS/RA/DEMS/rema_gapless_100m/GaplessREMA1km_flipped.zarr",
+# )
+# DEMConverter(void_value=-9999).convert_geotiff_to_zarr(
+#     "/cpdata/SATS/RA/DEMS/arctic_dem_100m_v4.1/arcticdem_mosaic_100m_v4.1_subarea_greenland.tif",
+#     "/cpdata/SATS/RA/DEMS/arctic_dem_100m_v4.1/arcticdem_mosaic_100m_v4.1_subarea_greenland.zarr",
+#     (
+#         "/cpdata/SATS/RA/DEMS/arctic_dem_100m_v4.1/"
+#         "arcticdem_mosaic_100m_v4.1_subarea_greenland_flipped.zarr"
+#     ),
+# )
+# DEMConverter(void_value=-9999).convert_geotiff_to_zarr(
+#     "/cpdata/SATS/RA/DEMS/arctic_dem_1km/arcticdem_mosaic_1km_v3.0.tif",
+#     "/cpdata/SATS/RA/DEMS/arctic_dem_1km/arcticdem_mosaic_1km_v3.0.zarr",
+#     "/cpdata/SATS/RA/DEMS/arctic_dem_1km/arcticdem_mosaic_1km_v3.0_flipped.zarr",
+# )
+# DEMConverter(void_value=-9999).convert_geotiff_to_zarr(
+#     "/cpdata/SATS/RA/DEMS/arctic_dem_1km/arcticdem_mosaic_1km_v3.0_subarea_greenland.tif",
+#     "/cpdata/SATS/RA/DEMS/arctic_dem_1km/arcticdem_mosaic_1km_v3.0_subarea_greenland.zarr",
+#     "/cpdata/SATS/RA/DEMS/arctic_dem_1km/"
+#     "arcticdem_mosaic_1km_v3.0_subarea_greenland_flipped.zarr",
+# )
+# DEMConverter(void_value=-9999).convert_geotiff_to_zarr(
+#     "/cpdata/SATS/RA/DEMS/arctic_dem_1km_v4.1/arcticdem_mosaic_1km_v4.1_dem.tif",
+#     "/cpdata/SATS/RA/DEMS/arctic_dem_1km_v4.1/arcticdem_mosaic_1km_v4.1_dem.zarr",
+#     "/cpdata/SATS/RA/DEMS/arctic_dem_1km_v4.1/arcticdem_mosaic_1km_v4.1_dem_flipped.zarr",
+# )
+# DEMConverter(void_value=-9999).convert_geotiff_to_zarr(
+#     "/cpdata/SATS/RA/DEMS/arctic_dem_1km_v4.1/arcticdem_mosaic_1km_v4.1_subarea_greenland.tif",
+#     "/cpdata/SATS/RA/DEMS/arctic_dem_1km_v4.1/arcticdem_mosaic_1km_v4.1_subarea_greenland.zarr",
+#     (
+#         "/cpdata/SATS/RA/DEMS/arctic_dem_1km_v4.1/"
+#         "arcticdem_mosaic_1km_v4.1_subarea_greenland_flipped.zarr"
+#     ),
+# )
