@@ -2,6 +2,7 @@
 
 DEM class to read and interpolate DEMs
 """
+
 from __future__ import annotations
 
 import logging
@@ -11,16 +12,18 @@ from typing import Any
 
 import numpy as np
 import rasterio  # to extract GeoTIFF extents
+import zarr
 from pyproj import CRS  # coordinate reference system
 from pyproj import Transformer  # transforms
 from rasterio.errors import RasterioIOError
-from scipy.interpolate import interpn
+from scipy.interpolate import RegularGridInterpolator, interpn
 from scipy.ndimage import gaussian_filter
 from tifffile import imread  # to support large TIFF files
 
 # pylint: disable=too-many-arguments
 # pylint: disable=too-many-statements
 # pylint: disable=too-many-branches
+# pylint: disable=too-many-locals
 # pylint: disable=R0801
 
 log = logging.getLogger(__name__)
@@ -33,17 +36,23 @@ dem_list = [
     "awi_ant_1km_grounded",  # awi_ant_1km but masked for grounded ice only, from Bedmachine v2 mask
     "awi_ant_1km_floating",  # awi_ant_1km but masked for floating ice only from Bedmachine v2 mask
     "rema_ant_1km",  # Antarctic REMA v1.1 at 1km
+    "rema_ant_1km_zarr",  # Antarctic REMA v1.1 at 1km
     "rema_ant_1km_v2",  # Antarctic REMA v2.0 at 1km
+    "rema_ant_1km_v2_zarr",  # Antarctic REMA v2.0 at 1km in zarr format
     "rema_ant_200m",  # Antarctic REMA v1.1 at 200m
     "rema_gapless_100m",  # REMA (v1.1)Gapless DEM Antarctica at 100m,:
+    "rema_gapless_100m_zarr",  # REMA (v1.1)Gapless DEM Antarctica at 100m, Zarr format:
     # https://doi.org/10.1016/j.isprsjprs.2022.01.024
     "rema_gapless_1km",  # REMA (v1.1)Gapless DEM Antarctica at 1km,:
+    "rema_gapless_1km_zarr",  # REMA (v1.1)Gapless DEM Antarctica at 1km,:
     # https://doi.org/10.1016/j.isprsjprs.2022.01.024
     "arcticdem_1km",  # ArcticDEM v3.0 at 1km
     "arcticdem_1km_v4.1",  # ArcticDEM v4.1 at 1km
     "arcticdem_1km_greenland_v4.1",  # ArcticDEM v4.1 at 1km, subarea greenland
+    "arcticdem_1km_greenland_v4.1_zarr",  # ArcticDEM v4.1 at 1km, subarea greenland
     "arcticdem_100m_greenland",  # ArcticDEM v3.0, 100m resolution, subarea greenland
     "arcticdem_100m_greenland_v4.1",  # ArcticDEM v4.1, 100m resolution, subarea greenland
+    "arcticdem_100m_greenland_v4.1_zarr",  # Zarr format of ArcticDEM v4.1, 100m resolution, grn
 ]
 
 
@@ -83,6 +92,7 @@ class Dem:
         self.xdem = np.array([])
         self.ydem = np.array([])
         self.zdem = np.array([])
+        self.zdem_flip = np.array([])
         self.mindemx = None
         self.mindemy = None
         self.binsize = 0
@@ -92,6 +102,7 @@ class Dem:
         self.shared_mem: Any = None
         self.shared_mem_child = False  # set to True if a child process
         self.npz_type = False  # set to True when using .npz DEM file
+        self.zarr_type = False  # set to True when using .zarr DEM file
 
         # is accessing the Dem's shared memory
         # default is False (parent process which allocates
@@ -188,7 +199,10 @@ class Dem:
         self.log.info("Loading dem name: %s", self.name)
         self.log.info("Loading dem file: %s", this_path)
 
-        if not os.path.isfile(this_path):
+        if self.zarr_type:
+            if not os.path.isdir(this_path):
+                raise OSError(f"{this_path} not found")
+        elif not os.path.isfile(this_path):
             raise OSError(f"{this_path} not found")
 
         return this_path
@@ -210,6 +224,10 @@ class Dem:
 
             except Exception as exc:  # pylint: disable=broad-exception-caught
                 self.log.error("Shared memory for %s could not be closed %s", self.name, exc)
+        else:
+            if self.zarr_type:
+                self.zdem = None
+                self.zdem_flip = None
 
     def load_npz(self, npz_file: str):
         """Load DEM from npz format file
@@ -224,6 +242,39 @@ class Dem:
         self.mindemx = data["mindemx"]
         self.mindemy = data["mindemy"]
         self.binsize = data["binsize"]
+
+    def load_zarr(self, demfile: str):
+        """Load a .zarr file
+
+        Args:
+            demfile (str): path of .zarr file
+        """
+
+        try:
+            zdem = zarr.open_array(demfile, mode="r")
+        except Exception as exc:
+            raise IOError(f"Failed to open Zarr file: {demfile} {exc}") from exc
+
+        ncols = zdem.attrs["ncols"]
+        nrows = zdem.attrs["nrows"]
+        top_l = zdem.attrs["top_l"]
+        top_r = zdem.attrs["top_r"]
+        bottom_l = zdem.attrs["bottom_l"]
+        binsize = zdem.attrs["binsize"]
+
+        self.xdem = np.linspace(top_l[0], top_r[0], ncols, endpoint=True)
+        self.ydem = np.linspace(bottom_l[1], top_l[1], nrows, endpoint=True)
+        self.ydem = np.flip(self.ydem)
+        self.mindemx = self.xdem.min()
+        self.mindemy = self.ydem.min()
+        self.binsize = binsize  # grid resolution in m
+
+        self.zdem = zdem
+
+        try:
+            self.zdem_flip = zarr.open_array(demfile.replace(".zarr", "_flipped.zarr"), mode="r")
+        except Exception as exc:
+            raise IOError(f"Failed to open Zarr file: {demfile} {exc}") from exc
 
     def load_geotiff(self, demfile: str):
         """Load a GeoTIFF file
@@ -433,6 +484,30 @@ class Dem:
             self.reference_year = 2010  # YYYY, the year the DEM's elevations are referenced to
 
         # --------------------------------------------------------------------------------
+        elif self.name == "rema_ant_1km_zarr":
+            # REMA Antarctic 1km DEM  v1.1 (PGC 2018)
+            # The void areas will contain null values (-9999) in lieu of the terrain elevations.
+
+            filename = "REMA_1km_dem.zarr"
+            filled_filename = "REMA_1km_dem_filled.zarr"
+            default_dir = f'{os.environ["CPDATA_DIR"]}/SATS/RA/DEMS/rema_1km_dem'
+            self.src_url = (
+                "http://data.pgc.umn.edu/elev/dem/setsm/REMA/mosaic/v1.1/1km/REMA_1km_dem.tif"
+            )
+            self.src_url_filled = (
+                "http://data.pgc.umn.edu/elev/dem/setsm/REMA/mosaic/v1.1/1km/"
+                "REMA_1km_dem_filled.tif"
+            )
+            self.dem_version = "1.1"
+            self.src_institute = "PGC"
+            self.long_name = "REMA"
+            self.crs_bng = CRS("epsg:3031")  # Polar Stereo - South -71S
+            self.southern_hemisphere = True
+            self.void_value = -9999
+            self.dtype = np.float32
+            self.reference_year = 2010  # YYYY, the year the DEM's elevations are referenced to
+            self.zarr_type = True
+        # --------------------------------------------------------------------------------
         elif self.name == "rema_ant_1km_v2":
             # REMA Antarctic 1km DEM  v2.0 (PGC 2022)
             # Acknowledgment:
@@ -448,7 +523,7 @@ class Dem:
                 "rema_mosaic_1km_v2.0_dem.tif"
             )
             self.src_url_filled = (
-                "http://data.pgc.umn.edu/elev/dem/setsm/REMA/mosaic/v1.1/1km/"
+                "http://data.pgc.umn.edu/elev/dem/setsm/REMA/mosaic/v2.0/1km/"
                 "rema_mosaic_1km_v2.0_filled_cop30_dem.tif"
             )
             self.dem_version = "2.0"
@@ -458,6 +533,34 @@ class Dem:
             self.southern_hemisphere = True
             self.void_value = -9999
             self.dtype = np.float32
+
+        # --------------------------------------------------------------------------------
+        elif self.name == "rema_ant_1km_v2_zarr":
+            # REMA Antarctic 1km DEM  v2.0 (PGC 2022) in Zarr format
+            # Acknowledgment:
+            # Howat, Ian, et al., 2022, The Reference Elevation Model of Antarctica – Mosaics,
+            # Version 2, https://doi.org/10.7910/DVN/EBW8UC, Harvard Dataverse, V1.
+            # The void areas will contain null values (-9999) in lieu of the terrain elevations.
+            #
+            filename = "rema_mosaic_1km_v2.0_dem.zarr"
+            filled_filename = "rema_mosaic_1km_v2.0_filled_cop30_dem.zarr"
+            default_dir = f'{os.environ["CPDATA_DIR"]}/SATS/RA/DEMS/rema_1km_dem_v2'
+            self.src_url = (
+                "https://data.pgc.umn.edu/elev/dem/setsm/REMA/mosaic/v2.0/1km"
+                "rema_mosaic_1km_v2.0_dem.tif"
+            )
+            self.src_url_filled = (
+                "http://data.pgc.umn.edu/elev/dem/setsm/REMA/mosaic/v2.0/1km/"
+                "rema_mosaic_1km_v2.0_filled_cop30_dem.tif"
+            )
+            self.dem_version = "2.0"
+            self.src_institute = "PGC"
+            self.long_name = "REMA v2"
+            self.crs_bng = CRS("epsg:3031")  # Polar Stereo - South -71S
+            self.southern_hemisphere = True
+            self.void_value = -9999
+            self.dtype = np.float32
+            self.zarr_type = True
 
         # --------------------------------------------------------------------------------
         elif self.name == "rema_ant_200m":
@@ -503,6 +606,25 @@ class Dem:
             self.reference_year = 2010  # YYYY, the year the DEM's elevations are referenced to
 
         # --------------------------------------------------------------------------------
+        elif self.name == "rema_gapless_100m_zarr":
+            # REMA v1.1 at 100m with Gapless post-processing as per
+            # https://doi.org/10.1016/j.isprsjprs.2022.01.024
+
+            filename = "GaplessREMA100.zarr"
+            filled_filename = "GaplessREMA100.zarr"
+            default_dir = f'{os.environ["CPDATA_DIR"]}/SATS/RA/DEMS/rema_gapless_100m'
+            self.src_url = "https://figshare.com/articles/dataset/Gapless-REMA100/19122212"
+            self.src_url_filled = "https://figshare.com/articles/dataset/Gapless-REMA100/19122212"
+            self.dem_version = "1.1(REMA)/2.0(Gapless)"
+            self.src_institute = "PGC/Dong(2022)"
+            self.long_name = "REMA-1.1-Gapless-100m"
+            self.crs_bng = CRS("epsg:3031")  # Polar Stereo - South -71S
+            self.southern_hemisphere = True
+            self.void_value = -32767
+            self.dtype = np.float32
+            self.reference_year = 2010  # YYYY, the year the DEM's elevations are referenced to
+            self.zarr_type = True
+        # --------------------------------------------------------------------------------
         elif self.name == "rema_gapless_1km":
             # REMA v1.1 at 100m with Gapless post-processing as per
             # https://doi.org/10.1016/j.isprsjprs.2022.01.024
@@ -520,6 +642,24 @@ class Dem:
             self.void_value = -32767
             self.dtype = np.float32
             self.reference_year = 2010  # YYYY, the year the DEM's elevations are referenced to
+        elif self.name == "rema_gapless_1km_zarr":
+            # REMA v1.1 at 100m with Gapless post-processing as per
+            # https://doi.org/10.1016/j.isprsjprs.2022.01.024
+
+            filename = "GaplessREMA1km.zarr"
+            filled_filename = "GaplessREMA1km.zarr"
+            default_dir = f'{os.environ["CPDATA_DIR"]}/SATS/RA/DEMS/rema_gapless_100m'
+            self.src_url = "https://figshare.com/articles/dataset/Gapless-REMA100/19122212"
+            self.src_url_filled = "https://figshare.com/articles/dataset/Gapless-REMA100/19122212"
+            self.dem_version = "1.1(REMA)/2.0(Gapless)"
+            self.src_institute = "PGC/Dong(2022)"
+            self.long_name = "REMA-1.1-Gapless-100m"
+            self.crs_bng = CRS("epsg:3031")  # Polar Stereo - South -71S
+            self.southern_hemisphere = True
+            self.void_value = -32767
+            self.dtype = np.float32
+            self.reference_year = 2010  # YYYY, the year the DEM's elevations are referenced to
+            self.zarr_type = True
 
         # --------------------------------------------------------------------------------
         elif self.name == "arcticdem_100m_greenland":
@@ -562,6 +702,29 @@ class Dem:
             self.void_value = -9999
             self.dtype = np.float32
         # --------------------------------------------------------------------------------
+        elif self.name == "arcticdem_1km_greenland_v4.1_zarr":
+            # 1km DEM (subarea of Greenland) extracted from ArcticDem v4.1
+            # The void areas will contain null values (-9999) in lieu of the terrain elevations.
+            filename = "arcticdem_mosaic_1km_v4.1_subarea_greenland.zarr"
+            filled_filename = (
+                "arcticdem_mosaic_1km_v4.1_subarea_greenland.zarr"  # No filled version available
+            )
+            default_dir = f'{os.environ["CPDATA_DIR"]}/SATS/RA/DEMS/arctic_dem_1km_v4.1'
+            self.src_url = (
+                "https://data.pgc.umn.edu/elev/dem/setsm/ArcticDEM/mosaic"
+                "/latest/1km/arcticdem_mosaic_1km_v4.1_dem.tif"
+            )
+            self.reference_year = 2010  # YYYY, the year the DEM's elevations are referenced to
+            self.src_url_filled = ""
+            self.dem_version = "4.1"
+            self.src_institute = "PGC"
+            self.long_name = "ArcticDem 1km, Greenland"
+            self.crs_bng = CRS("epsg:3413")  # Polar Stereo - North -latitude of origin 70N, 45
+            self.southern_hemisphere = False
+            self.void_value = -9999
+            self.dtype = np.float32
+            self.zarr_type = True
+        # --------------------------------------------------------------------------------
         elif self.name == "arcticdem_100m_greenland_v4.1":
             # 100m DEM (subarea of Greenland) extracted from ArcticDem v4.1
             # The void areas will contain null values (-9999) in lieu of the terrain elevations.
@@ -583,6 +746,30 @@ class Dem:
             self.dtype = np.float32
 
         # --------------------------------------------------------------------------------
+        elif self.name == "arcticdem_100m_greenland_v4.1_zarr":
+            # 100m DEM (subarea of Greenland) extracted from ArcticDem v4.1
+            # The void areas will contain null values (-9999) in lieu of the terrain elevations.
+            filename = "arcticdem_mosaic_100m_v4.1_subarea_greenland.zarr"
+            filled_filename = (
+                "arcticdem_mosaic_100m_v4.1_subarea_greenland.zarr"  # No filled version available
+            )
+            default_dir = f'{os.environ["CPDATA_DIR"]}/SATS/RA/DEMS/arctic_dem_100m_v4.1'
+            self.src_url = (
+                "https://data.pgc.umn.edu/elev/dem/setsm/ArcticDEM/mosaic"
+                "/latest/100m/arcticdem_mosaic_100m_v4.1_dem.tif"
+            )
+            self.reference_year = 2010  # YYYY, the year the DEM's elevations are referenced to
+            self.src_url_filled = ""
+            self.dem_version = "4.1"
+            self.src_institute = "PGC"
+            self.long_name = "ArcticDem 100m, Greenland"
+            self.crs_bng = CRS("epsg:3413")  # Polar Stereo - North -latitude of origin 70N, 45
+            self.southern_hemisphere = False
+            self.void_value = -9999
+            self.dtype = np.float32
+            self.zarr_type = True
+
+        # --------------------------------------------------------------------------------
 
         else:
             raise ValueError(f"{self.name} does not have load support")
@@ -596,6 +783,8 @@ class Dem:
 
         if self.npz_type:
             self.load_npz(demfile)
+        elif self.zarr_type:
+            self.load_zarr(demfile)
         else:
             self.load_geotiff(demfile)
 
@@ -657,6 +846,58 @@ class Dem:
 
         return (xdem.flatten(), ydem.flatten(), zdem.flatten())
 
+    def chunked_interpolation(
+        self, x: np.ndarray, y: np.ndarray, myydem: np.ndarray, xdem: np.ndarray, method: str
+    ) -> np.ndarray:
+        """Interpolate DEM in chunks to handle large datasets efficiently.
+
+        This function performs interpolation on a DEM stored in a Zarr array by
+        extracting relevant chunks and creating a sub-grid for interpolation.
+
+        Args:
+            x (np.ndarray): Array of x coordinates in the DEM's projection (in meters).
+            y (np.ndarray): Array of y coordinates in the DEM's projection (in meters).
+            myydem (np.ndarray): Flipped y coordinates corresponding to the DEM grid.
+            xdem (np.ndarray): x coordinates corresponding to the DEM grid.
+            method (str): Interpolation method to use ('linear', 'nearest', etc.).
+
+        Returns:
+            np.ndarray: Interpolated DEM elevation values at the specified coordinates.
+        """
+        results = np.full_like(x, np.nan, dtype=np.float64)
+
+        # Define the bounding box for all points
+        x_min, x_max = x.min(), x.max()
+        y_min, y_max = y.min(), y.max()
+
+        # Determine the indices of the bounding box in the DEM grid
+        x_indices = np.searchsorted(xdem, [x_min, x_max])
+        y_indices = np.searchsorted(myydem, [y_min, y_max])
+
+        # Expand the indices to ensure we cover the region adequately
+        x_indices[0] = max(x_indices[0] - 1, 0)
+        x_indices[1] = min(x_indices[1] + 1, len(xdem) - 1)
+        y_indices[0] = max(y_indices[0] - 1, 0)
+        y_indices[1] = min(y_indices[1] + 1, len(myydem) - 1)
+
+        # Extract the sub-array
+        sub_zarr = self.zdem_flip[y_indices[0] : y_indices[1] + 1, x_indices[0] : x_indices[1] + 1]
+        sub_zarr = np.array(sub_zarr)
+
+        sub_myydem = myydem[y_indices[0] : y_indices[1] + 1]
+        sub_xdem = xdem[x_indices[0] : x_indices[1] + 1]
+
+        # Create an interpolator for the sub-array
+        interpolator = RegularGridInterpolator(
+            (sub_myydem, sub_xdem), sub_zarr, method=method, bounds_error=False, fill_value=np.nan
+        )
+
+        # Perform the interpolation for all points
+        points = np.vstack((y, x)).T
+        results = interpolator(points)
+
+        return results
+
     # ----------------------------------------------------------------------------------------------
     # Interpolate DEM, input x,y can be arrays or single, units m, in projection (epsg:3031")
     # returns the interpolated elevation(s) at x,y
@@ -683,12 +924,22 @@ class Dem:
         Returns:
             np.ndarray: interpolated dem elevation values
         """
+
+        x = np.array(x)
+        y = np.array(y)
+
         # Transform to x,y if inputs are lat,lon
         if xy_is_latlon:
             x, y = self.lonlat_to_xy_transformer.transform(  # pylint: disable=E0633
                 y, x
             )  # transform lon,lat -> x,y
         myydem = np.flip(self.ydem.copy())
+        # If zdem is actually a zarr array instead of a numpy array
+        # then we use the pre-flipped zarr version, but need to convert it to
+        # a numpy array first (which is slow)
+        if self.zarr_type:
+            return self.chunked_interpolation(x, y, myydem, self.xdem, method)
+
         myzdem = np.flip(self.zdem.copy(), 0)
         return interpn(
             (myydem, self.xdem),
