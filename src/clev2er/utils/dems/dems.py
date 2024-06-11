@@ -890,35 +890,52 @@ class Dem:
         """
         results = np.full_like(x, np.nan, dtype=np.float64)
 
-        # Define the bounding box for all points
-        x_min, x_max = x.min(), x.max()
-        y_min, y_max = y.min(), y.max()
+        # Identify valid points (where x and y are not NaN)
+        valid_mask = ~np.isnan(x) & ~np.isnan(y)
 
-        # Determine the indices of the bounding box in the DEM grid
-        x_indices = np.searchsorted(xdem, [x_min, x_max])
-        y_indices = np.searchsorted(myydem, [y_min, y_max])
+        # Only proceed if there are valid points
+        if valid_mask.any():
+            x_valid = x[valid_mask]
+            y_valid = y[valid_mask]
 
-        # Expand the indices to ensure we cover the region adequately
-        x_indices[0] = max(x_indices[0] - 1, 0)
-        x_indices[1] = min(x_indices[1] + 1, len(xdem) - 1)
-        y_indices[0] = max(y_indices[0] - 1, 0)
-        y_indices[1] = min(y_indices[1] + 1, len(myydem) - 1)
+            # Define the bounding box for valid points
+            x_min, x_max = x_valid.min(), x_valid.max()
+            y_min, y_max = y_valid.min(), y_valid.max()
 
-        # Extract the sub-array
-        sub_zarr = self.zdem_flip[y_indices[0] : y_indices[1] + 1, x_indices[0] : x_indices[1] + 1]
-        sub_zarr = np.array(sub_zarr)
+            # Determine the indices of the bounding box in the DEM grid
+            x_indices = np.searchsorted(xdem, [x_min, x_max])
+            y_indices = np.searchsorted(myydem, [y_min, y_max])
 
-        sub_myydem = myydem[y_indices[0] : y_indices[1] + 1]
-        sub_xdem = xdem[x_indices[0] : x_indices[1] + 1]
+            # Expand the indices to ensure we cover the region adequately
+            x_indices[0] = max(x_indices[0] - 1, 0)
+            x_indices[1] = min(x_indices[1] + 1, len(xdem) - 1)
+            y_indices[0] = max(y_indices[0] - 1, 0)
+            y_indices[1] = min(y_indices[1] + 1, len(myydem) - 1)
 
-        # Create an interpolator for the sub-array
-        interpolator = RegularGridInterpolator(
-            (sub_myydem, sub_xdem), sub_zarr, method=method, bounds_error=False, fill_value=np.nan
-        )
+            # Extract the sub-array
+            sub_zarr = self.zdem_flip[
+                y_indices[0] : y_indices[1] + 1, x_indices[0] : x_indices[1] + 1
+            ]
+            sub_zarr = np.array(sub_zarr)
 
-        # Perform the interpolation for all points
-        points = np.vstack((y, x)).T
-        results = interpolator(points)
+            sub_myydem = myydem[y_indices[0] : y_indices[1] + 1]
+            sub_xdem = xdem[x_indices[0] : x_indices[1] + 1]
+
+            # Create an interpolator for the sub-array
+            interpolator = RegularGridInterpolator(
+                (sub_myydem, sub_xdem),
+                sub_zarr,
+                method=method,
+                bounds_error=False,
+                fill_value=np.nan,
+            )
+
+            # Perform the interpolation for valid points
+            points = np.vstack((y_valid, x_valid)).T
+            interpolated_values = interpolator(points)
+
+            # Store the results in the corresponding places
+            results[valid_mask] = interpolated_values
 
         return results
 
