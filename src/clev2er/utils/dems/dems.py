@@ -25,6 +25,7 @@ from tifffile import imread  # to support large TIFF files
 # pylint: disable=too-many-branches
 # pylint: disable=too-many-locals
 # pylint: disable=R0801
+# pylint: disable=too-many-lines
 
 log = logging.getLogger(__name__)
 
@@ -47,6 +48,7 @@ dem_list = [
     "rema_gapless_1km_zarr",  # REMA (v1.1)Gapless DEM Antarctica at 1km,:
     # https://doi.org/10.1016/j.isprsjprs.2022.01.024
     "arcticdem_1km",  # ArcticDEM v3.0 at 1km
+    "arcticdem_1km_zarr",  # ArcticDEM v3.0 at 1km, Zarr format
     "arcticdem_1km_v4.1",  # ArcticDEM v4.1 at 1km
     "arcticdem_1km_greenland_v4.1",  # ArcticDEM v4.1 at 1km, subarea greenland
     "arcticdem_1km_greenland_v4.1_zarr",  # ArcticDEM v4.1 at 1km, subarea greenland
@@ -437,6 +439,28 @@ class Dem:
             self.southern_hemisphere = False
             self.void_value = -9999
             self.dtype = np.float32
+
+        # --------------------------------------------------------------------------------
+        elif self.name == "arcticdem_1km_zarr":
+            # Arctic DEM at 1km resolution
+
+            filename = "arcticdem_mosaic_1km_v3.0.zarr"
+            filled_filename = ""
+            default_dir = f'{os.environ["CPDATA_DIR"]}/SATS/RA/DEMS/arctic_dem_1km'
+            self.src_url = (
+                "http://data.pgc.umn.edu/elev/dem/setsm/ArcticDEM/mosaic/"
+                "v3.0/1km/arcticdem_mosaic_1km_v3.0.tif"
+            )
+            self.reference_year = 2010  # YYYY, the year the DEM's elevations are referenced to
+            self.src_url_filled = ""
+            self.dem_version = "3.0"
+            self.src_institute = "PGC"
+            self.long_name = "ArcticDEM 1km"
+            self.crs_bng = CRS("epsg:3413")  # Polar Stereo - North -lat of origin 70N, 45
+            self.southern_hemisphere = False
+            self.void_value = -9999
+            self.dtype = np.float32
+            self.zarr_type = True
 
         # --------------------------------------------------------------------------------
         elif self.name == "arcticdem_1km_v4.1":
@@ -866,35 +890,52 @@ class Dem:
         """
         results = np.full_like(x, np.nan, dtype=np.float64)
 
-        # Define the bounding box for all points
-        x_min, x_max = x.min(), x.max()
-        y_min, y_max = y.min(), y.max()
+        # Identify valid points (where x and y are not NaN)
+        valid_mask = ~np.isnan(x) & ~np.isnan(y)
 
-        # Determine the indices of the bounding box in the DEM grid
-        x_indices = np.searchsorted(xdem, [x_min, x_max])
-        y_indices = np.searchsorted(myydem, [y_min, y_max])
+        # Only proceed if there are valid points
+        if valid_mask.any():
+            x_valid = x[valid_mask]
+            y_valid = y[valid_mask]
 
-        # Expand the indices to ensure we cover the region adequately
-        x_indices[0] = max(x_indices[0] - 1, 0)
-        x_indices[1] = min(x_indices[1] + 1, len(xdem) - 1)
-        y_indices[0] = max(y_indices[0] - 1, 0)
-        y_indices[1] = min(y_indices[1] + 1, len(myydem) - 1)
+            # Define the bounding box for valid points
+            x_min, x_max = x_valid.min(), x_valid.max()
+            y_min, y_max = y_valid.min(), y_valid.max()
 
-        # Extract the sub-array
-        sub_zarr = self.zdem_flip[y_indices[0] : y_indices[1] + 1, x_indices[0] : x_indices[1] + 1]
-        sub_zarr = np.array(sub_zarr)
+            # Determine the indices of the bounding box in the DEM grid
+            x_indices = np.searchsorted(xdem, [x_min, x_max])
+            y_indices = np.searchsorted(myydem, [y_min, y_max])
 
-        sub_myydem = myydem[y_indices[0] : y_indices[1] + 1]
-        sub_xdem = xdem[x_indices[0] : x_indices[1] + 1]
+            # Expand the indices to ensure we cover the region adequately
+            x_indices[0] = max(x_indices[0] - 1, 0)
+            x_indices[1] = min(x_indices[1] + 1, len(xdem) - 1)
+            y_indices[0] = max(y_indices[0] - 1, 0)
+            y_indices[1] = min(y_indices[1] + 1, len(myydem) - 1)
 
-        # Create an interpolator for the sub-array
-        interpolator = RegularGridInterpolator(
-            (sub_myydem, sub_xdem), sub_zarr, method=method, bounds_error=False, fill_value=np.nan
-        )
+            # Extract the sub-array
+            sub_zarr = self.zdem_flip[
+                y_indices[0] : y_indices[1] + 1, x_indices[0] : x_indices[1] + 1
+            ]
+            sub_zarr = np.array(sub_zarr)
 
-        # Perform the interpolation for all points
-        points = np.vstack((y, x)).T
-        results = interpolator(points)
+            sub_myydem = myydem[y_indices[0] : y_indices[1] + 1]
+            sub_xdem = xdem[x_indices[0] : x_indices[1] + 1]
+
+            # Create an interpolator for the sub-array
+            interpolator = RegularGridInterpolator(
+                (sub_myydem, sub_xdem),
+                sub_zarr,
+                method=method,
+                bounds_error=False,
+                fill_value=np.nan,
+            )
+
+            # Perform the interpolation for valid points
+            points = np.vstack((y_valid, x_valid)).T
+            interpolated_values = interpolator(points)
+
+            # Store the results in the corresponding places
+            results[valid_mask] = interpolated_values
 
         return results
 

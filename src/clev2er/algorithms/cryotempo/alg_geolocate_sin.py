@@ -87,8 +87,9 @@ class Algorithm(BaseAlgorithm):
                 thislog=self.log,
             )
 
+        # "arcticdem_1km_zarr",  # "arcticdem_1km_greenland_v4.1_zarr",
         self.dem_grn = Dem(
-            "arcticdem_1km",  # "arcticdem_1km_greenland_v4.1_zarr",
+            "arcticdem_1km_greenland_v4.1",
             config=self.config,
             store_in_shared_memory=init_shared_mem,
             thislog=self.log,
