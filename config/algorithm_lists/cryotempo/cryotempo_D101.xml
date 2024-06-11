@@ -19,9 +19,11 @@
         <alg_backscatter>Enable</alg_backscatter>            <!--calculate backscatter-->
         <alg_geolocate_roemer>Enable</alg_geolocate_roemer>    <!--use Roemer method to geolocate LRM measurements to POCA and calc height-->
         <alg_geolocate_sin>Enable</alg_geolocate_sin>        <!--geolocate SIN measurements to POCA and calc height-->
+        <alg_geolocate_sin2>Enable</alg_geolocate_sin2>        <!--TEST geolocate SIN measurements to POCA and calc height-->
         <alg_basin_ids>Enable</alg_basin_ids>                <!--find ice sheet basin ids for each track location-->
         <alg_ref_dem>Enable</alg_ref_dem>                    <!--get reference DEM elevations for track -->
         <alg_filter_height>Enable</alg_filter_height>        <!--apply filters to height-->
+        <alg_filter_height2>Enable</alg_filter_height2>        <!--apply filters to height-->
         <alg_uncertainty>Enable</alg_uncertainty>            <!--calculate the uncertainty for each elev measurement-->
         <alg_product_output>Enable</alg_product_output>      <!--create the final L2 product-->
 

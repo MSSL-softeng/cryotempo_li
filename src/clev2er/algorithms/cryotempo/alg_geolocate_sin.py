@@ -81,14 +81,14 @@ class Algorithm(BaseAlgorithm):
             self.dem_ant = None
         else:
             self.dem_ant = Dem(
-                "rema_ant_1km",
+                "rema_ant_1km_zarr",
                 config=self.config,
                 store_in_shared_memory=init_shared_mem,
                 thislog=self.log,
             )
 
         self.dem_grn = Dem(
-            "arcticdem_1km",
+            "arcticdem_1km_zarr",
             config=self.config,
             store_in_shared_memory=init_shared_mem,
             thislog=self.log,
@@ -167,6 +167,7 @@ class Algorithm(BaseAlgorithm):
             this_dhdt,
             shared_dict["range_cor_20_ku"],
             shared_dict["ind_wfm_retrack_20_ku"],
+            self.config["sin_geolocation"]["include_dhdt_correction"],
         )
         self.log.info("SIN geolocation completed")
 

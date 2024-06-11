@@ -110,10 +110,13 @@ sin_geolocation:
   # solution (as determined by delta from a DEM)
   unwrap: True
   unwrap_trigger_m: 0
-  include_dhdt_correction: True # add a time varying correction to the DEM
+  include_dhdt_correction: False # add a time varying correction to the DEM
   dhdt_grn_name: grn_is2_is1_smith
   dhdt_ant_name: ais_is2_is1_smith
 
+sin_geolocation2:
+  include_dhdt_correction: True # add a time varying correction to the DEM
+  
 lrm_lepta_geolocation:
   # Configuration for the LRM LEPTA slope correction method (based on Li et al, 2022)
   #

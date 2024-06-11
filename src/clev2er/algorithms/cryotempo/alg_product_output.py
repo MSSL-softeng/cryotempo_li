@@ -568,19 +568,107 @@ class Algorithm(BaseAlgorithm):
             if "product_output" in self.config:
                 if self.config["product_output"].get("include_additional_parameters", False):
                     # unwrap_flags
-                    nc_var = dset.createVariable("unwrap_flags", "i1", ("time",))
-                    nc_var.units = "m"
-                    nc_var.coordinates = "longitude latitude"
-                    nc_var.long_name = "unwrap flags for SIN geolocation"
-                    nc_var.comment = "unwrap_flags 1= unwrapped, 0=not unwrapped"
-                    nc_var[:] = shared_dict["unwrap_flags"].astype(np.int8)
+                    if "unwrap_flags" in shared_dict:
+                        nc_var = dset.createVariable("unwrap_flags", "i1", ("time",))
+                        nc_var.units = "m"
+                        nc_var.coordinates = "longitude latitude"
+                        nc_var.long_name = "unwrap flags for SIN geolocation"
+                        nc_var.comment = "unwrap_flags 1= unwrapped, 0=not unwrapped"
+                        nc_var[:] = shared_dict["unwrap_flags"].astype(np.int8)
                     # ambiguity_flags
-                    nc_var = dset.createVariable("ambiguity_flags", "i1", ("time",))
-                    nc_var.units = "m"
-                    nc_var.coordinates = "longitude latitude"
-                    nc_var.long_name = "ambiguity flags for SIN geolocation"
-                    nc_var.comment = "ambiguity_flags 1= ambiguity found, 0=not found"
-                    nc_var[:] = shared_dict["ambiguity_flags"].astype(np.int8)
+                    if "ambiguity_flags" in shared_dict:
+                        nc_var = dset.createVariable("ambiguity_flags", "i1", ("time",))
+                        nc_var.units = "m"
+                        nc_var.coordinates = "longitude latitude"
+                        nc_var.long_name = "ambiguity flags for SIN geolocation"
+                        nc_var.comment = "ambiguity_flags 1= ambiguity found, 0=not found"
+                        nc_var[:] = shared_dict["ambiguity_flags"].astype(np.int8)
+                    # unwrap_flags
+                    if "unwrap_flags_2" in shared_dict:
+                        nc_var = dset.createVariable("unwrap_flags_2", "i1", ("time",))
+                        nc_var.units = "m"
+                        nc_var.coordinates = "longitude latitude"
+                        nc_var.long_name = "unwrap flags for SIN geolocation"
+                        nc_var.comment = "unwrap_flags 1= unwrapped, 0=not unwrapped"
+                        nc_var[:] = shared_dict["unwrap_flags_2"].astype(np.int8)
+                    # ambiguity_flags
+                    if "ambiguity_flags_2" in shared_dict:
+                        nc_var = dset.createVariable("ambiguity_flags_2", "i1", ("time",))
+                        nc_var.units = "m"
+                        nc_var.coordinates = "longitude latitude"
+                        nc_var.long_name = "ambiguity flags for SIN geolocation"
+                        nc_var.comment = "ambiguity_flags 1= ambiguity found, 0=not found"
+                        nc_var[:] = shared_dict["ambiguity_flags_2"].astype(np.int8)
+                    if "height_filt_2" in shared_dict:
+                        # Elevation
+                        nc_var = dset.createVariable("elevation_2", "double", ("time",))
+                        nc_var.units = "m"
+                        nc_var.coordinates = "longitude latitude"
+                        nc_var.long_name = "ice sheet elevation USING DH/DT DEM CORRECTION"
+                        nc_var.standard_name = "height_above_reference_ellipsoid"
+                        nc_var.comment = (
+                            "Elevation of the ice surface above the reference ellipsoid "
+                            "(WGS84) "
+                            "at the measurement location [longitude] [latitude]. "
+                            "All instrumental and appropriate geophysical corrections "
+                            "included. "
+                            "Corrected for surface slope via a slope model in LRM mode. "
+                            "Corrected"
+                            " for surface slope via phase information in SARIn mode. "
+                            "Where elevation can not be calculated, the value is set to Nan."
+                            "NOTE: USING DH/DT DEM CORRECTION "
+                        )
+                        nc_var[:] = shared_dict["height_filt_2"]  # use final filtered height
+
+                    # Latitude
+                    if "latitudes_2" in shared_dict:
+                        nc_var = dset.createVariable("latitude_2", "double", ("time",))
+                        nc_var.units = "degrees north"
+                        nc_var.coordinates = "time"
+                        nc_var.long_name = (
+                            "latitude of measurement at POCA or nadir "
+                            "(if no POCA available) USING DH/DT DEM CORRECTION"
+                        )
+                        nc_var.standard_name = "latitude"
+                        nc_var.valid_min = -90
+                        nc_var.valid_max = 90
+                        nc_var.comment = (
+                            "Latitude of measurement in decimal degrees; "
+                            "a positive latitude indicates. "
+                            "Northern hemisphere a negative latitude indicates "
+                            "Southern hemisphere. "
+                            "If the point of closest approach (POCA) can not be calculated "
+                            "by the SIRAL "
+                            "instrument in SARin mode or by LRM slope correction, then the nadir "
+                            "latitude is provided. "
+                            "NOTE: USING DH/DT DEM CORRECTION "
+                        )
+                        nc_var[:] = shared_dict["latitudes_2"]
+
+                        # Longitude
+                        nc_var = dset.createVariable("longitude_2", "double", ("time",))
+                        nc_var.units = "degrees east"
+                        nc_var.coordinates = "time"
+                        nc_var.long_name = (
+                            "longitude of measurement at POCA or nadir "
+                            "(if no POCA available) USING DH/DT DEM CORRECTION"
+                        )
+                        nc_var.standard_name = "longitude"
+                        nc_var.valid_min = -180
+                        nc_var.valid_max = 180
+                        nc_var.comment = (
+                            "Longitude of measurement in decimal degrees east (-180,180) "
+                            "relative to the "
+                            "Greenwich meridian. If the point of closest approach "
+                            "(POCA) can not be "
+                            "calculated by the SIRAL instrument in SARin mode or by LRM slope "
+                            "correction, "
+                            "then the nadir longitude is provided"
+                            "NOTE: USING DH/DT DEM CORRECTION "
+                        )
+                        prod_longitudes_2 = (shared_dict["longitudes_2"] + 180) % 360 - 180
+
+                        nc_var[:] = prod_longitudes_2
 
         # ----------------------------------------------------------------
         # Close netCDF dataset

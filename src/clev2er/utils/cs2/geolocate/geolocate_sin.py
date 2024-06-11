@@ -232,7 +232,14 @@ def phase_to_angle(
 
 
 def geolocate_sin(
-    l1b, config, dem_ant, dem_grn, thisdhdt: Dhdt | None, range_cor_20_ku, ind_wfm_retrack_20_ku
+    l1b,
+    config,
+    dem_ant,
+    dem_grn,
+    thisdhdt: Dhdt | None,
+    range_cor_20_ku,
+    ind_wfm_retrack_20_ku,
+    include_dhdt_correction: bool,
 ):
     """djb to document
 
@@ -244,6 +251,7 @@ def geolocate_sin(
         thisdhdt (Dhdt|None) : Dh/dt correction class object
         range_cor_20_ku (_type_): _description_
         ind_wfm_retrack_20_ku (_type_): _description_
+        include_dhdt_correction: correct DEMs with dh/dt correction if True
 
     Raises:
         sarin_phase.SINLocateError: _description_
@@ -266,8 +274,6 @@ def geolocate_sin(
     sat_vel_vec_20_ku = l1b["sat_vel_vec_20_ku"][:].data
     inter_base_vec_20_ku = l1b["inter_base_vec_20_ku"][:].data
     alt_20_ku = l1b["alt_20_ku"][:].data
-
-    include_dhdt_correction = config["sin_geolocation"]["include_dhdt_correction"]
 
     if lat_20_ku[0] < 0:
         thisdem = dem_ant
