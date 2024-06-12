@@ -183,12 +183,19 @@ class DEMConverter:
 
 # Example usage
 DEMConverter(void_value=-9999).convert_geotiff_to_zarr(
-    "/cpdata/SATS/RA/DEMS/arctic_dem_1km/arcticdem_mosaic_1km_v3.0.tif",
-    "/cpdata/SATS/RA/DEMS/arctic_dem_1km/arcticdem_mosaic_1km_v3.0.zarr",
-    "/cpdata/SATS/RA/DEMS/arctic_dem_1km/arcticdem_mosaic_1km_v3.0_flipped.zarr",
+    "/cpdata/SATS/RA/DEMS/ant_rema_200m_dem/REMA_200m_dem_filled.tif",
+    "/cpdata/SATS/RA/DEMS/ant_rema_200m_dem/REMA_200m_dem_filled.zarr",
+    "/cpdata/SATS/RA/DEMS/ant_rema_200m_dem/REMA_200m_dem_filled_flipped.zarr",
 )
 
 sys.exit(1)
+
+# DEMConverter(void_value=-9999).convert_geotiff_to_zarr(
+#     "/cpdata/SATS/RA/DEMS/arctic_dem_1km/arcticdem_mosaic_1km_v3.0.tif",
+#     "/cpdata/SATS/RA/DEMS/arctic_dem_1km/arcticdem_mosaic_1km_v3.0.zarr",
+#     "/cpdata/SATS/RA/DEMS/arctic_dem_1km/arcticdem_mosaic_1km_v3.0_flipped.zarr",
+# )
+
 
 # # Example usage
 # DEMConverter(void_value=-9999).convert_geotiff_to_zarr(

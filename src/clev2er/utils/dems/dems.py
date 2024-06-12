@@ -41,6 +41,7 @@ dem_list = [
     "rema_ant_1km_v2",  # Antarctic REMA v2.0 at 1km
     "rema_ant_1km_v2_zarr",  # Antarctic REMA v2.0 at 1km in zarr format
     "rema_ant_200m",  # Antarctic REMA v1.1 at 200m
+    "rema_ant_200m_zarr",  # Antarctic REMA v1.1 at 200m, zarr format
     "rema_gapless_100m",  # REMA (v1.1)Gapless DEM Antarctica at 100m,:
     "rema_gapless_100m_zarr",  # REMA (v1.1)Gapless DEM Antarctica at 100m, Zarr format:
     # https://doi.org/10.1016/j.isprsjprs.2022.01.024
@@ -609,6 +610,31 @@ class Dem:
             self.void_value = -9999
             self.dtype = np.float32
             self.reference_year = 2010  # YYYY, the year the DEM's elevations are referenced to
+
+        # --------------------------------------------------------------------------------
+        elif self.name == "rema_ant_200m_zarr":
+            # REMA Antarctic 200m DEM  v1.1 (PGC 2018), zarr format
+            # The void areas will contain null values (-9999) in lieu of the terrain elevations.
+
+            filename = "REMA_200m_dem.zarr"
+            filled_filename = "REMA_200m_dem_filled.zarr"
+            default_dir = f'{os.environ["CPDATA_DIR"]}/SATS/RA/DEMS/ant_rema_200m_dem'
+            self.src_url = (
+                "https://data.pgc.umn.edu/elev/dem/setsm/REMA/mosaic/v1.1/200m/REMA_200m_dem.tif"
+            )
+            self.src_url_filled = (
+                "https://data.pgc.umn.edu/elev/dem/setsm/REMA/mosaic/v1.1/200m/"
+                "REMA_200m_dem_filled.tif"
+            )
+            self.dem_version = "1.1"
+            self.src_institute = "PGC"
+            self.long_name = "REMA-1.1-200m"
+            self.crs_bng = CRS("epsg:3031")  # Polar Stereo - South -71S
+            self.southern_hemisphere = True
+            self.void_value = -9999
+            self.dtype = np.float32
+            self.reference_year = 2010  # YYYY, the year the DEM's elevations are referenced to
+            self.zarr_type = True
 
         # --------------------------------------------------------------------------------
         elif self.name == "rema_gapless_100m":
