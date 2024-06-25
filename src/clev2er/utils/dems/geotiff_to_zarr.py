@@ -2,6 +2,9 @@
 chunk size equivalent to the CS2 beamwidth
 """
 
+import argparse
+import os
+import shutil
 import sys
 
 import numpy as np
@@ -64,7 +67,6 @@ class DEMConverter:
         demfile: str,
         zarrfile: str,
         flipped_zarrfile: str,
-        # chunk_size: tuple = (1024, 1024),
     ):
         """Convert a GeoTIFF file to Zarr format and create a flipped version.
 
@@ -72,7 +74,6 @@ class DEMConverter:
             demfile (str): Path of GeoTIFF file.
             zarrfile (str): Path where the original Zarr file will be saved.
             flipped_zarrfile (str): Path where the flipped Zarr file will be saved.
-            # chunk_size (tuple): Chunk size for Zarr storage.
         """
 
         (
@@ -181,14 +182,102 @@ class DEMConverter:
             raise IOError(f"Failed to convert GeoTIFF to Zarr: {exc}") from exc
 
 
-# Example usage
-DEMConverter(void_value=-9999).convert_geotiff_to_zarr(
-    "/cpdata/SATS/RA/DEMS/ant_rema_200m_dem/REMA_200m_dem_filled.tif",
-    "/cpdata/SATS/RA/DEMS/ant_rema_200m_dem/REMA_200m_dem_filled.zarr",
-    "/cpdata/SATS/RA/DEMS/ant_rema_200m_dem/REMA_200m_dem_filled_flipped.zarr",
-)
+def main():
+    """main function for command line tool"""
 
-sys.exit(1)
+    # ----------------------------------------------------------------------
+    # Process Command Line Arguments for tool
+    # ----------------------------------------------------------------------
+
+    # initiate the command line parser
+    parser = argparse.ArgumentParser()
+
+    # add each argument
+
+    parser.add_argument(
+        "--tiff_file",
+        "-f",
+        help=("path of tiff DEM file to convert to Zarr"),
+        required=True,
+    )
+
+    parser.add_argument(
+        "--void_value",
+        "-v",
+        type=int,
+        help=("void value in DEM tiff file (ie -9999)"),
+        required=True,
+    )
+
+    parser.add_argument(
+        "--outdir",
+        "-o",
+        type=str,
+        help=("directory to write Zarr to (not the Zarr dir itself)"),
+        required=False,
+    )
+
+    # read arguments from the command line
+    args = parser.parse_args()
+
+    if not os.path.isfile(args.tiff_file):
+        sys.exit(f"{args.tiff_file} could not be found")
+
+    if args.tiff_file.endswith(".tif"):
+        ends = ".tif"
+    elif args.tiff_file.endswith(".tiff"):
+        ends = ".tiff"
+    else:
+        sys.exit("Must end in .tif or .tiff")
+
+    tiff_file = args.tiff_file
+    zarr_file = args.tiff_file.replace(ends, ".zarr")
+    zarr_flipped_file = args.tiff_file.replace(ends, "_flipped.zarr")
+    if args.outdir:
+        zarr_file = f"{args.outdir}/{os.path.basename(zarr_file)}"
+        zarr_flipped_file = f"{args.outdir}/{os.path.basename(zarr_flipped_file)}"
+
+    if os.path.isdir(zarr_file):
+        print(f"{zarr_file} already exists")
+        try:
+            shutil.rmtree(zarr_file)
+            print(f"Directory {zarr_file} and " "all its contents have been removed.")
+        except FileNotFoundError:
+            print(f"Directory {zarr_file} does not exist.")
+        except Exception as e:  # pylint: disable=broad-exception-caught
+            print(f"Error: {e}")
+
+    if os.path.isdir(zarr_flipped_file):
+        print(f"{zarr_flipped_file} already exists")
+        try:
+            shutil.rmtree(zarr_flipped_file)
+            print(f"Directory {zarr_flipped_file} and " "all its contents have been removed.")
+        except FileNotFoundError:
+            print(f"Directory {zarr_flipped_file} does not exist.")
+        except Exception as e:  # pylint: disable=broad-exception-caught
+            print(f"Error: {e}")
+
+    DEMConverter(void_value=args.void_value).convert_geotiff_to_zarr(
+        tiff_file,
+        zarr_file,
+        zarr_flipped_file,
+    )
+
+    print(f'Created {args.tiff_file.replace(ends, ".zarr")}')
+    print(f'Created {args.tiff_file.replace(ends, "_flipped.zarr")}')
+
+
+if __name__ == "__main__":
+    main()
+
+# # Example usage
+# DEMConverter(void_value=-9999).convert_geotiff_to_zarr(
+#     "/cpdata/SATS/RA/DEMS/ant_rema_200m_dem/REMA_200m_dem_filled.tif",
+#     "/cpdata/SATS/RA/DEMS/ant_rema_200m_dem/REMA_200m_dem_filled.zarr",
+#     "/cpdata/SATS/RA/DEMS/ant_rema_200m_dem/REMA_200m_dem_filled_flipped.zarr",
+# )
+
+# sys.exit(1)
 
 # DEMConverter(void_value=-9999).convert_geotiff_to_zarr(
 #     "/cpdata/SATS/RA/DEMS/arctic_dem_1km/arcticdem_mosaic_1km_v3.0.tif",
