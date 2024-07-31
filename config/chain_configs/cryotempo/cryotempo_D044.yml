@@ -154,6 +154,8 @@ lrm_roemer_geolocation:
   fine_grid_sampling: 10  # sampling rate, when doing re-sampling of _fine DEM for PLF
   median_filter: False # Apply 3x3 median filter to BLF DEM segments extracted around each nadir point
   reject_outside_range_window: True 
+  range_window_lower_trim: 10 # m trimmed from start of range window for slope rejection
+  range_window_upper_trim: 10 # m trimmed from end of range window for slope rejection
   
   # dh/dt correction
   include_dhdt_correction: False
