@@ -2,6 +2,7 @@
 
 class to read dh/dt grid data
 """
+
 import logging
 import os
 
@@ -245,7 +246,15 @@ class Dhdt:
     # Where your input points are outside the DEM area, then np.nan values will be returned
     # ----------------------------------------------------------------------------------------------
 
-    def interp_dhdt(self, x, y, method="nearest", xy_is_latlon=False) -> np.ndarray:
+    def interp_dhdt(  # pylint: disable=too-many-arguments
+        self,
+        x: np.ndarray,
+        y: np.ndarray,
+        method: str = "nearest",
+        xy_is_latlon: bool = False,
+        fill_value: float = np.nan,
+        bounds_error: bool = False,
+    ) -> np.ndarray:
         """Interpolate DEM to return elevation values corresponding to
            cartesian x,y in DEM's projection or lat,lon values
 
@@ -254,6 +263,13 @@ class Dhdt:
             y (np.ndarray): x cartesian coords in the dhdt grid's projection in m, or lon values
             method (str, optional): linear, nearest, splinef2d. Defaults to "linear".
             xy_is_latlon (bool, optional): if True, x,y are lat, lon values. Defaults to False.
+            fill_value (float, optional): If provided, the value to use for points outside
+                                          of the interpolation domain. If None, values outside the
+                                          domain are extrapolated. Extrapolation is not supported
+                                          by method “splinef2d”.
+            bounds_error (bool, optional): If True, when interpolated values are requested outside
+                                           of the domain of the input data, a ValueError is raised.
+                                           If False, then fill_value is used.
 
         Returns:
             np.ndarray: interpolated dhdt values in m/yr
@@ -271,8 +287,8 @@ class Dhdt:
             myzdem,
             (y, x),
             method=method,
-            bounds_error=False,
-            fill_value=np.nan,
+            bounds_error=bounds_error,  #
+            fill_value=fill_value,
         )
 
     def get_filename(self, default_dir: str, filename: str) -> str:

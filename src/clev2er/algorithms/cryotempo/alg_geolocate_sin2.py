@@ -1,4 +1,4 @@
-"""clev2er.algorithms.cryotempo.alg_geolocate_sin"""
+"""clev2er.algorithms.cryotempo.alg_geolocate_sin2"""
 
 # These imports required by Algorithm template
 from typing import Tuple
