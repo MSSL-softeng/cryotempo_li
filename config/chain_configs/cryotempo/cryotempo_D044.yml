@@ -8,7 +8,7 @@ l1b_base_dir: ${CPDATA_DIR}/SATS/RA/CRY/L1B # should contain LRM,SIN/<YYYY>/<MM>
 l1b_baselines: E   # ESA L1b baseline to select when finding L1b files
 # CryoTEMPO product base dir which will contain 
 # /<baseline>/<version:03>/LAND_ICE/<ANTARC,GREENL>/<YYYY>/<MM>/
-product_base_dir: /cpnet/msslxaw_raid6/cryo-tempo/product_baselines
+product_base_dir: /raid5/cryo-tempo/product_baselines
 
 # Set breakpoint file directory
 breakpoint_files:
