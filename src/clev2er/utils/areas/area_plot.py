@@ -5,8 +5,6 @@ To do reminder:
 
 TODO: doc in __init__.py
 TODO: grid support
-TODO: vostok antarctic area still to be added
-TODO: arctic area
 """
 
 import logging
