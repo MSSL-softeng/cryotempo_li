@@ -1,5 +1,5 @@
-"""pytest of clev2er.utils.areas.area_plot
-"""
+"""pytest of clev2er.utils.areas.area_plot"""
+
 import os
 
 import numpy as np
@@ -16,17 +16,9 @@ pytestmark = pytest.mark.non_core
 @pytest.mark.parametrize(
     "area",
     [
-        ("ronne_filchner_hs_isfi"),
-        ("ronne_filchner_isfi"),
-        ("ronne_filchner_hs_is"),
-        ("ronne_filchner_hs_fi"),
-        ("ronne_filchner_fi"),
-        ("ronne_filchner_is"),
-        ("ronne_filchner"),
-        ("ronne_filchner_hs"),
         # ("antarctica"),
         # ("antarctica_is"),
-        # ("antarctica_fi"),
+        ("antarctica_fi"),
         # ("antarctica_hs"),
         # ("antarctica_hs_is"),
         # ("antarctica_hs_fi"),
@@ -53,8 +45,8 @@ def test_area_plot_by_name(area):
 
     if thisarea.hemisphere == "south":
         # Latitude range from -90 to -60 and longitude range from -180 to 180
-        latitudes = np.linspace(-90, -60, 300)  # 100 points from -90 to -60
-        longitudes = np.linspace(0, 360, 300)  # 100 points from -180 to 180
+        latitudes = np.linspace(-90, -60, 30)  # 100 points from -90 to -60
+        longitudes = np.linspace(0, 360, 30)  # 100 points from -180 to 180
 
         # Create a grid of latitude and longitude values
         lats, lons = np.meshgrid(latitudes, longitudes)

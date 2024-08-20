@@ -1,12 +1,14 @@
 """
 # Area definition
 
-## Summary: 
+## Summary:
 Based on area: greenland
 **Data mask: grounded ice from bedmachine v3**
 
 """
+
 area_definition = {
+    "area_summary": "Greenland [grounded ice mask]",
     "use_definitions_from": "greenland",
     # --------------------------------------------
     #    mask from clev2er.utils.masks.Mask
