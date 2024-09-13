@@ -1,4 +1,4 @@
-""" clev2er.algorithms.templates.alg_ref_dem"""
+"""clev2er.algorithms.templates.alg_ref_dem"""
 
 from typing import Tuple
 
@@ -68,14 +68,14 @@ class Algorithm(BaseAlgorithm):
             self.dem_ant = None
         else:
             self.dem_ant = Dem(
-                "rema_ant_1km",
+                self.config["reference_dem"]["antarctic_dem"],
                 config=self.config,
                 store_in_shared_memory=init_shared_mem,
                 thislog=self.log,
             )
 
         self.dem_grn = Dem(
-            "arcticdem_1km",
+            self.config["reference_dem"]["greenland_dem"],
             config=self.config,
             store_in_shared_memory=init_shared_mem,
             thislog=self.log,
