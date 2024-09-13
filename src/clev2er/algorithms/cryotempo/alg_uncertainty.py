@@ -1,4 +1,55 @@
-""" clev2er.algorithms.templates.alg_uncertainty"""
+"""clev2er.algorithms.cryotempo.alg_uncertainty
+
+CryoTEMPO algorithm module
+
+# Description of this Algorithm's purpose
+
+Calculate uncertainty for each record by finding the slope & roughness
+at each POCA location, and extracting the uncertainty from a pre-generated
+uncertainty 1D or 2D LUT (calculated from the MAD of binned dh of 1 year of
+CryoTEMPO elevations-IS2)
+
+For Baseline-D: AIS uses a 2D (slope:roughness) LUT, GIS uses 1D LUT (from Baseline-C)
+
+# Main initialization (init() function) steps/resources required
+
+From the config dictionary find the location of the uncertainty tables
+
+config['uncertainty_tables']['base_dir']/antarctica_uncertainty_from_is2.npz
+config['uncertainty_tables']['base_dir']/greenland_uncertainty_from_is2.npz
+
+load these tables, and check the contents are as expected
+
+find the slope data from
+        Slopes("awi_grn_2013_1km_slopes")
+        Slopes("cpom_ant_2018_1km_slopes")  [if not greenland_only]
+
+# Main process() function steps
+
+Depending upon hemisphere
+
+Find slope of each POCA location
+Slopes.interp_slope_from_lat_lon(shared_dict["latitudes"], shared_dict["longitudes"]
+
+Get corresponding uncertainty values from LUT using
+clev2er.utils.uncertainty.calc_uncertainty()
+
+# Contribution to shared_dict
+
+shared_dict["area"]["northern_hemisphere"] : bool,
+shared_dict["area"]["southern_hemisphere"]: bool,
+shared_dict["area"]["inside_north_polar_region"]: bool,
+shared_dict["area"]["inside_south_polar_region"]: bool,
+shared_dict["area"]["inside_greenland_latlon_bounds"]: bool,
+shared_dict["area"]["inside_antarctica_latlon_bounds"]: bool,
+
+shared_dict["valid_mask_ku"] : ndarray[bool], mask of valid ku nadir lat/lon
+shared_dict["valid_mask_ka"] : ndarray[bool], mask of valid ka nadir lat/lon
+
+# Requires from shared_dict
+None
+
+"""
 
 import os
 from typing import Tuple
@@ -174,8 +225,8 @@ class Algorithm(BaseAlgorithm):
 
         if shared_dict["hemisphere"] == "south":
             if self.slope_ant is not None:
-                slopes = self.slope_ant.interp_slope_from_lat_lon(
-                    shared_dict["latitudes"], shared_dict["longitudes"]
+                slopes = self.slope_ant.interp_slopes(
+                    shared_dict["latitudes"], shared_dict["longitudes"], xy_is_latlon=True
                 )
 
                 uncertainty = calc_uncertainty(
@@ -187,8 +238,8 @@ class Algorithm(BaseAlgorithm):
             else:
                 uncertainty = None
         else:
-            slopes = self.slope_grn.interp_slope_from_lat_lon(
-                shared_dict["latitudes"], shared_dict["longitudes"]
+            slopes = self.slope_grn.interp_slopes(
+                shared_dict["latitudes"], shared_dict["longitudes"], xy_is_latlon=True
             )
             uncertainty = calc_uncertainty(
                 slopes,

@@ -24,6 +24,7 @@ scikit-image = "^0.22.0"
 zarr = "^2.18.2"
 pandas = "^2.2.2"
 seaborn = "^0.13.2"
+astropy = "^6.1.2"
 
 
 [tool.poetry.group.dev.dependencies]
