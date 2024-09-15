@@ -206,7 +206,6 @@ basin_masks:
   greenland_icesheet_2km_grid_mask:  ${CPOM_SOFTWARE_DIR}/cpom/resources/drainage_basins/greenland/zwally_2012_grn_icesheet_basins/basins/Zwally_GIS_basins_2km.nc
   antarctic_icesheet_2km_grid_mask_rignot2016: ${CPOM_SOFTWARE_DIR}/cpom/resources/drainage_basins/antarctica/rignot_2016_imbie2_ant_grounded_icesheet_basins/basins/rignot_2016_imbie2_ant_grounded_icesheet_basins_2km.nc
   greenland_icesheet_2km_grid_mask_rignot2016: ${CPOM_SOFTWARE_DIR}/cpom/resources/drainage_basins/greenland/GRE_Basins_IMBIE2_v1.3/basins/rignot_2016_imbie2_grn_grounded_icesheet_basins_2km.nc
-  greenland_icesheet_2km_grid_mask_mouginot2019: ${CPOM_SOFTWARE_DIR}/cpom/resources/drainage_basins/greenland/Mouginot/mouginot_2019_grn_grounded_icesheet_basins_2km.nc
 
 tides:
   fes2014b_base_dir: ${FES2014B_BASE_DIR} # set to base dir of FES2014 (containing LRM,SIN/<YYYY>/<MM>/CS*.fes2014b.nc)
