@@ -1,4 +1,4 @@
-""" clev2er.algorithms.templates.alg_template"""
+"""clev2er.algorithms.templates.alg_template"""
 
 import logging
 import os
@@ -504,9 +504,8 @@ class Algorithm(BaseAlgorithm):
         )
         nc_var[:] = shared_dict["dem_elevation_values"]
 
-        # basin_id: Zwally (AIS) and Mouginot (GIS)
-        #   Zwally basins : values 0 (outside mask),
-        #   1-27 (mask values for Antarctica), 1-19 (for Greenland)
+        # basin_id  : Zwally basins : values 0 (outside mask),
+        # 1-27 (mask values for Antarctica), 1-19 (for Greenland)
         nc_var = dset.createVariable("basin_id", np.byte, ("time",), fill_value=-128)
         nc_var.units = "basin number"
         nc_var.long_name = "Glacialogical basin identification number"
@@ -516,17 +515,14 @@ class Algorithm(BaseAlgorithm):
                 "associated with each measurement. "
                 "Values are : 0 (outside mask), 1-27 (basin values for Antarctica)"
             )
-            nc_var[:] = shared_dict["basin_mask_values_zwally"]
         else:
-            # Mouginot 2019 GIS basins 0,1-7
             nc_var.comment = (
-                "IMBIE glacialogical basin id number (Mouginot et al., 2019) "
+                "IMBIE glacialogical basin id number (Zwally et al., 2012) "
                 "associated with each measurement. "
-                "Values 0 (outside mask), 1-7 (basin values for Greenland), "
-                "CE[1],CW[2],NO[3],NE[4],NW[5],SE[6],SW[7]"
+                "Values 0 (outside mask), 1-19 (basin values for Greenland)"
             )
-            nc_var[:] = shared_dict["basin_mask_values_mouginot"]
-        nc_var.source = "IMBIE http://imbie.org/imbie-3/drainage-basins/"
+        nc_var.source = "IMBIE http://imbie.org/imbie-2016/drainage-basins/"
+        nc_var[:] = shared_dict["basin_mask_values_zwally"]
 
         # basin_id2  :   Rignot basins : values 0 (outside mask), 1-19 Antarctica, 1-7 Greenland
         nc_var = dset.createVariable("basin_id2", np.byte, ("time",), fill_value=-128)
@@ -563,21 +559,6 @@ class Algorithm(BaseAlgorithm):
             "precision measured at orbital cross-overs per 0.1 degree band of slope."
         )
         nc_var[:] = shared_dict["uncertainty"]
-
-        # Additional Parameters
-
-        if self.config["product_output"]["include_additional_parameters"]:
-            # Relocation_distance
-            nc_var = dset.createVariable("relocation_distance", "double", ("time",))
-            nc_var.units = "m"
-            nc_var.coordinates = "longitude latitude"
-            nc_var.long_name = "relocation distance of POCA from Nadir"
-            nc_var.standard_name = "distance"
-            nc_var.comment = "Relocation distance from nadir to POCA in m"
-            if "relocation_distance" in shared_dict:
-                nc_var[:] = shared_dict["relocation_distance"]
-            else:
-                nc_var[:] = np.full_like(time_20_ku, np.nan, dtype=float)
 
         # ----------------------------------------------------------------
         # Close netCDF dataset
