@@ -1,4 +1,4 @@
-""" clev2er.algorithms.cryotempo.alg_dilated_coastal_mask """
+"""clev2er.algorithms.cryotempo.alg_dilated_coastal_mask"""
 
 # These imports required by Algorithm template
 from typing import Tuple
