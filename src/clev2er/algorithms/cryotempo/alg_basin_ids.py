@@ -1,13 +1,4 @@
-""" clev2er.algorithms.templates.alg_basin_ids
-
-# New in Baseline-D
-
-Mouginot (Greenland) replaces Zwally (Greenland)
-
-* basin_id : Zwally (AIS) and Mouginot (GIS)
-* basin_id_2: Rignot (both AIS and GIS)
-
-"""
+"""clev2er.algorithms.templates.alg_basin_ids"""
 
 # These imports required by Algorithm template
 from typing import Tuple
@@ -81,13 +72,13 @@ class Algorithm(BaseAlgorithm):
         # ---------------------------------------------------------------------------------
 
         required_masks = [
-            "antarctic_grounded_and_floating_2km_grid_mask",  # Zwally 2012 (AIS)
-            "greenland_icesheet_2km_grid_mask_mouginot2019",  # Mouginot 2019 (GIS)
-            "antarctic_icesheet_2km_grid_mask_rignot2016",  # Rignot 2016 (AIS)
-            "greenland_icesheet_2km_grid_mask_rignot2016",  # Rignot 2016 (GIS)
+            "antarctic_grounded_and_floating_2km_grid_mask",
+            "greenland_icesheet_2km_grid_mask",
+            "antarctic_icesheet_2km_grid_mask_rignot2016",
+            "greenland_icesheet_2km_grid_mask_rignot2016",
         ]
 
-        # Check that the config file supports these masks in basin_masks:<mask_name>
+        # Check mask paths in config file
         mask_paths = {}
         for mask in required_masks:
             try:
@@ -117,9 +108,9 @@ class Algorithm(BaseAlgorithm):
         # source: Zwally 2012, ['None', '1.1', '1.2', '1.3', '1.4', '2.1', '2.2', '3.1', '3.2',
         # '3.3', '4.1', '4.2', '4.3', '5.0', '6.1', '6.2', '7.1', '7.2', '8.1', '8.2']
 
-        self.mouginot_basin_mask_grn = Mask(
-            "greenland_icesheet_2km_grid_mask_mouginot2019",
-            mask_path=mask_paths["greenland_icesheet_2km_grid_mask_mouginot2019"],
+        self.zwally_basin_mask_grn = Mask(
+            "greenland_icesheet_2km_grid_mask",
+            mask_path=mask_paths["greenland_icesheet_2km_grid_mask"],
             store_in_shared_memory=init_shared_mem,
             thislog=self.log,
         )
@@ -211,15 +202,10 @@ class Algorithm(BaseAlgorithm):
                     mask_values_rignot[i] = m + 1
                 else:
                     mask_values_rignot[i] = 0
-
-            shared_dict["basin_mask_values_rignot"] = mask_values_rignot.astype(np.uint)
-            shared_dict["basin_mask_values_zwally"] = mask_values_zwally.astype(np.uint)
-            shared_dict["basin_mask_values_mouginot"] = None
-
         else:
-            # "Unclassified [0]",
-            # "CE [1]", "CW [2]", "NO [3]", "NE [4]", "NW [5]", "SE [6]", "SW [7]"
-            mask_values_mouginot = self.mouginot_basin_mask_grn.grid_mask_values(
+            # 0..19 : ['None', '1.1', '1.2', '1.3', '1.4', '2.1', '2.2', '3.1', '3.2', '3.3', '4.1',
+            # '4.2', '4.3', '5.0', '6.1', '6.2', '7.1', '7.2', '8.1', '8.2']
+            mask_values_zwally = self.zwally_basin_mask_grn.grid_mask_values(
                 shared_dict["latitudes"], shared_dict["longitudes"], unknown_value=0
             )
 
@@ -237,9 +223,8 @@ class Algorithm(BaseAlgorithm):
                 else:
                     mask_values_rignot[i] = 0
 
-            shared_dict["basin_mask_values_rignot"] = mask_values_rignot.astype(np.uint)
-            shared_dict["basin_mask_values_zwally"] = None
-            shared_dict["basin_mask_values_mouginot"] = mask_values_mouginot.astype(np.uint)
+        shared_dict["basin_mask_values_rignot"] = mask_values_rignot.astype(np.uint)
+        shared_dict["basin_mask_values_zwally"] = mask_values_zwally.astype(np.uint)
 
         # Return success (True,'')
         return (True, "")
@@ -262,8 +247,8 @@ class Algorithm(BaseAlgorithm):
 
         if self.zwally_basin_mask_ant is not None:
             self.zwally_basin_mask_ant.clean_up()
-        if self.mouginot_basin_mask_grn is not None:
-            self.mouginot_basin_mask_grn.clean_up()
+        if self.zwally_basin_mask_grn is not None:
+            self.zwally_basin_mask_grn.clean_up()
 
         if self.rignot_basin_mask_ant is not None:
             self.rignot_basin_mask_ant.clean_up()
