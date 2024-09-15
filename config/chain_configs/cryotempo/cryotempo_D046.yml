@@ -168,7 +168,8 @@ lrm_roemer_geolocation:
   include_slope_doppler_correction: True
 
 reference_dem:
-  antarctic_dem: rema_ant_1km_v2_zarr   # Dem class name to use for reference parameter
+  antarctic_dem: rema_ant_1km   # Dem class name to use for reference parameter
+  #antarctic_dem: rema_ant_1km_v2_zarr   # Dem class name to use for reference parameter
   greenland_dem: arcticdem_1km_greenland_v4.1_zarr  # Dem class name to use for reference parameter
   # antarctic_dem: rema_gapless_100m_zarr   # Dem class name to use for reference parameter
   # greenland_dem: "arcticdem_100m_greenland_v4.1_zarr"  # Dem class name to use for reference parameter
