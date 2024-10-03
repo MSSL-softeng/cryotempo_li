@@ -25,6 +25,16 @@ def load_table_from_pickle(filename: str) -> pd.DataFrame:
     return pd.read_pickle(filename)
 
 
+def save_table_as_pickle(binned_table: pd.DataFrame, filename: str) -> None:
+    """Save the binned table as a Pickle file.
+
+    Args:
+        binned_table (pd.DataFrame): The binned median absolute elevation difference table.
+        filename (str): The path to the file where the table will be saved.
+    """
+    binned_table.to_pickle(filename)
+
+
 def main():
     """main function
 
@@ -39,6 +49,23 @@ def main():
     parser.add_argument(
         "--file", "-f", help="Path to the 2D uncertainty pickle file", type=str, default=None
     )
+    parser.add_argument(
+        "--method",
+        "-m",
+        choices=["median", "mad"],
+        default="median",
+        help=("choose the calculation method: 'median' (default) or 'mad'"),
+    )
+
+    parser.add_argument(
+        "--cpom_ant_slp",
+        "-cas",
+        help=(
+            "use cpom_ant_2018_1km_slopes for Antarctic slope instead of "
+            "rema_100m_900ws_slopes_zarr"
+        ),
+        action="store_true",
+    )
 
     # read arguments from the command line
     args = parser.parse_args()
@@ -51,7 +78,9 @@ def main():
     else:
         area = "grn"
 
-    filename = args.file if args.file else f"/tmp/{area}_2d_uncertainty_table.pickle"
+    filename = args.file if args.file else f"/tmp/{area}_2d_uncertainty_table_{args.method}.pickle"
+    if args.cpom_ant_slp:
+        filename = f"/tmp/{area}_2d_uncertainty_table_{args.method}_cpom_ant_slp.pickle"
 
     # Check if file exists
     if not os.path.exists(filename):
@@ -98,15 +127,25 @@ def main():
         bilinear_fit(slope, roughness).reshape(df.shape), index=df.index, columns=df.columns
     )
 
+    # Replace negative values with values from the original table
+    bilinear_table = bilinear_table.where(bilinear_table >= 0, df)
+
+    filename = f"/tmp/{area}_2d_uncertainty_table_bilinear_{args.method}.pickle"
+    if args.cpom_ant_slp:
+        filename = f"/tmp/{area}_2d_uncertainty_table_bilinear_{args.method}_cpom_ant_slp.pickle"
+    save_table_as_pickle(bilinear_table, filename)
+
     # Visualization
     plt.figure(figsize=(10, 8))
+
+    max_range = 10
 
     # Define the new colormap with an over color
     cmap = cm.get_cmap("viridis", 256)  # Create a new instance of the colormap
     new_cmap = mcolors.ListedColormap(cmap(np.linspace(0, 1, 256)))  # Correct use of ListedColormap
     new_cmap.set_over("red")
 
-    norm = mcolors.Normalize(vmin=bilinear_table.min().min(), vmax=10)
+    norm = mcolors.Normalize(vmin=bilinear_table.min().min(), vmax=max_range)
     heatmap = sns.heatmap(
         bilinear_table,
         annot=False,
@@ -115,7 +154,7 @@ def main():
         cbar=False,
         xticklabels=[f"{x:.1f}" for x in bilinear_table.columns.astype(float)],
         yticklabels=[f"{y:.1f}" for y in bilinear_table.index.astype(float)],
-        vmax=10,
+        vmax=max_range,
     )
 
     # Create colorbar with an arrow for over-color
@@ -138,7 +177,7 @@ def main():
     new_cmap = mcolors.ListedColormap(cmap(np.linspace(0, 1, 256)))  # Correct use of ListedColormap
     new_cmap.set_over("red")
 
-    norm = mcolors.Normalize(vmin=df.min().min(), vmax=10)
+    norm = mcolors.Normalize(vmin=df.min().min(), vmax=max_range)
     heatmap = sns.heatmap(
         df,
         annot=False,
@@ -147,7 +186,7 @@ def main():
         cbar=False,
         xticklabels=[f"{x:.1f}" for x in df.columns.astype(float)],
         yticklabels=[f"{y:.1f}" for y in df.index.astype(float)],
-        vmax=10,
+        vmax=max_range,
     )
 
     # Create colorbar with an arrow for over-color
