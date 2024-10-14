@@ -452,10 +452,19 @@ def geolocate_sin(
         if include_dhdt_correction:
             if thisdhdt is not None:
                 # find dh/dt * year_difference at each DEM location
-                unwrap_dem += (
-                    thisdhdt.interp_dhdt(unwrap_x, unwrap_y, fill_value=0.0) * year_difference
+                tmp = (
+                    thisdhdt.interp_dhdt(unwrap_x, unwrap_y, fill_value=0.0, bounds_error=False)
+                    * year_difference
                 )
-                orig_dem += thisdhdt.interp_dhdt(final_x, final_y, fill_value=0.0) * year_difference
+                tmp[np.isnan(tmp)] = 0.0
+
+                unwrap_dem += tmp
+                tmp = (
+                    thisdhdt.interp_dhdt(final_x, final_y, fill_value=0.0, bounds_error=False)
+                    * year_difference
+                )
+                tmp[np.isnan(tmp)] = 0.0
+                orig_dem += tmp
             else:
                 raise ValueError("No dh/dt correction data loaded, but dh/dt correction set")
 
