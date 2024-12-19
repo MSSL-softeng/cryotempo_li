@@ -1,4 +1,5 @@
 """ clev2er.algorithms.algorithm_template """
+
 import logging
 import time
 

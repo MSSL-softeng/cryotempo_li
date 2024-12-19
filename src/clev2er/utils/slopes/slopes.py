@@ -7,10 +7,10 @@ Date: 2019
 Updated 22/05/20 by Lin Gilbert - added co-ordinate reference system to self
                                 - added interp_slope_from_lat_lon method
 Updated 24/09/21 by Lin Gilbert - changed pyproj.Proj to pyproj.CRS to avoid deprecation notices
-                                - updated polarplot calls in unit test grid type, set default to 
+                                - updated polarplot calls in unit test grid type, set default to
                                 point type
 
-Copyright: UCL/MSSL/CPOM. 
+Copyright: UCL/MSSL/CPOM.
 
 """
 
@@ -152,11 +152,11 @@ class Slopes:
         # Load AWI Greenland DEM 1km (Helm 2013)
         elif name == "awi_grn_2013_1km_slopes":
             if not slope_file:  # get from default path instead of config dict
-                slopefile = (
+                slope_file = (
                     os.environ["CPDATA_DIR"]
                     + "/SATS/RA/DEMS/grn_awi_2013_dem/grn_awi_2013_dem_slope.nc"
                 )
-            nc_dem = Dataset(slopefile)
+            nc_dem = Dataset(slope_file)
 
             self.slopes = nc_dem.variables["slope"][:]
 

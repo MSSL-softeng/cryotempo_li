@@ -6,6 +6,7 @@ Based on area: greenland
 **Data mask: floating ice from bedmachine v3**
 
 """
+
 area_definition = {
     "use_definitions_from": "greenland",
     # --------------------------------------------

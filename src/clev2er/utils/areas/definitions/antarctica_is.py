@@ -6,6 +6,7 @@ Based on area: antarctica
 **Data mask: grounded ice from bedmachine v2**
 
 """
+
 area_definition = {
     "use_definitions_from": "antarctica",
     # --------------------------------------------

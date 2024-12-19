@@ -6,6 +6,7 @@ Based on area: greenland
 **mask: greenland_bedmachine_v3_grid_mask[3] == floating ice **
 
 """
+
 area_definition = {
     "use_definitions_from": "greenland_hs",
     # --------------------------------------------

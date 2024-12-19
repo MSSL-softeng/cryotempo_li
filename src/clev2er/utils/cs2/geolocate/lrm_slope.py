@@ -1,5 +1,6 @@
 """lrm_slope.py
 """
+
 import logging
 import math
 import struct

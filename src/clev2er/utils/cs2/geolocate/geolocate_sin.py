@@ -1,6 +1,7 @@
 """geolocate_sin.py
 
 """
+
 import logging
 
 import numpy as np

@@ -2,6 +2,7 @@
  pytest unit tests for : cpom/altimetry/level2/cs2/retrackers/cs2_sin_max_coherence_retracker:
  retrack_cs2_sin_max_coherence_retracker()
 """
+
 import os
 
 import numpy as np

@@ -809,6 +809,8 @@ class Background:
                     + "/RESOURCES/backgrounds/greenland/S1_mosaic_v2_100m.tiff"
                 )
                 binsize = 100  # 100m grid resolution
+            else:
+                raise ValueError(f"resolution {resolution} not found for grn_s1_mosaic")
 
             print("Loading S1 Sigma0 Mosaic background..")
             print(demfile)

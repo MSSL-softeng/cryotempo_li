@@ -2,6 +2,7 @@
   pytest unit tests for : cpom/altimetry/level2/cs2/retrackers/cs2_tcog_retracker:
   retrack_tcog_waveforms_cs2()
 """
+
 import os
 
 import numpy as np
@@ -153,7 +154,7 @@ def test_retrack_tcog_waveforms_cs2_at_index(
     ) = retrack_tcog_waveforms_cs2(
         lrm_file,
         measurement_index=measurement_index,
-        retrack_threshold_lrm=0.2
+        retrack_threshold_lrm=0.2,
         # ,plot_flag=True,
         # ,debug_flag=True
     )

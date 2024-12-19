@@ -187,6 +187,7 @@ def retrack_cs2_sin_max_coherence(
     # Find if input file is LRM or SIN. Only SIN allowed
     # -------------------------
 
+    mode_str = "unknown"
     if l1b_file:
         if "SIR_SIN_1B" in str(l1b_file):
             mode_str = "SIN"
@@ -230,13 +231,13 @@ def retrack_cs2_sin_max_coherence(
 
         # Retrieve the waveforms
         wfs = nc.variables["pwr_waveform_20_ku"][:].data
-        n_waveforms, waveform_size = np.shape(wfs)
 
         # Retrieve the coherence for SIN waveforms
         coherence = nc.variables["coherence_waveform_20_ku"][:].data
     else:
         wfs = waveforms
         # coherence passed as function parameter
+    n_waveforms, waveform_size = np.shape(wfs)
 
     # Check if the include_measurements_array is of the correct length
     if include_measurements_array is not None:
@@ -467,6 +468,8 @@ def retrack_cs2_sin_max_coherence(
 
                 if len(top_of_le_indices) < 1:
                     retrack_flag[i][5] = 1
+                    mc_start_index = 0
+                    mc_end_index = 0
                 else:
                     mc_start_index = top_of_le_indices[0]
                     mc_end_index = top_of_le_indices[-1]

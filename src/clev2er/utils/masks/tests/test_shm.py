@@ -1,6 +1,7 @@
 """
 A test of loading DEMs using shared memory
 """
+
 import logging
 from multiprocessing import Process
 

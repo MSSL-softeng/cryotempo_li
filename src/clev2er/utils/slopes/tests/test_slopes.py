@@ -1,6 +1,7 @@
 """
 test of clev2er.utils.slopes.slopes
 """
+
 import numpy as np
 
 from clev2er.utils.slopes.slopes import Slopes, all_slope_scenarios
