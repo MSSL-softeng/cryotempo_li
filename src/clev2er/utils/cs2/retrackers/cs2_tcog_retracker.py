@@ -200,6 +200,9 @@ def retrack_tcog_waveforms_cs2(
     # Find if input L1b file is LRM or SIN
     # ---------------------------------
 
+    mode_str = "unknown"
+    lrm_mode = False
+
     if l1b_file:
         if "SIR_SIN_1B" in l1b_file:
             lrm_mode = False
@@ -230,6 +233,8 @@ def retrack_tcog_waveforms_cs2(
             raise ValueError("waveforms size must be (,128) for LRM or (,1024) for SIN")
 
         wfs = waveforms
+
+    n_waveforms, waveform_size = np.shape(wfs)
 
     log.debug("retrack_threshold_lrm %f", retrack_threshold_lrm)
     log.debug("retrack_threshold_sin %f", retrack_threshold_sin)
