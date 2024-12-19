@@ -5,8 +5,6 @@ To do reminder:
 
 TODO: doc in __init__.py
 TODO: grid support
-TODO: vostok antarctic area still to be added
-TODO: arctic area
 """
 
 import logging
@@ -20,6 +18,7 @@ import matplotlib.path as mpath
 import numpy as np
 import shapefile as shp  # type: ignore
 from cartopy.mpl.geoaxes import GeoAxesSubplot  # type: ignore
+from matplotlib import colormaps
 from matplotlib import pyplot as plt
 from matplotlib.figure import Figure
 from numpy import ma  # masked arrays
@@ -58,7 +57,9 @@ def get_unique_colors(n: int, cmap_name_override: str | None = None):
         cmap_name = "tab20"
     if cmap_name_override is not None:
         cmap_name = cmap_name_override
-    cmap = plt.cm.get_cmap(cmap_name, n)  # Replace 'tab20' with any suitable colormap
+    cmap = colormaps[cmap_name].resampled(
+        n
+    )  # Using the dictionary-like access and resampled method
     colors = [cmap(i) for i in range(cmap.N)]
     return colors
 
@@ -269,6 +270,16 @@ class Polarplot:
         if annotation_list is not None and len(annotation_list) > 0:
             final_annotation_list.extend(annotation_list)
         if use_default_annotation:
+            try:
+                dsname = data_sets[0].get("name", "unnamed")
+            except IndexError:
+                dsname = "unnamed"
+            if len(dsname) > 14:
+                font_size = 13
+            elif len(dsname) > 12 and len(dsname) <= 14:
+                font_size = 16
+            else:
+                font_size = 18
             if len(data_sets) > 0:
                 final_annotation_list.append(
                     Annotation(
@@ -281,7 +292,7 @@ class Polarplot:
                             "alpha": 1.0,  # Transparency of the box (0-1)
                             "edgecolor": "lightgrey",  # Color of the box edge
                         },
-                        18,
+                        font_size,
                     )
                 )
                 final_annotation_list.append(
@@ -457,6 +468,7 @@ class Polarplot:
 
                 lats = data_set.get("lats", np.array([]))
                 lons = data_set.get("lons", np.array([]))
+                lons = np.array(lons) % 360  # ensure 0..360 degs E
                 vals = data_set.get("vals", np.array([]))
 
                 n_vals = len(vals)
@@ -504,15 +516,11 @@ class Polarplot:
                 # Assuming latitude values must be between -90 and 90, and longitude
                 # between -180 and 180 or 0 to 360
                 valid_lat = (lats >= -90) & (lats <= 90)
-                valid_long = (lons >= -180) & (lons <= 360)
+                valid_long = (lons >= 0) & (lons <= 360)
 
                 # Handling NaNs or None for both lats and lons
                 valid_lat = valid_lat & ~np.isnan(lats)
                 valid_long = valid_long & ~np.isnan(lons)
-
-                # Step 2: Normalize Longitudes
-                # Convert lons from -180 to 180 to 0 to 360
-                lons = np.where(lons < 0, lons + 360, lons)
 
                 # Step 3: Identify common indices
                 valid_indices = np.where(valid_lat & valid_long)[0]
@@ -634,9 +642,11 @@ class Polarplot:
                         data_set.get("valid_range") is not None
                         and len(data_set.get("valid_range")) == 2
                     ):
-                        outside_vals_bool = (vals < data_set.get("valid_range")[0]) | (
-                            vals > data_set.get("valid_range")[1]
-                        )
+                        outside_vals_bool = np.zeros_like(vals, dtype=bool)
+                        if data_set.get("valid_range")[0] is not None:
+                            outside_vals_bool |= vals < data_set.get("valid_range")[0]
+                        if data_set.get("valid_range")[1] is not None:
+                            outside_vals_bool |= vals > data_set.get("valid_range")[1]
                         percent_outside = np.mean(outside_vals_bool) * 100.0
                     else:
                         percent_outside = 0.0
@@ -749,7 +759,7 @@ class Polarplot:
                             cbar = self.draw_colorbar(
                                 data_set,
                                 fig,
-                                scatter,
+                                scatter,  # pylint: disable=used-before-assignment
                                 data_set.get("name", "unnamed"),
                                 data_set.get("units", "no units"),
                             )
@@ -763,7 +773,7 @@ class Polarplot:
                                 data_set.get("min_plot_range", np.nanmin(vals)),
                                 data_set.get("max_plot_range", np.nanmax(vals)),
                                 data_set.get("units", "no units"),
-                                cmap,
+                                cmap,  # pylint: disable=used-before-assignment
                             )
 
                         if self.thisarea.show_latitude_scatter:
@@ -833,7 +843,10 @@ class Polarplot:
             elif output_file and not output_dir:
                 plot_filename = output_file
             elif output_dir and not output_file:
-                plot_filename = f"{output_dir}/param_{ds_name_0}_{self.area}.png"
+                _ds_name_0 = ds_name_0.replace("/", "_")
+                plot_filename = f"{output_dir}/param_{_ds_name_0}_{self.area}.png"
+            else:
+                raise ValueError("Neither outputdir or output_file provided")
             if ".png" != plot_filename[-4:]:
                 plot_filename += ".png"
             log.info("Saving plot to %s at %d dpi", plot_filename, dpi)
@@ -855,10 +868,68 @@ class Polarplot:
         # Step 1: Get the colorbar's bounding box in figure coordinates
         bbox = cbar.ax.get_window_extent().transformed(plt.gcf().transFigure.inverted())
 
-        if self.thisarea.colorbar_orientation == "vertical":
+        if self.thisarea.position_stats_manually:
+            nvals_str = r"$\bf{nvals} $" + f"={len(vals)}"
+            plt.gcf().text(
+                bbox.x0 + self.thisarea.nvals_position[0],
+                bbox.y1 + self.thisarea.nvals_position[1],
+                nvals_str,
+                ha="left",
+                va="bottom",
+            )
+            std_str = r"$\bf{stdev} $" + f"={np.std(vals):.2f}"
+            plt.gcf().text(
+                bbox.x0 + self.thisarea.stdev_position[0],
+                bbox.y1 + self.thisarea.stdev_position[1],
+                std_str,
+                ha="left",
+                va="bottom",
+            )
+            min_str = r"$\bf{min} $" + f"={np.min(vals):.2f}"
+            plt.gcf().text(
+                bbox.x0 + self.thisarea.min_position[0],
+                bbox.y1 + self.thisarea.min_position[1],
+                min_str,
+                ha="left",
+                va="bottom",
+            )
+            max_str = r"$\bf{max} $" + f"={np.max(vals):.2f}"
+            plt.gcf().text(
+                bbox.x0 + self.thisarea.max_position[0],
+                bbox.y1 + self.thisarea.max_position[1],
+                max_str,
+                ha="left",
+                va="bottom",
+            )
+            mad_str = r"$\bf{MAD} $" + f"={calculate_mad(vals):.2f}"
+            plt.gcf().text(
+                bbox.x0 + self.thisarea.mad_position[0],
+                bbox.y1 + self.thisarea.mad_position[1],
+                mad_str,
+                ha="left",
+                va="bottom",
+            )
+            median_str = r"$\bf{median} $" + f"={np.median(vals):.2f}"
+            plt.gcf().text(
+                bbox.x0 + self.thisarea.median_position[0],
+                bbox.y1 + self.thisarea.median_position[1],
+                median_str,
+                ha="left",
+                va="bottom",
+            )
+            mean_str = r"$\bf{mean} $" + f"={np.mean(vals):.2f}"
+            plt.gcf().text(
+                bbox.x0 + self.thisarea.mean_position[0],
+                bbox.y1 + self.thisarea.mean_position[1],
+                mean_str,
+                ha="left",
+                va="bottom",
+            )
+
+        elif self.thisarea.colorbar_orientation == "vertical":
             # Step 2: Calculate positions for the text for a vertical colorbar
             # Adjust these values as needed for your specific figure layout
-            offset_y = 0.005  # Vertical offset from the colorbar ends
+            offset_y = 0.017  # Vertical offset from the colorbar ends
             text_bottom_y = bbox.y0 - offset_y
             text_top_y = bbox.y1 + offset_y
             text_x = bbox.x0 + (bbox.width / 2)  # Horizontally centered
@@ -1109,7 +1180,7 @@ class Polarplot:
     def draw_minimap(
         self,
     ):
-        """draw a minimap to the extent of the area on a larger map
+        """draw a minimap to show Nan, FV and out of range values
 
         Args:
 
@@ -1178,27 +1249,6 @@ class Polarplot:
                     radius=self.thisarea.minimap_circle[2],
                     color=circle_color,
                     alpha=0.3,
-                    transform=dataprj_minimap,
-                    zorder=30,
-                )
-            )
-        if self.thisarea.specify_by_centre:
-            cx, cy = self.thisarea.latlon_to_xy(
-                self.thisarea.centre_lat, self.thisarea.centre_lon
-            )  # Convert center lat, lon to projection x, y
-            llx = cx - (self.thisarea.width_km * 1000) / 2.0
-            lly = cy - (self.thisarea.height_km * 1000) / 2.0
-            width = self.thisarea.width_km * 1000
-            height = self.thisarea.height_km * 1000
-
-            # Add rectangle patch
-            ax_minimap.add_patch(
-                mpatches.Rectangle(
-                    (llx, lly),
-                    width,
-                    height,
-                    edgecolor="red",
-                    facecolor="none",
                     transform=dataprj_minimap,
                     zorder=30,
                 )
@@ -1310,6 +1360,9 @@ class Polarplot:
 
         print("Adding map scale bar")
 
+        if self.thisarea.show_scalebar is False:
+            return
+
         mapscale = self.thisarea.mapscale
 
         # Centre point of scale bar in data coordinates (m)
@@ -1381,6 +1434,17 @@ class Polarplot:
                 orientation="vertical",
                 extend=dataset.get("cmap_extend", self.thisarea.cmap_extend),
             )
+
+            # Get the current ticks and labels
+            ticks = cbar.get_ticks()
+            tick_labels = [str(tick) for tick in ticks]
+
+            # Remove the last (maximum) tick label
+            tick_labels[-1] = ""
+
+            # Set the modified tick labels
+            cbar.set_ticklabels(tick_labels)
+
         else:  # horizontal colorbar
             colorbar_axes = fig.add_axes(
                 self.thisarea.horizontal_colorbar_axes
@@ -1418,8 +1482,6 @@ class Polarplot:
         flag_names = data_set.get("flag_names", [])
         flag_values = data_set.get("flag_values", [])
         flag_colors = data_set.get("flag_colors", get_unique_colors(len(flag_names)))
-        flag_alpha = data_set.get("alpha", 1.0)
-
         if len(flag_colors) != len(flag_names):
             log.info("Generating unique flag colors")
             flag_colors = get_unique_colors(len(flag_names))
@@ -1467,7 +1529,6 @@ class Polarplot:
                     s=scale_factor,
                     transform=ccrs.PlateCarree(),
                     zorder=20,
-                    alpha=flag_alpha,
                 )
 
             number_of_each_flag.append(flagindices.size)
@@ -1908,8 +1969,8 @@ class Polarplot:
             print("Plotting Antarctic Medium coastline..")
 
             fname = (
-                os.environ["CPOM_SOFTWARE_DIR"]
-                + "/cpom/resources/coastlines/Coastline_medium_res_line"
+                f"{os.environ['CLEV2ER_BASE_DIR']}/"
+                "testdata/resources/coastlines/antarctica/medium_res"
                 "/Coastline_medium_res_line_WGS84.shp"
             )
             sf = shp.Reader(fname)
@@ -2226,6 +2287,14 @@ class Polarplot:
             dataprj = ccrs.epsg("3031")
             this_projection = ccrs.SouthPolarStereo(true_scale_latitude=-71.0)
 
+        # EPSG:3395: World Mercator/ WGS 84
+        elif self.thisarea.epsg_number == 3395:
+            dataprj = ccrs.epsg("3395")
+            this_projection = ccrs.PlateCarree()
+
+        else:
+            raise ValueError(f"EPSG-{self.thisarea.epsg_number} not supported")
+
         ax = plt.axes(axis_position, projection=this_projection)
 
         # -------------------------------------------
@@ -2315,11 +2384,18 @@ class Polarplot:
                             self.thisarea.bounding_lat - 12, -90 + 180
                         )
                         ax.set_extent([llx, urx, lly, ury], dataprj)
-                else:
+                elif self.thisarea.hemisphere == "south":
                     # Note that the '+1' below is a fudge to expand the area to account for the
                     # clipping of the circular boundary
                     ax.set_extent(
                         [-180, 180, -90, self.thisarea.bounding_lat + 1],
+                        ccrs.PlateCarree(),
+                    )  # min lon, max_lon, max_lat, min_lat, data is in lat, lon, so use PlateCarree
+                else:
+                    # Note that the '+1' below is a fudge to expand the area to account for the
+                    # clipping of the circular boundary
+                    ax.set_extent(
+                        [-180, 180, -91, 91],
                         ccrs.PlateCarree(),
                     )  # min lon, max_lon, max_lat, min_lat, data is in lat, lon, so use PlateCarree
 

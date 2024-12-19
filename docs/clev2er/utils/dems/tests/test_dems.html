@@ -150,6 +150,7 @@
 </span><span id="L-75"><a href="#L-75"><span class="linenos">75</span></a>    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">lats</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
 </span><span id="L-76"><a href="#L-76"><span class="linenos">76</span></a>        <span class="n">dem_elevs</span> <span class="o">=</span> <span class="n">thisdem</span><span class="o">.</span><span class="n">interp_dem</span><span class="p">(</span><span class="n">lats</span><span class="p">,</span> <span class="n">lons</span><span class="p">,</span> <span class="n">xy_is_latlon</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 </span><span id="L-77"><a href="#L-77"><span class="linenos">77</span></a>        <span class="n">np</span><span class="o">.</span><span class="n">testing</span><span class="o">.</span><span class="n">assert_allclose</span><span class="p">(</span><span class="n">elevs</span><span class="p">,</span> <span class="n">dem_elevs</span><span class="p">,</span> <span class="n">atol</span><span class="o">=</span><span class="mf">1.0</span><span class="p">)</span>
+
 </span></pre></div>
 
 
@@ -228,6 +229,7 @@
 </span><span id="test_dems-76"><a href="#test_dems-76"><span class="linenos">76</span></a>    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">lats</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
 </span><span id="test_dems-77"><a href="#test_dems-77"><span class="linenos">77</span></a>        <span class="n">dem_elevs</span> <span class="o">=</span> <span class="n">thisdem</span><span class="o">.</span><span class="n">interp_dem</span><span class="p">(</span><span class="n">lats</span><span class="p">,</span> <span class="n">lons</span><span class="p">,</span> <span class="n">xy_is_latlon</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 </span><span id="test_dems-78"><a href="#test_dems-78"><span class="linenos">78</span></a>        <span class="n">np</span><span class="o">.</span><span class="n">testing</span><span class="o">.</span><span class="n">assert_allclose</span><span class="p">(</span><span class="n">elevs</span><span class="p">,</span> <span class="n">dem_elevs</span><span class="p">,</span> <span class="n">atol</span><span class="o">=</span><span class="mf">1.0</span><span class="p">)</span>
+
 </span></pre></div>
 
 

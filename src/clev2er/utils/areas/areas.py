@@ -1,8 +1,9 @@
-"""clev2er.utils.areas.areas.py: Area class to define areas for polar plotting
-"""
+"""clev2er.utils.areas.areas.py: Area class to define areas for polar plotting"""
 
+import glob
 import importlib
 import logging
+import os
 from typing import Optional
 
 import numpy as np
@@ -16,6 +17,50 @@ from clev2er.utils.masks.masks import Mask
 # pylint: disable=too-many-locals
 
 log = logging.getLogger(__name__)
+
+
+def list_all_area_definition_names(logger=None) -> list[str]:
+    """return a list of all area definition names
+
+    Raises:
+
+    Returns:
+        list[str]: _description_
+    """
+
+    if logger is None:
+        logger = logging.getLogger()
+
+    original_level = logger.level
+    logger.setLevel(logging.ERROR)
+
+    try:
+        area_def_directory = f"{os.environ['CLEV2ER_BASE_DIR']}/src/clev2er/utils/areas/definitions"
+        if not os.path.isdir(area_def_directory):
+            raise FileNotFoundError(f"{area_def_directory} not found")
+
+        all_defs = glob.glob(f"{area_def_directory}/*.py")
+        all_defs = [
+            os.path.basename(thisdef).replace(".py", "")
+            for thisdef in all_defs
+            if "__init__" not in thisdef
+        ]
+
+        final_defs = []
+        for thisdef in all_defs:
+            thisarea = Area(thisdef)
+            if thisarea.area_summary:
+                final_defs.append(
+                    f"{thisdef} : {thisarea.area_summary} : background:{thisarea.background_image}"
+                )
+            else:
+                final_defs.append(
+                    f"{thisdef} : {thisarea.long_name} : background:{thisarea.background_image}"
+                )
+        return final_defs
+
+    finally:
+        logger.setLevel(original_level)
 
 
 class Area:
@@ -78,6 +123,7 @@ class Area:
         # log.info(f"{area_definition}")
         # store parameters from the area definition dict in class variables
         self.long_name = area_definition["long_name"]
+        self.area_summary = area_definition.get("area_summary", "")
         # Area spec.
         self.hemisphere = area_definition["hemisphere"]
         self.centre_lon = area_definition.get("centre_lon")
@@ -154,6 +200,14 @@ class Area:
         self.stats_position_y_offset_simple = area_definition.get(
             "stats_position_y_offset_simple", 0
         )
+        self.position_stats_manually = area_definition.get("position_stats_manually", False)
+        self.nvals_position = area_definition.get("nvals_position", (0.0, 0.0))
+        self.stdev_position = area_definition.get("stdev_position", (0.0, 0.0))
+        self.min_position = area_definition.get("min_position", (0.0, 0.0))
+        self.max_position = area_definition.get("max_position", (0.0, 0.0))
+        self.mad_position = area_definition.get("mad_position", (0.0, 0.0))
+        self.mean_position = area_definition.get("mean_position", (0.0, 0.0))
+        self.median_position = area_definition.get("median_position", (0.0, 0.0))
 
         # Flag Settings
         self.include_flag_legend = area_definition.get("include_flag_legend", False)

@@ -22,6 +22,8 @@ xmltodict = "^0.13.0"
 cartopy = "^0.22.0"
 scikit-image = "^0.22.0"
 zarr = "^2.18.3"
+pandas = "^2.2.2"
+seaborn = "^0.13.2"
 
 
 [tool.poetry.group.dev.dependencies]
