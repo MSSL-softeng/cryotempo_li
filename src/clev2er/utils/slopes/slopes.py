@@ -12,11 +12,7 @@ Updated 24/09/21 by Lin Gilbert - changed pyproj.Proj to pyproj.CRS to avoid dep
                                 point type
 
 Copyright: UCL/MSSL/CPOM.
-=======
-"""
 
-
-Slope class to read and interpolate surface slope files
 """
 
 from __future__ import annotations
