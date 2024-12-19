@@ -1,13 +1,14 @@
 """
 # Area definition
 
-## Summary: 
+## Summary:
 Based on area: greenland
 **mask: greenland_bedmachine_v3_grid_mask[3] == floating ice **
 
 """
 
 area_definition = {
+    "area_summary": "Greenland [floating ice mask]",
     "use_definitions_from": "greenland_hs",
     # --------------------------------------------
     #    mask from clev2er.utils.masks.Mask

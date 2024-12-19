@@ -1,18 +1,13 @@
 """
 # Area definition
 
-## Summary:
-Based on area: antarctica
-**Data mask: grounded ice from bedmachine v2**
+## Summary: 
+Based on area: ronne_filchner
+**mask: grounded ice**
 
 """
-
 area_definition = {
-    "area_summary": "Antarctica [grounded ice mask]",
-    "use_definitions_from": "antarctica",
-    # --------------------------------------------
-    #    mask from clev2er.utils.masks.Mask
-    # --------------------------------------------
+    "use_definitions_from": "ronne_filchner",
     "apply_area_mask_to_data": True,  # filter data using areas clev2er.utils.masks.Mask
     "maskname": "antarctica_bedmachine_v2_grid_mask",  # from  clev2er.utils.masks.Mask
     "basin_numbers": [2, 4],  # [n1,n2,..] if mask allows basin numbers

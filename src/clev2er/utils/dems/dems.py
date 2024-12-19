@@ -25,6 +25,7 @@ from tifffile import imread  # to support large TIFF files
 # pylint: disable=too-many-branches
 # pylint: disable=too-many-locals
 # pylint: disable=R0801
+# pylint: disable=too-many-lines
 
 log = logging.getLogger(__name__)
 
@@ -40,6 +41,7 @@ dem_list = [
     "rema_ant_1km_v2",  # Antarctic REMA v2.0 at 1km
     "rema_ant_1km_v2_zarr",  # Antarctic REMA v2.0 at 1km in zarr format
     "rema_ant_200m",  # Antarctic REMA v1.1 at 200m
+    "rema_ant_200m_zarr",  # Antarctic REMA v1.1 at 200m, zarr format
     "rema_gapless_100m",  # REMA (v1.1)Gapless DEM Antarctica at 100m,:
     "rema_gapless_100m_zarr",  # REMA (v1.1)Gapless DEM Antarctica at 100m, Zarr format:
     # https://doi.org/10.1016/j.isprsjprs.2022.01.024
@@ -47,6 +49,7 @@ dem_list = [
     "rema_gapless_1km_zarr",  # REMA (v1.1)Gapless DEM Antarctica at 1km,:
     # https://doi.org/10.1016/j.isprsjprs.2022.01.024
     "arcticdem_1km",  # ArcticDEM v3.0 at 1km
+    "arcticdem_1km_zarr",  # ArcticDEM v3.0 at 1km, Zarr format
     "arcticdem_1km_v4.1",  # ArcticDEM v4.1 at 1km
     "arcticdem_1km_greenland_v4.1",  # ArcticDEM v4.1 at 1km, subarea greenland
     "arcticdem_1km_greenland_v4.1_zarr",  # ArcticDEM v4.1 at 1km, subarea greenland
@@ -439,6 +442,28 @@ class Dem:
             self.dtype = np.float32
 
         # --------------------------------------------------------------------------------
+        elif self.name == "arcticdem_1km_zarr":
+            # Arctic DEM at 1km resolution
+
+            filename = "arcticdem_mosaic_1km_v3.0.zarr"
+            filled_filename = ""
+            default_dir = f'{os.environ["CPDATA_DIR"]}/SATS/RA/DEMS/arctic_dem_1km'
+            self.src_url = (
+                "http://data.pgc.umn.edu/elev/dem/setsm/ArcticDEM/mosaic/"
+                "v3.0/1km/arcticdem_mosaic_1km_v3.0.tif"
+            )
+            self.reference_year = 2010  # YYYY, the year the DEM's elevations are referenced to
+            self.src_url_filled = ""
+            self.dem_version = "3.0"
+            self.src_institute = "PGC"
+            self.long_name = "ArcticDEM 1km"
+            self.crs_bng = CRS("epsg:3413")  # Polar Stereo - North -lat of origin 70N, 45
+            self.southern_hemisphere = False
+            self.void_value = -9999
+            self.dtype = np.float32
+            self.zarr_type = True
+
+        # --------------------------------------------------------------------------------
         elif self.name == "arcticdem_1km_v4.1":
             # Arctic DEM v4.1 at 1km resolution
 
@@ -587,6 +612,32 @@ class Dem:
             self.reference_year = 2010  # YYYY, the year the DEM's elevations are referenced to
 
         # --------------------------------------------------------------------------------
+
+        elif self.name == "rema_ant_200m_zarr":
+            # REMA Antarctic 200m DEM  v1.1 (PGC 2018), zarr format
+            # The void areas will contain null values (-9999) in lieu of the terrain elevations.
+
+            filename = "REMA_200m_dem.zarr"
+            filled_filename = "REMA_200m_dem_filled.zarr"
+            default_dir = f'{os.environ["CPDATA_DIR"]}/SATS/RA/DEMS/ant_rema_200m_dem'
+            self.src_url = (
+                "https://data.pgc.umn.edu/elev/dem/setsm/REMA/mosaic/v1.1/200m/REMA_200m_dem.tif"
+            )
+            self.src_url_filled = (
+                "https://data.pgc.umn.edu/elev/dem/setsm/REMA/mosaic/v1.1/200m/"
+                "REMA_200m_dem_filled.tif"
+            )
+            self.dem_version = "1.1"
+            self.src_institute = "PGC"
+            self.long_name = "REMA-1.1-200m"
+            self.crs_bng = CRS("epsg:3031")  # Polar Stereo - South -71S
+            self.southern_hemisphere = True
+            self.void_value = -9999
+            self.dtype = np.float32
+            self.reference_year = 2010  # YYYY, the year the DEM's elevations are referenced to
+            self.zarr_type = True
+
+        # --------------------------------------------------------------------------------
         elif self.name == "rema_gapless_100m":
             # REMA v1.1 at 100m with Gapless post-processing as per
             # https://doi.org/10.1016/j.isprsjprs.2022.01.024
@@ -649,6 +700,7 @@ class Dem:
             filename = "GaplessREMA1km.zarr"
             filled_filename = "GaplessREMA1km.zarr"
             default_dir = f'{os.environ["CPDATA_DIR"]}/SATS/RA/DEMS/rema_gapless_1km'
+
             self.src_url = "https://figshare.com/articles/dataset/Gapless-REMA100/19122212"
             self.src_url_filled = "https://figshare.com/articles/dataset/Gapless-REMA100/19122212"
             self.dem_version = "1.1(REMA)/2.0(Gapless)"
@@ -866,35 +918,53 @@ class Dem:
         """
         results = np.full_like(x, np.nan, dtype=np.float64)
 
-        # Define the bounding box for all points
-        x_min, x_max = x.min(), x.max()
-        y_min, y_max = y.min(), y.max()
 
-        # Determine the indices of the bounding box in the DEM grid
-        x_indices = np.searchsorted(xdem, [x_min, x_max])
-        y_indices = np.searchsorted(myydem, [y_min, y_max])
+        # Identify valid points (where x and y are not NaN)
+        valid_mask = ~np.isnan(x) & ~np.isnan(y)
 
-        # Expand the indices to ensure we cover the region adequately
-        x_indices[0] = max(x_indices[0] - 1, 0)
-        x_indices[1] = min(x_indices[1] + 1, len(xdem) - 1)
-        y_indices[0] = max(y_indices[0] - 1, 0)
-        y_indices[1] = min(y_indices[1] + 1, len(myydem) - 1)
+        # Only proceed if there are valid points
+        if valid_mask.any():
+            x_valid = x[valid_mask]
+            y_valid = y[valid_mask]
 
-        # Extract the sub-array
-        sub_zarr = self.zdem_flip[y_indices[0] : y_indices[1] + 1, x_indices[0] : x_indices[1] + 1]
-        sub_zarr = np.array(sub_zarr)
+            # Define the bounding box for valid points
+            x_min, x_max = x_valid.min(), x_valid.max()
+            y_min, y_max = y_valid.min(), y_valid.max()
 
-        sub_myydem = myydem[y_indices[0] : y_indices[1] + 1]
-        sub_xdem = xdem[x_indices[0] : x_indices[1] + 1]
+            # Determine the indices of the bounding box in the DEM grid
+            x_indices = np.searchsorted(xdem, [x_min, x_max])
+            y_indices = np.searchsorted(myydem, [y_min, y_max])
 
-        # Create an interpolator for the sub-array
-        interpolator = RegularGridInterpolator(
-            (sub_myydem, sub_xdem), sub_zarr, method=method, bounds_error=False, fill_value=np.nan
-        )
+            # Expand the indices to ensure we cover the region adequately
+            x_indices[0] = max(x_indices[0] - 1, 0)
+            x_indices[1] = min(x_indices[1] + 1, len(xdem) - 1)
+            y_indices[0] = max(y_indices[0] - 1, 0)
+            y_indices[1] = min(y_indices[1] + 1, len(myydem) - 1)
 
-        # Perform the interpolation for all points
-        points = np.vstack((y, x)).T
-        results = interpolator(points)
+            # Extract the sub-array
+            sub_zarr = self.zdem_flip[
+                y_indices[0] : y_indices[1] + 1, x_indices[0] : x_indices[1] + 1
+            ]
+            sub_zarr = np.array(sub_zarr)
+
+            sub_myydem = myydem[y_indices[0] : y_indices[1] + 1]
+            sub_xdem = xdem[x_indices[0] : x_indices[1] + 1]
+
+            # Create an interpolator for the sub-array
+            interpolator = RegularGridInterpolator(
+                (sub_myydem, sub_xdem),
+                sub_zarr,
+                method=method,
+                bounds_error=False,
+                fill_value=np.nan,
+            )
+
+            # Perform the interpolation for valid points
+            points = np.vstack((y_valid, x_valid)).T
+            interpolated_values = interpolator(points)
+
+            # Store the results in the corresponding places
+            results[valid_mask] = interpolated_values
 
         return results
 

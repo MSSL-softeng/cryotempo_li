@@ -35,29 +35,29 @@ log = logging.getLogger(__name__)
 
 # dict of available plot background names and test areas
 all_backgrounds = {
-    "basic_land": "ais",
-    "cartopy_stock": ["ais", "arctic"],
-    "cartopy_stock_ocean": ["ais", "arctic"],
-    "arcgis_shaded_relief": ["ais", "arctic"],
-    "google_satellite": "canadianlake_woods",
-    "bluemarble": ["ais", "arctic"],
-    "natural_earth_cbh": ["ais", "arctic"],
-    "natural_earth_cbh_oceanmasked": ["ais", "arctic"],
-    "natural_earth_cbh_ocean": ["ais", "arctic"],
-    "natural_earth_gray": ["ais", "arctic"],
-    "natural_earth1": ["ais", "arctic"],
-    "stamen": ["ais", "arctic"],
-    "natural_earth_faded": ["ais", "arctic"],
-    "moa": ["ais", "vostok_centre"],
-    "cpom_dem": "ais",
-    "awi_gis_dem": "greenland",
-    "arcticdem_1km": "arctic",
-    "rema_dem_1km": "ais",
-    "grn_s1_mosaic": "greenland",
-    "hillshade": ["ais", "greenland"],
-    "ant_iceshelves": "ais",
-    "ibcso_bathymetry": "ais",
-    "ibcao_bathymetry": "arctic",
+    "basic_land": ["antarctica_is"],
+    "cartopy_stock": ["antarctica_is", "arctic"],
+    "cartopy_stock_ocean": ["antarctica_is", "arctic"],
+    "arcgis_shaded_relief": ["antarctica_is", "arctic"],
+    # "google_satellite": ["canadianlake_woods"],
+    "bluemarble": ["antarctica_is", "arctic"],
+    "natural_earth_cbh": ["antarctica_is", "arctic"],
+    "natural_earth_cbh_oceanmasked": ["antarctica_is", "arctic"],
+    "natural_earth_cbh_ocean": ["antarctica_is", "arctic"],
+    "natural_earth_gray": ["antarctica_is", "arctic"],
+    "natural_earth1": ["antarctica_is", "arctic"],
+    "stamen": ["antarctica_is", "arctic"],
+    "natural_earth_faded": ["antarctica_is", "arctic"],
+    "moa": ["antarctica_is", "vostok"],
+    "cpom_dem": ["antarctica_is"],
+    "awi_gis_dem": ["greenland"],
+    "arcticdem_1km": ["arctic"],
+    "rema_dem_1km": ["antarctica_is"],
+    "grn_s1_mosaic": ["greenland"],
+    "hillshade": ["antarctica_is", "greenland"],
+    "ant_iceshelves": ["antarctica_is"],
+    "ibcso_bathymetry": ["antarctica_is"],
+    "ibcao_bathymetry": ["arctic"],
 }
 
 all_background_resolutions = ["low", "medium", "high", "vhigh", "vvhigh"]
@@ -154,7 +154,7 @@ class Background:
         :return:
         """
 
-        # Select background image to use. Default is from cpom.areas.Area.background_image
+        # Select background image to use. Default is from clev2er.utils.areas.Area.background_image
         if not self.name:
             if isinstance(self.thisarea.background_image, list):
                 self.name = self.thisarea.background_image[0]
@@ -180,7 +180,7 @@ class Background:
 
         # Most background files are stored here (unless they are too big)
         os.environ["CARTOPY_USER_BACKGROUNDS"] = (
-            os.environ["CPOM_SOFTWARE_DIR"] + "/cpom/resources/backgrounds/"
+            os.environ["CPOM_SOFTWARE_DIR"] + "/resources/backgrounds/"
         )
 
         if self.name == "cartopy_stock":
@@ -425,7 +425,8 @@ class Background:
 
             zimage = exposure.equalize_adapthist(zimage)
 
-            thiscmap = plt.cm.get_cmap("Greys_r")
+            # thiscmap = plt.cm.get_cmap("Greys_r") - depreciated
+            thiscmap = colormaps["Greys_r"]
 
             print("pcolormesh")
             plt.pcolormesh(x_grid, y_grid, zimage, cmap=thiscmap, shading="auto", transform=dataprj)
@@ -484,7 +485,9 @@ class Background:
 
             x_grid, y_grid = np.meshgrid(xdem, ydem)
 
-            thiscmap = plt.cm.get_cmap("Greys", 48)
+            # thiscmap = plt.cm.get_cmap("Greys", 48) - depreciated
+            thiscmap = colormaps["Greys"].resampled(48)
+
             thiscmap.set_bad(color="aliceblue")
             ax.pcolormesh(
                 x_grid,
@@ -693,7 +696,8 @@ class Background:
                 log.error("Could not read %s", bgfile)
                 sys.exit(f"Could not read {bgfile}")
 
-            thiscmap = plt.cm.get_cmap("Blues_r", 8)
+            # thiscmap = plt.cm.get_cmap("Blues_r", 8) - depreciated
+            thiscmap = colormaps["Blues_r"].resampled(8)
 
             ax.pcolormesh(
                 x_grid,
@@ -772,7 +776,9 @@ class Background:
 
             x_grid, y_grid = np.meshgrid(xdem, ydem)
 
-            thiscmap = plt.cm.get_cmap("Greys", 48)
+            # thiscmap = plt.cm.get_cmap("Greys", 48) - depreciated
+            thiscmap = colormaps["Greys"].resampled(48)
+
             ax.pcolormesh(
                 x_grid,
                 y_grid,
@@ -811,6 +817,7 @@ class Background:
                 binsize = 100  # 100m grid resolution
             else:
                 raise ValueError(f"resolution {resolution} not found for grn_s1_mosaic")
+
 
             print("Loading S1 Sigma0 Mosaic background..")
             print(demfile)
@@ -874,7 +881,9 @@ class Background:
 
             x_grid, y_grid = np.meshgrid(xdem, ydem)
 
-            thiscmap = plt.cm.get_cmap("Greys", 48)
+            # thiscmap = plt.cm.get_cmap("Greys", 48) - this method depreciated
+            thiscmap = colormaps["Greys"].resampled(48)
+
             thiscmap.set_bad(color="aliceblue")
             ax.pcolormesh(
                 x_grid,
@@ -946,7 +955,9 @@ class Background:
 
             x_grid, y_grid = np.meshgrid(xdem, ydem)
 
-            thiscmap = plt.cm.get_cmap("Greys", 48)
+            # thiscmap = plt.cm.get_cmap("Greys", 48) - depreciated
+            thiscmap = colormaps["Greys"].resampled(48)
+
             thiscmap.set_bad(color="aliceblue")
             ax.pcolormesh(
                 x_grid,
@@ -1018,7 +1029,9 @@ class Background:
 
             x_grid, y_grid = np.meshgrid(xdem, ydem)
 
-            thiscmap = plt.cm.get_cmap("Greys", 64)
+            # thiscmap = plt.cm.get_cmap("Greys", 64) - depreciated
+            thiscmap = colormaps["Greys"].resampled(64)
+
             thiscmap.set_bad(color="aliceblue")
             max_elevation = self.thisarea.max_elevation
             if self.thisarea.max_elevation:

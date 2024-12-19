@@ -14,6 +14,7 @@ if [ $retVal -ne 0 ]; then
 fi
 git add docs
 
+
 else
     echo "Not on master branch, skipping pdocs build."
 fi
