@@ -1,5 +1,5 @@
 """
-Slope correction/geolocation function using an adapted Roemer method 
+Slope correction/geolocation function using an adapted Roemer method
 from :
 Roemer, S., Legrésy, B., Horwath, M., and Dietrich, R.: Refined
 analysis of radar altimetry data applied to the region of the
@@ -266,6 +266,13 @@ def geolocate_roemer(
     lat_20_ku = l1b["lat_20_ku"][:].data
     lon_20_ku = l1b["lon_20_ku"][:].data % 360.0
     altitudes = l1b["alt_20_ku"][:].data
+
+    # print(f"lat_20_ku {lat_20_ku[:3]}")
+    # print(f"lon_20_ku {lon_20_ku[:3]}")
+    # print(f"altitudes {altitudes[:3]}")
+    # print(f"geo_corrected_tracker_range {geo_corrected_tracker_range[:3]}")
+    # print(f"retracker_correction {retracker_correction[:3]}")
+    # print(f"surface_type_20_ku {surface_type_20_ku[:3]}")
 
     # Transform to X,Y locs in DEM projection
     nadir_x, nadir_y = thisdem.lonlat_to_xy_transformer.transform(
@@ -666,5 +673,10 @@ def geolocate_roemer(
 
             height_20_ku[idx] += l1b["dop_cor_20_ku"][idx]
             height_20_ku[idx] -= sdop
+
+    print(f"lat_poca_20_ku {lat_poca_20_ku[:3]}")
+    print(f"lon_poca_20_ku {lon_poca_20_ku[:3]}")
+    print(f"height_20_ku {height_20_ku[:3]}")
+    print(f"relocation_distance {relocation_distance[:3]}")
 
     return (height_20_ku, lat_poca_20_ku, lon_poca_20_ku, slope_ok, relocation_distance)
