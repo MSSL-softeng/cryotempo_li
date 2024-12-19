@@ -41,6 +41,9 @@ jobs:
         with:
           path: .venv
           key: venv-${{ runner.os }}-${{ matrix.python-version }}-${{ hashFiles('**/poetry.lock') }}
+
+      - name: Reset poetry (remove this line)
+        run: poetry lock
       #----------------------------------------------
       # install dependencies if cache does not exist
       #----------------------------------------------
