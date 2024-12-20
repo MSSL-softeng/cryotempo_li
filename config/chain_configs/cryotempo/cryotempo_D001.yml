@@ -1,4 +1,4 @@
-# Cryo-TEMPO Baseline-C settings 
+# Cryo-TEMPO Baseline-D001 settings 
 
 project: cryotempo
 theme: landice  # CryoTEMPO theme: landice, seaice, polaroceans, coastaloceans,inlandwaters
@@ -145,13 +145,16 @@ lrm_roemer_geolocation:
   use_sliding_window: False # searches for approx POCA using sliding PLF (slower) 
   #
   # DEM selection
-  antarctic_dem: rema_ant_200m   # Dem class name to use for finding approx POCA over AIS
-  antarctic_dem_fine: rema_ant_200m   # Dem class for final POCA. Can be the same as antarctic_dem
-  greenland_dem: arcticdem_100m_greenland_v4.1 # Dem class name to use for finding approx POCA over GIS
-  greenland_dem_fine: arcticdem_100m_greenland_v4.1 # Dem class for final POCA. Can be the same as greenland_dem
+  antarctic_dem: rema_gapless_100m_zarr   # Dem class name to use for finding approx POCA over AIS
+  antarctic_dem_fine: rema_gapless_100m_zarr  # Dem class for final POCA. Can be the same as antarctic_dem
+  greenland_dem: arcticdem_100m_greenland_v4.1_zarr # Dem class name to use for finding approx POCA over GIS
+  greenland_dem_fine: arcticdem_100m_greenland_v4.1_zarr # Dem class for final POCA. Can be the same as greenland_dem
   fine_grid_sampling: 10  # sampling rate, when doing re-sampling of _fine DEM for PLF
   median_filter: False # Apply 3x3 median filter to BLF DEM segments extracted around each nadir point
-  
+  reject_outside_range_window: True 
+  range_window_lower_trim: 0 # m trimmed from start of range window for slope rejection
+  range_window_upper_trim: 0 # m trimmed from end of range window for slope rejection
+
   # dh/dt correction
   include_dhdt_correction: False
   dhdt_grn_name: grn_is2_is1_smith # if include_dhdt_correction, dh/dt dataset name for GIS
@@ -162,6 +165,12 @@ lrm_roemer_geolocation:
 
   # Additional height corrections
   include_slope_doppler_correction: True
+
+reference_dem:
+  antarctic_dem: rema_ant_1km_v2_zarr   # Dem class name to use for reference parameter
+  greenland_dem: arcticdem_1km_greenland_v4.1_zarr  # Dem class name to use for reference parameter
+  # antarctic_dem: rema_gapless_100m_zarr   # Dem class name to use for reference parameter
+  # greenland_dem: "arcticdem_100m_greenland_v4.1_zarr"  # Dem class name to use for reference parameter
 
 height_filters:
   # maximum difference to the reference dem elevation in m
@@ -177,6 +186,9 @@ geophysical:
   earth_semi_major: 6378137.0
   eccentricity: 0.08181919078479198
   speed_light: 299792458.0
+
+product_output:
+  include_additional_parameters: True
 
 #-------------------------------------------------------------------------------------
 # Resource Locators
