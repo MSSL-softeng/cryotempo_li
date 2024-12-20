@@ -6,6 +6,7 @@ Based on area: ronne_filchner
 **background_image: hillshade**
 
 """
+
 area_definition = {
     "use_definitions_from": "ronne_filchner",
     # --------------------------------------------

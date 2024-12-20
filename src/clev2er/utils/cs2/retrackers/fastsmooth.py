@@ -1,4 +1,5 @@
 """fastsmooth() : smoothing function port from Matlab"""
+
 import numpy as np
 
 

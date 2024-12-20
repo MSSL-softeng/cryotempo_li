@@ -4,3 +4,4 @@ __pycache__/
 *$py.class
 *.pyc
 logs/*.log
+src/clev2er/utils/areas/tests/test_plots/*.png

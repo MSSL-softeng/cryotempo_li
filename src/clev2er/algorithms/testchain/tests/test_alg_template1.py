@@ -1,6 +1,7 @@
 """pytest of algorithm
    clev2er.algorithms.testchain.alg_template1.py
 """
+
 import logging
 import os
 

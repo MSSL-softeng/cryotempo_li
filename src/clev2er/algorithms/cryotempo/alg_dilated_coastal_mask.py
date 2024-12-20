@@ -1,4 +1,4 @@
-""" clev2er.algorithms.cryotempo.alg_dilated_coastal_mask """
+"""clev2er.algorithms.cryotempo.alg_dilated_coastal_mask"""
 
 # These imports required by Algorithm template
 from typing import Tuple
@@ -148,6 +148,8 @@ class Algorithm(BaseAlgorithm):
         if "hemisphere" not in shared_dict:
             self.log.error("hemisphere not set in shared_dict")
             return (False, "hemisphere not set in shared_dict")
+
+        n_inside = 0
 
         # Select the appropriate mask, depending on hemisphere
         if shared_dict["hemisphere"] == "south":

@@ -1,6 +1,7 @@
 """
 find direction of track from nadir latitudes
 """
+
 from __future__ import annotations
 
 import numpy as np

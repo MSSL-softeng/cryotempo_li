@@ -7,6 +7,7 @@ Based on area: ronne_filchner_hs
 **mask: grounded ice+floating ice**
 
 """
+
 area_definition = {
     "use_definitions_from": "ronne_filchner_hs",
     # --------------------------------------------

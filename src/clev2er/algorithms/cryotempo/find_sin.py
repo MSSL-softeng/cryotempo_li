@@ -1,5 +1,6 @@
 """find_sin module
 """
+
 import glob
 import logging
 import os

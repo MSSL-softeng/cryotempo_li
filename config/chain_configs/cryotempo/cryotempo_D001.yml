@@ -1,4 +1,4 @@
-# Cryo-TEMPO Baseline-C settings 
+# Cryo-TEMPO Baseline-D001 settings 
 
 project: cryotempo
 theme: landice  # CryoTEMPO theme: landice, seaice, polaroceans, coastaloceans,inlandwaters
@@ -111,32 +111,6 @@ sin_geolocation:
   unwrap: True
   unwrap_trigger_m: 0
 
-lrm_lepta_geolocation:
-  # Configuration for the LRM LEPTA slope correction method (based on Li et al, 2022)
-  #
-  # DEM selection
-  antarctic_dem: rema_ant_200m   # Dem class name to use for the slope correction over AIS
-  greenland_dem: arcticdem_100m_greenland # Dem class name to use for the slope correction over GIS
-  median_filter: False # Apply 3x3 median filter to DEM segments extracted around each nadir point
-  include_dhdt_correction: False
-  dhdt_grn_name: grn_is2_is1_smith
-  dhdt_ant_name: ais_is2_is1_smith
-  # Range Search Window
-  use_full_leading_edge: True
-  use_window_around_retracking_point: False
-  delta_range_offset: 1.25  # m as per Li et al
-  # POCA x,y calculation method
-  use_mean_xy_in_window: False
-  use_xy_at_min_dem_to_sat_distance: True
-  # POCA z calculation method  
-  use_z_at_min_dem_to_sat_distance: False
-  use_mean_z_in_window: False
-  use_median_z_in_window: False
-  use_median_height_around_point: True
-  # Additional height corrections
-  include_slope_doppler_correction: True
-
-
 lrm_roemer_geolocation:
   # Configuration for the LRM Roemer correction method (based on Roemer al, 2007)
   #
@@ -145,13 +119,16 @@ lrm_roemer_geolocation:
   use_sliding_window: False # searches for approx POCA using sliding PLF (slower) 
   #
   # DEM selection
-  antarctic_dem: rema_ant_200m   # Dem class name to use for finding approx POCA over AIS
-  antarctic_dem_fine: rema_ant_200m   # Dem class for final POCA. Can be the same as antarctic_dem
-  greenland_dem: arcticdem_100m_greenland_v4.1 # Dem class name to use for finding approx POCA over GIS
-  greenland_dem_fine: arcticdem_100m_greenland_v4.1 # Dem class for final POCA. Can be the same as greenland_dem
+  antarctic_dem: rema_gapless_100m_zarr   # Dem class name to use for finding approx POCA over AIS
+  antarctic_dem_fine: rema_gapless_100m_zarr  # Dem class for final POCA. Can be the same as antarctic_dem
+  greenland_dem: arcticdem_100m_greenland_v4.1_zarr # Dem class name to use for finding approx POCA over GIS
+  greenland_dem_fine: arcticdem_100m_greenland_v4.1_zarr # Dem class for final POCA. Can be the same as greenland_dem
   fine_grid_sampling: 10  # sampling rate, when doing re-sampling of _fine DEM for PLF
   median_filter: False # Apply 3x3 median filter to BLF DEM segments extracted around each nadir point
-  
+  reject_outside_range_window: True 
+  range_window_lower_trim: 0 # m trimmed from start of range window for slope rejection
+  range_window_upper_trim: 0 # m trimmed from end of range window for slope rejection
+
   # dh/dt correction
   include_dhdt_correction: False
   dhdt_grn_name: grn_is2_is1_smith # if include_dhdt_correction, dh/dt dataset name for GIS
@@ -162,6 +139,12 @@ lrm_roemer_geolocation:
 
   # Additional height corrections
   include_slope_doppler_correction: True
+
+reference_dem:
+  antarctic_dem: rema_ant_1km_v2_zarr   # Dem class name to use for reference parameter
+  greenland_dem: arcticdem_1km_greenland_v4.1_zarr  # Dem class name to use for reference parameter
+  # antarctic_dem: rema_gapless_100m_zarr   # Dem class name to use for reference parameter
+  # greenland_dem: "arcticdem_100m_greenland_v4.1_zarr"  # Dem class name to use for reference parameter
 
 height_filters:
   # maximum difference to the reference dem elevation in m
@@ -177,6 +160,9 @@ geophysical:
   earth_semi_major: 6378137.0
   eccentricity: 0.08181919078479198
   speed_light: 299792458.0
+
+product_output:
+  include_additional_parameters: True
 
 #-------------------------------------------------------------------------------------
 # Resource Locators
@@ -198,10 +184,6 @@ basin_masks:
 tides:
   fes2014b_base_dir: ${FES2014B_BASE_DIR} # set to base dir of FES2014 (containing LRM,SIN/<YYYY>/<MM>/CS*.fes2014b.nc)
   cats2008a_base_dir: ${CATS2008A_BASE_DIR} # set to base dir of CATS2008a (containing <YYYY>/<MM>/CS*_cats2008a_tides.nc)
-
-slope_models: # not used in Baseline-C
-  # Set to dir containing /cs2/CS_OPER_AUX_SLPMSL*.DBL
-  model_file: ${CS2_SLOPE_MODELS_DIR}/cs2/CS_OPER_AUX_SLPMSL_00000000T000000_99999999T999999_0007.DBL
 
 dem_dirs:
   rema_ant_1km: ${CPDATA_DIR}/SATS/RA/DEMS/rema_1km_dem

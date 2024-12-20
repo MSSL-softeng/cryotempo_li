@@ -1,5 +1,5 @@
 """
-Slope correction/geolocation function using an adapted Roemer method 
+Slope correction/geolocation function using an adapted Roemer method
 from :
 Roemer, S., Legrésy, B., Horwath, M., and Dietrich, R.: Refined
 analysis of radar altimetry data applied to the region of the
@@ -143,7 +143,8 @@ def find_poca(
         alt_pt (float): altitude at nadir (m)
 
     Returns:
-        (float,float,float,float,bool): poca_x, poca_y, poca_z, slope_correction_to_height,
+        (float,float,float,float,float,bool): poca_x, poca_y, poca_z, slope_correction_to_height,
+        range_to_satellite_of_poca,
         flg_success
     """
 
@@ -168,7 +169,7 @@ def find_poca(
     [dem_rpoca, dempoca_ind] = np.nanmin(dem_range_vec), np.nanargmin(dem_range_vec)
 
     if np.isnan(zdem[dempoca_ind]) | (zdem[dempoca_ind] == -9999):
-        return -999, -999, -999, -999, 0
+        return -999, -999, -999, -999, -999, 0
 
     # compute relocation correction to apply to assumed nadir altimeter elevation to move to poca
     slope_correction_to_height = dem_rpoca + zdem[dempoca_ind] - alt_pt
@@ -180,6 +181,7 @@ def find_poca(
         ydem[dempoca_ind],
         zdem[dempoca_ind],
         slope_correction_to_height,
+        dem_rpoca,
         flg_success,
     )
 
@@ -210,7 +212,7 @@ def geolocate_roemer(
     geo_corrected_tracker_range: np.ndarray,
     retracker_correction: np.ndarray,
     waveforms_to_include: np.ndarray,
-) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     """Geolocate CS2 LRM measurements using an adapted Roemer (Roemer et al, 2007) method
 
     Args:
@@ -223,8 +225,8 @@ def geolocate_roemer(
         retracker_correction (np.ndarray) : retracker correction to range (m)
         waveforms_to_include (np.ndarray) : boolean array of waveforms to include (False == reject)
     Returns:
-        (np.ndarray, np.ndarray, np.ndarray, np.ndarray):
-        (height_20_ku, lat_poca_20_ku, lon_poca_20_ku, slope_ok)
+        (np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray):
+        (height_20_ku, lat_poca_20_ku, lon_poca_20_ku, slope_ok, relocation_distance)
     """
 
     if thisdem is None:
@@ -239,6 +241,9 @@ def geolocate_roemer(
 
     across_track_beam_width = config["instrument"]["across_track_beam_width_lrm"]  # meters
     pulse_limited_footprint_size_lrm = config["instrument"]["pulse_limited_footprint_size_lrm"]  # m
+    reference_bin_index = config["instrument"]["ref_bin_index_lrm"]
+    range_bin_size = config["instrument"]["range_bin_size_lrm"]  # meters
+    num_bins = config["instrument"]["num_range_bins_lrm"]
 
     # Additional options
     include_dhdt_correction = config["lrm_roemer_geolocation"]["include_dhdt_correction"]
@@ -251,6 +256,9 @@ def geolocate_roemer(
 
     median_filter_dem_segment = config["lrm_roemer_geolocation"]["median_filter"]
     median_filter_width = 7  # Adjusted to be close to CS2 PLF width of 1600m. TODO : add to config
+    reject_outside_range_window = config["lrm_roemer_geolocation"]["reject_outside_range_window"]
+    range_window_lower_trim = config["lrm_roemer_geolocation"]["range_window_lower_trim"]
+    range_window_upper_trim = config["lrm_roemer_geolocation"]["range_window_upper_trim"]
 
     # ------------------------------------------------------------------------------------
 
@@ -258,6 +266,13 @@ def geolocate_roemer(
     lat_20_ku = l1b["lat_20_ku"][:].data
     lon_20_ku = l1b["lon_20_ku"][:].data % 360.0
     altitudes = l1b["alt_20_ku"][:].data
+
+    # print(f"lat_20_ku {lat_20_ku[:3]}")
+    # print(f"lon_20_ku {lon_20_ku[:3]}")
+    # print(f"altitudes {altitudes[:3]}")
+    # print(f"geo_corrected_tracker_range {geo_corrected_tracker_range[:3]}")
+    # print(f"retracker_correction {retracker_correction[:3]}")
+    # print(f"surface_type_20_ku {surface_type_20_ku[:3]}")
 
     # Transform to X,Y locs in DEM projection
     nadir_x, nadir_y = thisdem.lonlat_to_xy_transformer.transform(
@@ -271,6 +286,7 @@ def geolocate_roemer(
     slope_correction = np.full_like(nadir_x, dtype=float, fill_value=np.nan)
     slope_ok = np.full_like(nadir_x, dtype=bool, fill_value=True)
     height_20_ku = np.full_like(nadir_x, dtype=float, fill_value=np.nan)
+    relocation_distance = np.full_like(nadir_x, dtype=float, fill_value=np.nan)
 
     # if using a dh/dt correction to the DEM we need to calculate the time diff in years
     if include_dhdt_correction:
@@ -379,6 +395,7 @@ def geolocate_roemer(
                 this_poca_y,
                 this_poca_z,
                 slope_correction_to_height,
+                range_to_sat_of_poca,
                 flg_success,
             ) = find_poca(zdem, xdem, ydem, nadir_x[i], nadir_y[i], altitudes[i])
 
@@ -480,6 +497,7 @@ def geolocate_roemer(
                     this_poca_y,
                     this_poca_z,
                     slope_correction_to_height,
+                    range_to_sat_of_poca,
                     flg_success,
                 ) = find_poca(zdem, xdem, ydem, nadir_x[i], nadir_y[i], altitudes[i])
                 if not flg_success:
@@ -491,9 +509,28 @@ def geolocate_roemer(
 
                 # print(f"2nd poca: {this_poca_x} {this_poca_y} {this_poca_z}")
 
+            if reject_outside_range_window:
+                range_to_window_start = (
+                    range_window_lower_trim
+                    + geo_corrected_tracker_range[i]
+                    - (reference_bin_index) * range_bin_size
+                )
+                range_to_window_end = (
+                    geo_corrected_tracker_range[i]
+                    + ((num_bins - reference_bin_index) * range_bin_size)
+                    - range_window_upper_trim
+                )
+                if (range_to_sat_of_poca < range_to_window_start) or (
+                    range_to_sat_of_poca > range_to_window_end
+                ):
+                    slope_ok[i] = False
+                    continue
+
             slope_correction[i] = slope_correction_to_height
-            dist_reloc = np.sqrt((this_poca_x - nadir_x[i]) ** 2 + (this_poca_y - nadir_y[i]) ** 2)
-            if dist_reloc > max_poca_reloc_distance:
+            relocation_distance[i] = np.sqrt(
+                (this_poca_x - nadir_x[i]) ** 2 + (this_poca_y - nadir_y[i]) ** 2
+            )
+            if relocation_distance[i] > max_poca_reloc_distance:
                 slope_ok[i] = False
 
         if config["lrm_roemer_geolocation"]["use_sliding_window"]:
@@ -637,4 +674,9 @@ def geolocate_roemer(
             height_20_ku[idx] += l1b["dop_cor_20_ku"][idx]
             height_20_ku[idx] -= sdop
 
-    return (height_20_ku, lat_poca_20_ku, lon_poca_20_ku, slope_ok)
+    print(f"lat_poca_20_ku {lat_poca_20_ku[:3]}")
+    print(f"lon_poca_20_ku {lon_poca_20_ku[:3]}")
+    print(f"height_20_ku {height_20_ku[:3]}")
+    print(f"relocation_distance {relocation_distance[:3]}")
+
+    return (height_20_ku, lat_poca_20_ku, lon_poca_20_ku, slope_ok, relocation_distance)

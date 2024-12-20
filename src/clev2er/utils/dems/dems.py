@@ -612,6 +612,7 @@ class Dem:
             self.reference_year = 2010  # YYYY, the year the DEM's elevations are referenced to
 
         # --------------------------------------------------------------------------------
+
         elif self.name == "rema_ant_200m_zarr":
             # REMA Antarctic 200m DEM  v1.1 (PGC 2018), zarr format
             # The void areas will contain null values (-9999) in lieu of the terrain elevations.
@@ -681,7 +682,7 @@ class Dem:
 
             filename = "GaplessREMA1km.tif"
             filled_filename = "GaplessREMA1km.tif"
-            default_dir = f'{os.environ["CPDATA_DIR"]}/SATS/RA/DEMS/rema_gapless_100m'
+            default_dir = f'{os.environ["CPDATA_DIR"]}/SATS/RA/DEMS/rema_gapless_1km'
             self.src_url = "https://figshare.com/articles/dataset/Gapless-REMA100/19122212"
             self.src_url_filled = "https://figshare.com/articles/dataset/Gapless-REMA100/19122212"
             self.dem_version = "1.1(REMA)/2.0(Gapless)"
@@ -698,7 +699,8 @@ class Dem:
 
             filename = "GaplessREMA1km.zarr"
             filled_filename = "GaplessREMA1km.zarr"
-            default_dir = f'{os.environ["CPDATA_DIR"]}/SATS/RA/DEMS/rema_gapless_100m'
+            default_dir = f'{os.environ["CPDATA_DIR"]}/SATS/RA/DEMS/rema_gapless_1km'
+
             self.src_url = "https://figshare.com/articles/dataset/Gapless-REMA100/19122212"
             self.src_url_filled = "https://figshare.com/articles/dataset/Gapless-REMA100/19122212"
             self.dem_version = "1.1(REMA)/2.0(Gapless)"

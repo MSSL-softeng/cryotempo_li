@@ -99,7 +99,7 @@ def test_slope_map_vostok():
         "lats": lats,
         "lons": lons,
         "vals": slopes,
-        "apply_area_mask_to_data": False,
+        "apply_area_mask_to_data": True,
         "min_plot_range": 0.0,
         "max_plot_range": 0.3,
     }
@@ -127,7 +127,7 @@ def test_slope_map_ant(slope_name):
     slopes = this_slope.interp_slopes(lats, lons, method="linear", xy_is_latlon=True)
 
     dataset = {
-        "name": slope_name,
+        "name": "slope",
         "units": "degs",
         "lats": lats,
         "lons": lons,

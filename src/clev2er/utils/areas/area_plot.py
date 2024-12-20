@@ -625,6 +625,9 @@ class Polarplot:
 
                 log.info("percent Nan %.2f", percent_nan)
 
+                scatter = None
+                cmap = None
+
                 # find out of range values in data -------------------------------------------------
 
                 if is_flag_data:
@@ -754,7 +757,7 @@ class Polarplot:
                     )
 
                     ds_name_0 = data_set.get("name", "unnamed")
-                    if valid_indices.size > 0 and not is_flag_data:
+                    if valid_indices.size > 0 and not is_flag_data and scatter is not None:
                         if self.thisarea.draw_colorbar:
                             cbar = self.draw_colorbar(
                                 data_set,
@@ -766,7 +769,7 @@ class Polarplot:
 
                             self.draw_stats(cbar, vals)
 
-                        if self.thisarea.show_histograms:
+                        if self.thisarea.show_histograms and cmap is not None:
                             self.draw_histograms(
                                 fig,
                                 vals,
@@ -843,6 +846,7 @@ class Polarplot:
             elif output_file and not output_dir:
                 plot_filename = output_file
             elif output_dir and not output_file:
+
                 _ds_name_0 = ds_name_0.replace("/", "_")
                 plot_filename = f"{output_dir}/param_{_ds_name_0}_{self.area}.png"
             else:
@@ -2272,6 +2276,7 @@ class Polarplot:
         #  Setup projections for supported epsg numbers
         # ------------------------------------------------------------------------------------------
 
+        dataprj = None
         # EPSG:3995: WGS 84 / Arctic Polar Stereographic
         if self.thisarea.epsg_number == 3995:
             dataprj = ccrs.epsg("3995")
@@ -2310,7 +2315,7 @@ class Polarplot:
                 else:
                     bounding_lat = 60
 
-            if self.thisarea.hemisphere == "north":
+            if self.thisarea.hemisphere == "north" and dataprj is not None:
                 if self.thisarea.lon_0 is not None and self.thisarea.lon_0 == 0.0:
                     # Note that the '-1' below is a fudge to expand the area to account for the
                     # clipping of the circular boundary

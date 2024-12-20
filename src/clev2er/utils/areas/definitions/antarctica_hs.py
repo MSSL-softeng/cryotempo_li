@@ -6,6 +6,7 @@ Based on area: antarctica
 **background_image: hillshade**
 
 """
+
 area_definition = {
     "use_definitions_from": "antarctica",
     # --------------------------------------------

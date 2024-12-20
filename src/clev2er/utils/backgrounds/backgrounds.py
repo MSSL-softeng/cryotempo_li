@@ -816,7 +816,7 @@ class Background:
                 )
                 binsize = 100  # 100m grid resolution
             else:
-                raise ValueError(f"resolution {resolution} not supported")
+                raise ValueError(f"resolution {resolution} not found for grn_s1_mosaic")
 
             print("Loading S1 Sigma0 Mosaic background..")
             print(demfile)

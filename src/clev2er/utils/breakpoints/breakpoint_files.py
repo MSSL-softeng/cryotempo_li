@@ -191,6 +191,7 @@ def write_breakpoint_file(
 
     # form breakpoint dir path
 
+    breakpoint_dir = "/tmp"
     if not config:  # temporary, as config fields not yet used to set path
         breakpoint_dir = "/tmp"
     else:

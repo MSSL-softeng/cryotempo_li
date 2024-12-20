@@ -1,4 +1,5 @@
 """pytests for masks.py: Mask class"""
+
 import numpy as np
 import pytest
 

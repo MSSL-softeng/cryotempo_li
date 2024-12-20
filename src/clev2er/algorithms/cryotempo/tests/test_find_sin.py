@@ -1,5 +1,6 @@
 """ test of find_sin.py
 """
+
 from os import environ
 
 from clev2er.algorithms.cryotempo.find_sin import FileFinder

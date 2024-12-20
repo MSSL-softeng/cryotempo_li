@@ -654,17 +654,32 @@
 </span><span id="L-564"><a href="#L-564"><span class="linenos">564</span></a>        <span class="p">)</span>
 </span><span id="L-565"><a href="#L-565"><span class="linenos">565</span></a>        <span class="n">nc_var</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">shared_dict</span><span class="p">[</span><span class="s2">&quot;uncertainty&quot;</span><span class="p">]</span>
 </span><span id="L-566"><a href="#L-566"><span class="linenos">566</span></a>
-</span><span id="L-567"><a href="#L-567"><span class="linenos">567</span></a>        <span class="c1"># ----------------------------------------------------------------</span>
-</span><span id="L-568"><a href="#L-568"><span class="linenos">568</span></a>        <span class="c1"># Close netCDF dataset</span>
-</span><span id="L-569"><a href="#L-569"><span class="linenos">569</span></a>        <span class="n">dset</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
-</span><span id="L-570"><a href="#L-570"><span class="linenos">570</span></a>
-</span><span id="L-571"><a href="#L-571"><span class="linenos">571</span></a>        <span class="n">shared_dict</span><span class="p">[</span><span class="s2">&quot;product_filename&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">product_filename</span>
-</span><span id="L-572"><a href="#L-572"><span class="linenos">572</span></a>
-</span><span id="L-573"><a href="#L-573"><span class="linenos">573</span></a>        <span class="c1"># Return success (True,&#39;&#39;)</span>
-</span><span id="L-574"><a href="#L-574"><span class="linenos">574</span></a>        <span class="k">return</span> <span class="p">(</span><span class="kc">True</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span>
-</span><span id="L-575"><a href="#L-575"><span class="linenos">575</span></a>
-</span><span id="L-576"><a href="#L-576"><span class="linenos">576</span></a>
-</span><span id="L-577"><a href="#L-577"><span class="linenos">577</span></a><span class="c1"># No finalize() required for this algorithm</span>
+</span><span id="L-567"><a href="#L-567"><span class="linenos">567</span></a>        <span class="c1"># Additional Parameters</span>
+</span><span id="L-568"><a href="#L-568"><span class="linenos">568</span></a>
+</span><span id="L-569"><a href="#L-569"><span class="linenos">569</span></a>        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s2">&quot;product_output&quot;</span><span class="p">][</span><span class="s2">&quot;include_additional_parameters&quot;</span><span class="p">]:</span>
+</span><span id="L-570"><a href="#L-570"><span class="linenos">570</span></a>            <span class="c1"># Relocation_distance</span>
+</span><span id="L-571"><a href="#L-571"><span class="linenos">571</span></a>            <span class="n">nc_var</span> <span class="o">=</span> <span class="n">dset</span><span class="o">.</span><span class="n">createVariable</span><span class="p">(</span><span class="s2">&quot;relocation_distance&quot;</span><span class="p">,</span> <span class="s2">&quot;double&quot;</span><span class="p">,</span> <span class="p">(</span><span class="s2">&quot;time&quot;</span><span class="p">,))</span>
+</span><span id="L-572"><a href="#L-572"><span class="linenos">572</span></a>            <span class="n">nc_var</span><span class="o">.</span><span class="n">units</span> <span class="o">=</span> <span class="s2">&quot;m&quot;</span>
+</span><span id="L-573"><a href="#L-573"><span class="linenos">573</span></a>            <span class="n">nc_var</span><span class="o">.</span><span class="n">coordinates</span> <span class="o">=</span> <span class="s2">&quot;longitude latitude&quot;</span>
+</span><span id="L-574"><a href="#L-574"><span class="linenos">574</span></a>            <span class="n">nc_var</span><span class="o">.</span><span class="n">long_name</span> <span class="o">=</span> <span class="s2">&quot;relocation distance of POCA from Nadir&quot;</span>
+</span><span id="L-575"><a href="#L-575"><span class="linenos">575</span></a>            <span class="n">nc_var</span><span class="o">.</span><span class="n">standard_name</span> <span class="o">=</span> <span class="s2">&quot;distance&quot;</span>
+</span><span id="L-576"><a href="#L-576"><span class="linenos">576</span></a>            <span class="n">nc_var</span><span class="o">.</span><span class="n">comment</span> <span class="o">=</span> <span class="s2">&quot;Relocation distance from nadir to POCA in m&quot;</span>
+</span><span id="L-577"><a href="#L-577"><span class="linenos">577</span></a>            <span class="k">if</span> <span class="s2">&quot;relocation_distance&quot;</span> <span class="ow">in</span> <span class="n">shared_dict</span><span class="p">:</span>
+</span><span id="L-578"><a href="#L-578"><span class="linenos">578</span></a>                <span class="n">nc_var</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">shared_dict</span><span class="p">[</span><span class="s2">&quot;relocation_distance&quot;</span><span class="p">]</span>
+</span><span id="L-579"><a href="#L-579"><span class="linenos">579</span></a>            <span class="k">else</span><span class="p">:</span>
+</span><span id="L-580"><a href="#L-580"><span class="linenos">580</span></a>                <span class="n">nc_var</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full_like</span><span class="p">(</span><span class="n">time_20_ku</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+</span><span id="L-581"><a href="#L-581"><span class="linenos">581</span></a>
+</span><span id="L-582"><a href="#L-582"><span class="linenos">582</span></a>        <span class="c1"># ----------------------------------------------------------------</span>
+</span><span id="L-583"><a href="#L-583"><span class="linenos">583</span></a>        <span class="c1"># Close netCDF dataset</span>
+</span><span id="L-584"><a href="#L-584"><span class="linenos">584</span></a>        <span class="n">dset</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+</span><span id="L-585"><a href="#L-585"><span class="linenos">585</span></a>
+</span><span id="L-586"><a href="#L-586"><span class="linenos">586</span></a>        <span class="n">shared_dict</span><span class="p">[</span><span class="s2">&quot;product_filename&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">product_filename</span>
+</span><span id="L-587"><a href="#L-587"><span class="linenos">587</span></a>
+</span><span id="L-588"><a href="#L-588"><span class="linenos">588</span></a>        <span class="c1"># Return success (True,&#39;&#39;)</span>
+</span><span id="L-589"><a href="#L-589"><span class="linenos">589</span></a>        <span class="k">return</span> <span class="p">(</span><span class="kc">True</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span>
+</span><span id="L-590"><a href="#L-590"><span class="linenos">590</span></a>
+</span><span id="L-591"><a href="#L-591"><span class="linenos">591</span></a>
+</span><span id="L-592"><a href="#L-592"><span class="linenos">592</span></a><span class="c1"># No finalize() required for this algorithm</span>
 </span></pre></div>
 
 
@@ -1280,14 +1295,29 @@
 </span><span id="Algorithm-565"><a href="#Algorithm-565"><span class="linenos">565</span></a>        <span class="p">)</span>
 </span><span id="Algorithm-566"><a href="#Algorithm-566"><span class="linenos">566</span></a>        <span class="n">nc_var</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">shared_dict</span><span class="p">[</span><span class="s2">&quot;uncertainty&quot;</span><span class="p">]</span>
 </span><span id="Algorithm-567"><a href="#Algorithm-567"><span class="linenos">567</span></a>
-</span><span id="Algorithm-568"><a href="#Algorithm-568"><span class="linenos">568</span></a>        <span class="c1"># ----------------------------------------------------------------</span>
-</span><span id="Algorithm-569"><a href="#Algorithm-569"><span class="linenos">569</span></a>        <span class="c1"># Close netCDF dataset</span>
-</span><span id="Algorithm-570"><a href="#Algorithm-570"><span class="linenos">570</span></a>        <span class="n">dset</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
-</span><span id="Algorithm-571"><a href="#Algorithm-571"><span class="linenos">571</span></a>
-</span><span id="Algorithm-572"><a href="#Algorithm-572"><span class="linenos">572</span></a>        <span class="n">shared_dict</span><span class="p">[</span><span class="s2">&quot;product_filename&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">product_filename</span>
-</span><span id="Algorithm-573"><a href="#Algorithm-573"><span class="linenos">573</span></a>
-</span><span id="Algorithm-574"><a href="#Algorithm-574"><span class="linenos">574</span></a>        <span class="c1"># Return success (True,&#39;&#39;)</span>
-</span><span id="Algorithm-575"><a href="#Algorithm-575"><span class="linenos">575</span></a>        <span class="k">return</span> <span class="p">(</span><span class="kc">True</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span>
+</span><span id="Algorithm-568"><a href="#Algorithm-568"><span class="linenos">568</span></a>        <span class="c1"># Additional Parameters</span>
+</span><span id="Algorithm-569"><a href="#Algorithm-569"><span class="linenos">569</span></a>
+</span><span id="Algorithm-570"><a href="#Algorithm-570"><span class="linenos">570</span></a>        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s2">&quot;product_output&quot;</span><span class="p">][</span><span class="s2">&quot;include_additional_parameters&quot;</span><span class="p">]:</span>
+</span><span id="Algorithm-571"><a href="#Algorithm-571"><span class="linenos">571</span></a>            <span class="c1"># Relocation_distance</span>
+</span><span id="Algorithm-572"><a href="#Algorithm-572"><span class="linenos">572</span></a>            <span class="n">nc_var</span> <span class="o">=</span> <span class="n">dset</span><span class="o">.</span><span class="n">createVariable</span><span class="p">(</span><span class="s2">&quot;relocation_distance&quot;</span><span class="p">,</span> <span class="s2">&quot;double&quot;</span><span class="p">,</span> <span class="p">(</span><span class="s2">&quot;time&quot;</span><span class="p">,))</span>
+</span><span id="Algorithm-573"><a href="#Algorithm-573"><span class="linenos">573</span></a>            <span class="n">nc_var</span><span class="o">.</span><span class="n">units</span> <span class="o">=</span> <span class="s2">&quot;m&quot;</span>
+</span><span id="Algorithm-574"><a href="#Algorithm-574"><span class="linenos">574</span></a>            <span class="n">nc_var</span><span class="o">.</span><span class="n">coordinates</span> <span class="o">=</span> <span class="s2">&quot;longitude latitude&quot;</span>
+</span><span id="Algorithm-575"><a href="#Algorithm-575"><span class="linenos">575</span></a>            <span class="n">nc_var</span><span class="o">.</span><span class="n">long_name</span> <span class="o">=</span> <span class="s2">&quot;relocation distance of POCA from Nadir&quot;</span>
+</span><span id="Algorithm-576"><a href="#Algorithm-576"><span class="linenos">576</span></a>            <span class="n">nc_var</span><span class="o">.</span><span class="n">standard_name</span> <span class="o">=</span> <span class="s2">&quot;distance&quot;</span>
+</span><span id="Algorithm-577"><a href="#Algorithm-577"><span class="linenos">577</span></a>            <span class="n">nc_var</span><span class="o">.</span><span class="n">comment</span> <span class="o">=</span> <span class="s2">&quot;Relocation distance from nadir to POCA in m&quot;</span>
+</span><span id="Algorithm-578"><a href="#Algorithm-578"><span class="linenos">578</span></a>            <span class="k">if</span> <span class="s2">&quot;relocation_distance&quot;</span> <span class="ow">in</span> <span class="n">shared_dict</span><span class="p">:</span>
+</span><span id="Algorithm-579"><a href="#Algorithm-579"><span class="linenos">579</span></a>                <span class="n">nc_var</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">shared_dict</span><span class="p">[</span><span class="s2">&quot;relocation_distance&quot;</span><span class="p">]</span>
+</span><span id="Algorithm-580"><a href="#Algorithm-580"><span class="linenos">580</span></a>            <span class="k">else</span><span class="p">:</span>
+</span><span id="Algorithm-581"><a href="#Algorithm-581"><span class="linenos">581</span></a>                <span class="n">nc_var</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full_like</span><span class="p">(</span><span class="n">time_20_ku</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+</span><span id="Algorithm-582"><a href="#Algorithm-582"><span class="linenos">582</span></a>
+</span><span id="Algorithm-583"><a href="#Algorithm-583"><span class="linenos">583</span></a>        <span class="c1"># ----------------------------------------------------------------</span>
+</span><span id="Algorithm-584"><a href="#Algorithm-584"><span class="linenos">584</span></a>        <span class="c1"># Close netCDF dataset</span>
+</span><span id="Algorithm-585"><a href="#Algorithm-585"><span class="linenos">585</span></a>        <span class="n">dset</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+</span><span id="Algorithm-586"><a href="#Algorithm-586"><span class="linenos">586</span></a>
+</span><span id="Algorithm-587"><a href="#Algorithm-587"><span class="linenos">587</span></a>        <span class="n">shared_dict</span><span class="p">[</span><span class="s2">&quot;product_filename&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">product_filename</span>
+</span><span id="Algorithm-588"><a href="#Algorithm-588"><span class="linenos">588</span></a>
+</span><span id="Algorithm-589"><a href="#Algorithm-589"><span class="linenos">589</span></a>        <span class="c1"># Return success (True,&#39;&#39;)</span>
+</span><span id="Algorithm-590"><a href="#Algorithm-590"><span class="linenos">590</span></a>        <span class="k">return</span> <span class="p">(</span><span class="kc">True</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span>
 </span></pre></div>
 
 
@@ -1833,14 +1863,29 @@
 </span><span id="Algorithm.process-565"><a href="#Algorithm.process-565"><span class="linenos">565</span></a>        <span class="p">)</span>
 </span><span id="Algorithm.process-566"><a href="#Algorithm.process-566"><span class="linenos">566</span></a>        <span class="n">nc_var</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">shared_dict</span><span class="p">[</span><span class="s2">&quot;uncertainty&quot;</span><span class="p">]</span>
 </span><span id="Algorithm.process-567"><a href="#Algorithm.process-567"><span class="linenos">567</span></a>
-</span><span id="Algorithm.process-568"><a href="#Algorithm.process-568"><span class="linenos">568</span></a>        <span class="c1"># ----------------------------------------------------------------</span>
-</span><span id="Algorithm.process-569"><a href="#Algorithm.process-569"><span class="linenos">569</span></a>        <span class="c1"># Close netCDF dataset</span>
-</span><span id="Algorithm.process-570"><a href="#Algorithm.process-570"><span class="linenos">570</span></a>        <span class="n">dset</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
-</span><span id="Algorithm.process-571"><a href="#Algorithm.process-571"><span class="linenos">571</span></a>
-</span><span id="Algorithm.process-572"><a href="#Algorithm.process-572"><span class="linenos">572</span></a>        <span class="n">shared_dict</span><span class="p">[</span><span class="s2">&quot;product_filename&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">product_filename</span>
-</span><span id="Algorithm.process-573"><a href="#Algorithm.process-573"><span class="linenos">573</span></a>
-</span><span id="Algorithm.process-574"><a href="#Algorithm.process-574"><span class="linenos">574</span></a>        <span class="c1"># Return success (True,&#39;&#39;)</span>
-</span><span id="Algorithm.process-575"><a href="#Algorithm.process-575"><span class="linenos">575</span></a>        <span class="k">return</span> <span class="p">(</span><span class="kc">True</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span>
+</span><span id="Algorithm.process-568"><a href="#Algorithm.process-568"><span class="linenos">568</span></a>        <span class="c1"># Additional Parameters</span>
+</span><span id="Algorithm.process-569"><a href="#Algorithm.process-569"><span class="linenos">569</span></a>
+</span><span id="Algorithm.process-570"><a href="#Algorithm.process-570"><span class="linenos">570</span></a>        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s2">&quot;product_output&quot;</span><span class="p">][</span><span class="s2">&quot;include_additional_parameters&quot;</span><span class="p">]:</span>
+</span><span id="Algorithm.process-571"><a href="#Algorithm.process-571"><span class="linenos">571</span></a>            <span class="c1"># Relocation_distance</span>
+</span><span id="Algorithm.process-572"><a href="#Algorithm.process-572"><span class="linenos">572</span></a>            <span class="n">nc_var</span> <span class="o">=</span> <span class="n">dset</span><span class="o">.</span><span class="n">createVariable</span><span class="p">(</span><span class="s2">&quot;relocation_distance&quot;</span><span class="p">,</span> <span class="s2">&quot;double&quot;</span><span class="p">,</span> <span class="p">(</span><span class="s2">&quot;time&quot;</span><span class="p">,))</span>
+</span><span id="Algorithm.process-573"><a href="#Algorithm.process-573"><span class="linenos">573</span></a>            <span class="n">nc_var</span><span class="o">.</span><span class="n">units</span> <span class="o">=</span> <span class="s2">&quot;m&quot;</span>
+</span><span id="Algorithm.process-574"><a href="#Algorithm.process-574"><span class="linenos">574</span></a>            <span class="n">nc_var</span><span class="o">.</span><span class="n">coordinates</span> <span class="o">=</span> <span class="s2">&quot;longitude latitude&quot;</span>
+</span><span id="Algorithm.process-575"><a href="#Algorithm.process-575"><span class="linenos">575</span></a>            <span class="n">nc_var</span><span class="o">.</span><span class="n">long_name</span> <span class="o">=</span> <span class="s2">&quot;relocation distance of POCA from Nadir&quot;</span>
+</span><span id="Algorithm.process-576"><a href="#Algorithm.process-576"><span class="linenos">576</span></a>            <span class="n">nc_var</span><span class="o">.</span><span class="n">standard_name</span> <span class="o">=</span> <span class="s2">&quot;distance&quot;</span>
+</span><span id="Algorithm.process-577"><a href="#Algorithm.process-577"><span class="linenos">577</span></a>            <span class="n">nc_var</span><span class="o">.</span><span class="n">comment</span> <span class="o">=</span> <span class="s2">&quot;Relocation distance from nadir to POCA in m&quot;</span>
+</span><span id="Algorithm.process-578"><a href="#Algorithm.process-578"><span class="linenos">578</span></a>            <span class="k">if</span> <span class="s2">&quot;relocation_distance&quot;</span> <span class="ow">in</span> <span class="n">shared_dict</span><span class="p">:</span>
+</span><span id="Algorithm.process-579"><a href="#Algorithm.process-579"><span class="linenos">579</span></a>                <span class="n">nc_var</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">shared_dict</span><span class="p">[</span><span class="s2">&quot;relocation_distance&quot;</span><span class="p">]</span>
+</span><span id="Algorithm.process-580"><a href="#Algorithm.process-580"><span class="linenos">580</span></a>            <span class="k">else</span><span class="p">:</span>
+</span><span id="Algorithm.process-581"><a href="#Algorithm.process-581"><span class="linenos">581</span></a>                <span class="n">nc_var</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full_like</span><span class="p">(</span><span class="n">time_20_ku</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+</span><span id="Algorithm.process-582"><a href="#Algorithm.process-582"><span class="linenos">582</span></a>
+</span><span id="Algorithm.process-583"><a href="#Algorithm.process-583"><span class="linenos">583</span></a>        <span class="c1"># ----------------------------------------------------------------</span>
+</span><span id="Algorithm.process-584"><a href="#Algorithm.process-584"><span class="linenos">584</span></a>        <span class="c1"># Close netCDF dataset</span>
+</span><span id="Algorithm.process-585"><a href="#Algorithm.process-585"><span class="linenos">585</span></a>        <span class="n">dset</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+</span><span id="Algorithm.process-586"><a href="#Algorithm.process-586"><span class="linenos">586</span></a>
+</span><span id="Algorithm.process-587"><a href="#Algorithm.process-587"><span class="linenos">587</span></a>        <span class="n">shared_dict</span><span class="p">[</span><span class="s2">&quot;product_filename&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">product_filename</span>
+</span><span id="Algorithm.process-588"><a href="#Algorithm.process-588"><span class="linenos">588</span></a>
+</span><span id="Algorithm.process-589"><a href="#Algorithm.process-589"><span class="linenos">589</span></a>        <span class="c1"># Return success (True,&#39;&#39;)</span>
+</span><span id="Algorithm.process-590"><a href="#Algorithm.process-590"><span class="linenos">590</span></a>        <span class="k">return</span> <span class="p">(</span><span class="kc">True</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span>
 </span></pre></div>
 
 
