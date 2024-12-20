@@ -1,4 +1,4 @@
-""" clev2er.algorithms.templates.alg_uncertainty"""
+"""clev2er.algorithms.templates.alg_uncertainty"""
 
 import os
 from typing import Tuple
@@ -174,8 +174,10 @@ class Algorithm(BaseAlgorithm):
 
         if shared_dict["hemisphere"] == "south":
             if self.slope_ant is not None:
-                slopes = self.slope_ant.interp_slope_from_lat_lon(
-                    shared_dict["latitudes"], shared_dict["longitudes"]
+                slopes = self.slope_ant.interp_slopes(
+                    shared_dict["latitudes"],
+                    shared_dict["longitudes"],
+                    xy_is_latlon=True,
                 )
 
                 uncertainty = calc_uncertainty(
@@ -187,8 +189,10 @@ class Algorithm(BaseAlgorithm):
             else:
                 uncertainty = None
         else:
-            slopes = self.slope_grn.interp_slope_from_lat_lon(
-                shared_dict["latitudes"], shared_dict["longitudes"]
+            slopes = self.slope_grn.interp_slopes(
+                shared_dict["latitudes"],
+                shared_dict["longitudes"],
+                xy_is_latlon=True,
             )
             uncertainty = calc_uncertainty(
                 slopes,

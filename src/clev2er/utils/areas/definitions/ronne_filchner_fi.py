@@ -6,6 +6,7 @@ Based on area: ronne_filchner
 **mask: floating ice**
 
 """
+
 area_definition = {
     "use_definitions_from": "ronne_filchner",
     "apply_area_mask_to_data": True,  # filter data using areas clev2er.utils.masks.Mask

@@ -682,7 +682,7 @@ class Dem:
 
             filename = "GaplessREMA1km.tif"
             filled_filename = "GaplessREMA1km.tif"
-            default_dir = f'{os.environ["CPDATA_DIR"]}/SATS/RA/DEMS/rema_gapless_100m'
+            default_dir = f'{os.environ["CPDATA_DIR"]}/SATS/RA/DEMS/rema_gapless_1km'
             self.src_url = "https://figshare.com/articles/dataset/Gapless-REMA100/19122212"
             self.src_url_filled = "https://figshare.com/articles/dataset/Gapless-REMA100/19122212"
             self.dem_version = "1.1(REMA)/2.0(Gapless)"
@@ -917,7 +917,6 @@ class Dem:
             np.ndarray: Interpolated DEM elevation values at the specified coordinates.
         """
         results = np.full_like(x, np.nan, dtype=np.float64)
-
 
         # Identify valid points (where x and y are not NaN)
         valid_mask = ~np.isnan(x) & ~np.isnan(y)

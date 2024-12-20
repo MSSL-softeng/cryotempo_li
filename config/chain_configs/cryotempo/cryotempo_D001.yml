@@ -111,32 +111,6 @@ sin_geolocation:
   unwrap: True
   unwrap_trigger_m: 0
 
-lrm_lepta_geolocation:
-  # Configuration for the LRM LEPTA slope correction method (based on Li et al, 2022)
-  #
-  # DEM selection
-  antarctic_dem: rema_ant_200m   # Dem class name to use for the slope correction over AIS
-  greenland_dem: arcticdem_100m_greenland # Dem class name to use for the slope correction over GIS
-  median_filter: False # Apply 3x3 median filter to DEM segments extracted around each nadir point
-  include_dhdt_correction: False
-  dhdt_grn_name: grn_is2_is1_smith
-  dhdt_ant_name: ais_is2_is1_smith
-  # Range Search Window
-  use_full_leading_edge: True
-  use_window_around_retracking_point: False
-  delta_range_offset: 1.25  # m as per Li et al
-  # POCA x,y calculation method
-  use_mean_xy_in_window: False
-  use_xy_at_min_dem_to_sat_distance: True
-  # POCA z calculation method  
-  use_z_at_min_dem_to_sat_distance: False
-  use_mean_z_in_window: False
-  use_median_z_in_window: False
-  use_median_height_around_point: True
-  # Additional height corrections
-  include_slope_doppler_correction: True
-
-
 lrm_roemer_geolocation:
   # Configuration for the LRM Roemer correction method (based on Roemer al, 2007)
   #
@@ -210,10 +184,6 @@ basin_masks:
 tides:
   fes2014b_base_dir: ${FES2014B_BASE_DIR} # set to base dir of FES2014 (containing LRM,SIN/<YYYY>/<MM>/CS*.fes2014b.nc)
   cats2008a_base_dir: ${CATS2008A_BASE_DIR} # set to base dir of CATS2008a (containing <YYYY>/<MM>/CS*_cats2008a_tides.nc)
-
-slope_models: # not used in Baseline-C
-  # Set to dir containing /cs2/CS_OPER_AUX_SLPMSL*.DBL
-  model_file: ${CS2_SLOPE_MODELS_DIR}/cs2/CS_OPER_AUX_SLPMSL_00000000T000000_99999999T999999_0007.DBL
 
 dem_dirs:
   rema_ant_1km: ${CPDATA_DIR}/SATS/RA/DEMS/rema_1km_dem

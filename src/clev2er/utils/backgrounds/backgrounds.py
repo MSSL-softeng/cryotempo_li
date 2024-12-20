@@ -818,7 +818,6 @@ class Background:
             else:
                 raise ValueError(f"resolution {resolution} not found for grn_s1_mosaic")
 
-
             print("Loading S1 Sigma0 Mosaic background..")
             print(demfile)
             im = Image.open(demfile)

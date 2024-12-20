@@ -2291,7 +2291,6 @@ class Polarplot:
         elif self.thisarea.epsg_number == 3031:
             dataprj = ccrs.epsg("3031")
             this_projection = ccrs.SouthPolarStereo(true_scale_latitude=-71.0)
-    
 
         # EPSG:3395: World Mercator/ WGS 84
         elif self.thisarea.epsg_number == 3395:

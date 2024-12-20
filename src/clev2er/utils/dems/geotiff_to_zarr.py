@@ -135,9 +135,9 @@ class DEMConverter:
                         # Determine the actual size of the chunk
                         actual_chunk_size = data.shape
 
-                        zarr_array[
-                            i : i + actual_chunk_size[0], j : j + actual_chunk_size[1]
-                        ] = data
+                        zarr_array[i : i + actual_chunk_size[0], j : j + actual_chunk_size[1]] = (
+                            data
+                        )
                         flipped_zarr_array[
                             (nrows - i - actual_chunk_size[0]) : (nrows - i),
                             j : j + actual_chunk_size[1],
