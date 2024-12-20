@@ -267,13 +267,6 @@ def geolocate_roemer(
     lon_20_ku = l1b["lon_20_ku"][:].data % 360.0
     altitudes = l1b["alt_20_ku"][:].data
 
-    # print(f"lat_20_ku {lat_20_ku[:3]}")
-    # print(f"lon_20_ku {lon_20_ku[:3]}")
-    # print(f"altitudes {altitudes[:3]}")
-    # print(f"geo_corrected_tracker_range {geo_corrected_tracker_range[:3]}")
-    # print(f"retracker_correction {retracker_correction[:3]}")
-    # print(f"surface_type_20_ku {surface_type_20_ku[:3]}")
-
     # Transform to X,Y locs in DEM projection
     nadir_x, nadir_y = thisdem.lonlat_to_xy_transformer.transform(
         lon_20_ku, lat_20_ku
@@ -507,8 +500,6 @@ def geolocate_roemer(
                 poca_y[i] = this_poca_y
                 poca_z[i] = this_poca_z
 
-                # print(f"2nd poca: {this_poca_x} {this_poca_y} {this_poca_z}")
-
             if reject_outside_range_window:
                 range_to_window_start = (
                     range_window_lower_trim
@@ -566,7 +557,6 @@ def geolocate_roemer(
                         min_position = (ii, jj)
 
             # min_position is the position of the window with the smallest mean distance
-            # print(f"min_distance={min_distance} at {min_position}")
 
             # --------------------------------------------------------------------------------------
             #  Find Location of POCA x,y
@@ -673,10 +663,5 @@ def geolocate_roemer(
 
             height_20_ku[idx] += l1b["dop_cor_20_ku"][idx]
             height_20_ku[idx] -= sdop
-
-    print(f"lat_poca_20_ku {lat_poca_20_ku[:3]}")
-    print(f"lon_poca_20_ku {lon_poca_20_ku[:3]}")
-    print(f"height_20_ku {height_20_ku[:3]}")
-    print(f"relocation_distance {relocation_distance[:3]}")
 
     return (height_20_ku, lat_poca_20_ku, lon_poca_20_ku, slope_ok, relocation_distance)
