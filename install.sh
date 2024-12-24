@@ -96,6 +96,29 @@ echo "export PATH=$CLEV2ER_BASE_DIR/src/clev2er/tools:${ppath}/bin:\$PATH" >> $s
 
 export PATH=$CLEV2ER_BASE_DIR/src/clev2er/tools:${ppath}/bin:$PATH
 
+echo "# set the dir where products will be written within the following" >> $setup_file
+echo "# sub-directories:" >> $setup_file
+echo "# $CT_PRODUCT_BASEDIR/<baseline>/<version:03>/LAND_ICE/<ANTARC,GREENL>/<YYYY>/<MM>/" >> $setup_file
+echo "export CT_PRODUCT_BASEDIR=/tmp" >> $setup_file
+
+echo "# set the dir where logs will be written to" >> $setup_file
+echo "export CT_LOG_DIR=/tmp" >> $setup_file
+
+echo "# location of CPOM data archive base directory (CPDATA_DIR)" >> $setup_file
+echo "export CPDATA_DIR=/tmp" >> $setup_file
+
+echo "# L1b location: should contain LRM,SIN/<YYYY>/<MM>/" >> $setup_file
+echo "export L1B_BASE_DIR=${CPDATA_DIR}/SATS/RA/CRY/L1B" >> $setup_file
+
+echo "# FES2014b tides base directory containing LRM,SIN/<YYYY>/<MM>/CS*.fes2014b.nc" >> $setup_file
+echo "export FES2014B_BASE_DIR=/raid6/cpdata/SATS/RA/CRY/L1B/FES2014" >> $setup_file
+
+echo "# CATS2008a base dir, containing <YYYY>/<MM>/CS*_cats2008a_tides.nc" >> $setup_file
+echo "export CATS2008A_BASE_DIR=/raid6/cpdata/SATS/RA/CRY/L2I/SIN/CATS_tides" >> $setup_file
+
+echo "# Base directory to find uncertainty LUTs" >> $setup_file
+echo "export CS2_UNCERTAINTY_BASE_DIR=/raid6/cryo-tempo/land_ice/uncertainty" >> $setup_file
+
 pre-commit install
 pre-commit autoupdate
 
