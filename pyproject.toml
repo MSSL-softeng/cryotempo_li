@@ -6,7 +6,7 @@ authors = ["Alan Muir <a.muir@ucl.ac.uk>"]
 readme = "README.md"
 
 [tool.poetry.dependencies]
-python = ">=3.11, <3.12"
+python = ">=3.12, <3.13"
 numpy = "^1.24.3"
 envyaml = "^1.10"
 codetiming = "^1.4.0"
@@ -55,7 +55,7 @@ markers = [
 ]
 
 [tool.mypy]
-python_version="3.11"
+python_version="3.12"
 ignore_missing_imports = true
 
 [tool.ruff]
@@ -66,13 +66,13 @@ select = [
   #"I",   # isort : could replace actual isort, but currently causes conflicts
  # "UP",  # pyupgrade
 ]
-target-version = "py311"
+target-version = "py312"
 #fixable = ["I"]
 #fix = true
 
 [tool.black]
 line-length = 100
-target-version = ['py311']
+target-version = ['py312']
 
 # Note pylint settings in .pylintrc
 
