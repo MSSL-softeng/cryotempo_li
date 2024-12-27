@@ -142,7 +142,20 @@ def main():
     else:
         this_slope = Slopes("rema_100m_900ws_slopes_zarr")
 
-    this_roughness = Roughness("rema_100m_900ws_roughness_zarr")
+    if args.ant:
+        area = "antarctica_is"
+
+        if args.cpom_ant_slp:
+            this_slope = Slopes("cpom_ant_2018_1km_slopes")
+        else:
+            this_slope = Slopes("rema_100m_900ws_slopes_zarr")
+
+        this_roughness = Roughness("rema_100m_900ws_roughness_zarr")
+
+    else:
+        area = "greenland_is"
+        this_slope = Slopes("arcticdem_100m_900ws_slopes_zarr")
+        this_roughness = Roughness("arcticdem_100m_900ws_roughness_zarr")
 
     print(f"Getting slope values from {this_slope.name}......")
     slope_values = this_slope.interp_slopes(lats, lons, method="linear", xy_is_latlon=True)

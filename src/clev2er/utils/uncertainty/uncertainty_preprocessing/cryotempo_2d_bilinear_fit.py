@@ -130,6 +130,8 @@ def main():
         filename = f"/tmp/{area}_2d_uncertainty_table_bilinear_{args.method}_cpom_ant_slp.pickle"
     save_table_as_pickle(bilinear_table, filename)
 
+    print(f"Saving LUT as {filename}")
+
     # Visualization
     plt.figure(figsize=(10, 8))
 
@@ -159,7 +161,7 @@ def main():
     cbar = plt.colorbar(sm, ax=heatmap.axes, extend="max")
     cbar.set_label("Elevation Difference (m)")
 
-    plt.title(f"Binned Median Absolute Elevation Difference - {area.upper()}")
+    plt.title(f"Bilinear fitted Binned Median Absolute Elevation Difference - {area.upper()}")
     plt.xlabel("Roughness (m)")
     plt.ylabel("Slope (degrees)")
     plt.gca().invert_yaxis()
