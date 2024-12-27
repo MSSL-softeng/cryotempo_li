@@ -229,9 +229,9 @@ def main():
     # /raid6/cryo-tempo/land_ice/step3/data/uncertainty_tables/antarctica_uncertainty_from_is2.npz
     # /raid6/cryo-tempo/land_ice/step3/data/uncertainty_tables/greenland_uncertainty_from_is2.npz
 
-    outfile = output_dir + "/antarctica_uncertainty_from_is2.npz"
+    outfile = output_dir + "/antarctica_1d_uncertainty_from_is2_d001.npz"
     if args.gis:
-        outfile = output_dir + "/greenland_uncertainty_from_is2.npz"
+        outfile = output_dir + "/greenland_1d_uncertainty_from_is2_d001.npz"
 
     np.savez(
         outfile,
