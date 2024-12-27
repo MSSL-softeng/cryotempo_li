@@ -449,6 +449,8 @@ def main():
         filename = f"/tmp/{area}_2d_uncertainty_table_{args.method}_cpom_ant_slp.pickle"
     save_table_as_pickle(binned_table, filename)
 
+    print(f"Saving LUT as {filename}")
+
     retrieved_binned_table = load_table_from_pickle(filename)
     # Example slope and roughness pair
     slope_values = [0.15, 0.4]
