@@ -22,7 +22,6 @@ import argparse  # for command line arguments
 import sys  # system functions
 
 import numpy as np  # numerical operations
-from astropy.stats import median_absolute_deviation
 from matplotlib import pyplot as plt
 from matplotlib import use as use_headless
 from scipy import stats
@@ -31,6 +30,18 @@ from clev2er.utils.slopes.slopes import Slopes
 
 # run headless if outputs are image files, rather than display
 use_headless("Agg")
+
+
+def calc_mad(x):
+    """calculate median absolute deviation (MAD)
+
+    Args:
+        x (np.array): array of float values
+
+    Returns:
+        float: MAD value
+    """
+    return np.median(np.abs(x - np.median(x)))
 
 
 def main():
@@ -186,7 +197,7 @@ def main():
         mean_dh_vals_raw[i] = np.nanmean(dh_bins[i])
         sigma_raw[i] = np.std(dh_bins[i], ddof=1)
         n_vals_raw[i] = len(dh_bins[i])
-        mad_raw[i] = median_absolute_deviation(dh_bins[i])
+        mad_raw[i] = calc_mad(dh_bins[i])
         median_dh_raw[i] = np.nanmedian(dh_bins[i])
         rms_dh_raw[i] = np.sqrt(np.mean(np.asarray(dh_bins[i]) ** 2))
         abs_rms_dh_raw[i] = np.sqrt(np.mean(np.asarray(np.abs(dh_bins[i])) ** 2))
@@ -204,7 +215,7 @@ def main():
         mean_dh_vals[i] = np.nanmean(dh_bins[i])
         sigma[i] = np.std(dh_bins[i], ddof=1)
         n_vals[i] = len(dh_bins[i])
-        mad[i] = median_absolute_deviation(dh_bins[i])
+        mad[i] = calc_mad(dh_bins[i])
         median_dh[i] = np.nanmedian(dh_bins[i])
         rms_dh[i] = np.sqrt(np.mean(np.asarray(dh_bins[i]) ** 2))
         abs_rms_dh[i] = np.sqrt(np.mean(np.asarray(np.abs(dh_bins[i])) ** 2))
