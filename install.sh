@@ -99,13 +99,13 @@ export PATH=$CLEV2ER_BASE_DIR/src/clev2er/tools:${ppath}/bin:$PATH
 echo "# set the dir where products will be written within the following" >> $setup_file
 echo "# sub-directories:" >> $setup_file
 echo "# $CT_PRODUCT_BASEDIR/<baseline>/<version:03>/LAND_ICE/<ANTARC,GREENL>/<YYYY>/<MM>/" >> $setup_file
-echo "export CT_PRODUCT_BASEDIR=/tmp" >> $setup_file
+echo "export CT_PRODUCT_BASEDIR=/raid6/cryo-tempo/product_baselines" >> $setup_file
 
 echo "# set the dir where logs will be written to" >> $setup_file
 echo "export CT_LOG_DIR=/tmp" >> $setup_file
 
 echo "# location of CPOM data archive base directory (CPDATA_DIR)" >> $setup_file
-echo "export CPDATA_DIR=/tmp" >> $setup_file
+echo "export CPDATA_DIR=/cpdata" >> $setup_file
 
 echo "# L1b location: should contain LRM,SIN/<YYYY>/<MM>/" >> $setup_file
 echo "export L1B_BASE_DIR=${CPDATA_DIR}/SATS/RA/CRY/L1B" >> $setup_file
@@ -128,11 +128,11 @@ pre-commit install
 pre-commit autoupdate
 
 echo "Installation complete!"
-echo "To set up to use the CryoTEMPO LI software:"
+echo "To set up to use the CryoTEMPO Land Ice software:"
 echo "-------------------------------------"
 echo "cd $PWD"
 echo "poetry shell"
 echo ". setup_env.sh"
 echo "-------------------------------------"
-echo "Note, you may need to edit setup_env.sh for your particular system"
-echo "Modify the 
+echo "Note, you may need to edit environment variables in setup_env.sh for paths used in "
+echo "your particular system"
