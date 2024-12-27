@@ -119,6 +119,7 @@ echo "export CATS2008A_BASE_DIR=/raid6/cpdata/SATS/RA/CRY/L2I/SIN/CATS_tides" >>
 echo "# Base directory to find uncertainty LUTs" >> $setup_file
 echo "export CS2_UNCERTAINTY_BASE_DIR=/raid6/cryo-tempo/land_ice/uncertainty" >> $setup_file
 
+
 echo "# for multi-processing/shared mem support set ulimit" >> $setup_file
 echo "# to make sure you have enough file descriptors available" >> $setup_file
 echo "ulimit -n 8192" >> $setup_file
