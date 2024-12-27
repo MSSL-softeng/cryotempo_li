@@ -4,10 +4,12 @@ import os
 from typing import Tuple
 
 import numpy as np
+import pandas as pd
 from codetiming import Timer  # used to time the Algorithm.process() function
 from netCDF4 import Dataset  # pylint:disable=E0611
 
 from clev2er.algorithms.base.base_alg import BaseAlgorithm
+from clev2er.utils.roughness.roughness import Roughness
 from clev2er.utils.slopes.slopes import Slopes
 from clev2er.utils.uncertainty.calc_uncertainty import calc_uncertainty
 
@@ -17,6 +19,55 @@ from clev2er.utils.uncertainty.calc_uncertainty import calc_uncertainty
 # Similar lines in 2 files, pylint: disable=R0801
 # Too many return statements, pylint: disable=R0911
 # pylint: disable=too-many-instance-attributes
+
+
+def get_binned_values(
+    slope_values: np.ndarray,
+    roughness_values: np.ndarray,
+    binned_table: pd.DataFrame,
+    slope_bins: np.ndarray,
+    roughness_bins: np.ndarray,
+) -> np.ndarray:
+    """Retrieve the median absolute elevation difference for arrays of slope and roughness values.
+
+    Args:
+        slope_values (np.ndarray): Array of slope values for which to retrieve median differences.
+        roughness_values (np.ndarray): Array of roughness values for which to retrieve
+                                       median differences.
+        binned_table (pd.DataFrame): A pivot table of binned median absolute elevation differences.
+        slope_bins (np.ndarray): Bins to categorize slope values.
+        roughness_bins (np.ndarray): Bins to categorize roughness values.
+
+    Returns:
+        np.ndarray: An array of median absolute elevation differences corresponding to the
+                    input slope and roughness pairs.
+    """
+    # Convert slope_values and roughness_values to numpy arrays
+    slope_values = np.asarray(slope_values)
+    roughness_values = np.asarray(roughness_values)
+
+    # Find the slope bin indices for the array of slope_values
+    slope_bin_indices = np.digitize(slope_values, slope_bins) - 1
+    slope_bin_indices = np.clip(
+        slope_bin_indices, 0, len(slope_bins) - 2
+    )  # Ensure indices are within range
+
+    # Find the roughness bin indices for the array of roughness_values
+    roughness_bin_indices = np.digitize(roughness_values, roughness_bins) - 1
+    roughness_bin_indices = np.clip(
+        roughness_bin_indices, 0, len(roughness_bins) - 2
+    )  # Ensure indices are within range
+
+    # Convert bin labels to row and column indices in the DataFrame
+    row_indices = [binned_table.index.get_loc(slope_bins[idx]) for idx in slope_bin_indices]
+    col_indices = [
+        binned_table.columns.get_loc(roughness_bins[idx]) for idx in roughness_bin_indices
+    ]
+
+    # Retrieve the values using numpy indexing on the DataFrame values
+    values = binned_table.values[row_indices, col_indices]
+
+    return values
 
 
 class Algorithm(BaseAlgorithm):
@@ -83,11 +134,11 @@ class Algorithm(BaseAlgorithm):
 
         self.uncertainty_table_antarctica = (
             f"{self.config['uncertainty_tables']['base_dir']}/"
-            "antarctica_uncertainty_from_is2.npz"
+            "ant_2d_uncertainty_table_bilinear_median.pickle"
         )
         self.uncertainty_table_greenland = (
             f"{str(self.config['uncertainty_tables']['base_dir'])}/"
-            "greenland_uncertainty_from_is2.npz"
+            "greenland_1d_uncertainty_from_is2_d001.npz"
         )
 
         if not os.path.isfile(self.uncertainty_table_antarctica):
@@ -100,7 +151,6 @@ class Algorithm(BaseAlgorithm):
             )
 
         ut_grn_data = np.load(self.uncertainty_table_greenland, allow_pickle=True)
-        ut_ant_data = np.load(self.uncertainty_table_antarctica, allow_pickle=True)
 
         keys = ["uncertainty_table", "min_slope", "max_slope", "number_of_bins"]
         for key in keys:
@@ -109,33 +159,35 @@ class Algorithm(BaseAlgorithm):
                     f"{key} key not in Greenland uncertainty table"
                     f" {self.uncertainty_table_greenland}"
                 )
-            if key not in ut_ant_data:
-                raise KeyError(
-                    f"{key} key not in Antarctic uncertainty table"
-                    f" {self.uncertainty_table_greenland}"
-                )
 
         self.ut_table_grn = ut_grn_data.get("uncertainty_table")
         self.ut_min_slope_grn = ut_grn_data.get("min_slope")
         self.ut_max_slope_grn = ut_grn_data.get("max_slope")
         self.ut_number_of_bins_grn = ut_grn_data.get("number_of_bins")
 
-        self.ut_table_ant = ut_ant_data.get("uncertainty_table")
-        self.ut_min_slope_ant = ut_ant_data.get("min_slope")
-        self.ut_max_slope_ant = ut_ant_data.get("max_slope")
-        self.ut_number_of_bins_ant = ut_ant_data.get("number_of_bins")
+        self.ut_table_ant = pd.read_pickle(self.uncertainty_table_antarctica)
+
+        # Define slope bins in degrees (0.1 degree steps from 0 to 2 degrees)
+        self.ant_slope_bins = np.arange(0, 2.1, 0.1)
+
+        # Define roughness bins in meters (0.1 m steps from 0 to 2 meters)
+        self.ant_roughness_bins = np.arange(0, 2.1, 0.1)
 
         # Test the data
         if not isinstance(self.ut_table_grn, np.ndarray):
             raise ValueError(f"ut_table_grn is not of type np.ndarray: {type(self.ut_table_grn)}")
-        if not isinstance(self.ut_table_ant, np.ndarray):
-            raise ValueError(f"ut_table_ant is not of type np.ndarray: {type(self.ut_table_ant)}")
+        if not isinstance(self.ut_table_ant, pd.core.frame.DataFrame):
+            raise ValueError(
+                f"ut_table_ant is not of type pd.core.frame.DataFrame: {type(self.ut_table_ant)}"
+            )
 
         self.slope_grn = Slopes("awi_grn_2013_1km_slopes")
         if "grn_only" in self.config and self.config["grn_only"]:
             self.slope_ant = None
+            self.roughness_ant = None
         else:
-            self.slope_ant = Slopes("cpom_ant_2018_1km_slopes")
+            self.slope_ant = Slopes("rema_100m_900ws_slopes_zarr")
+            self.roughness_ant = Roughness("rema_100m_900ws_roughness_zarr")
 
         return (True, "")
 
@@ -173,19 +225,26 @@ class Algorithm(BaseAlgorithm):
         # shared_dict["latitudes"], shared_dict["longitudes"]
 
         if shared_dict["hemisphere"] == "south":
-            if self.slope_ant is not None:
-                slopes = self.slope_ant.interp_slopes(
+            if self.slope_ant is not None and self.roughness_ant is not None:
+                slope_values = self.slope_ant.interp_slopes(
+                    shared_dict["latitudes"],
+                    shared_dict["longitudes"],
+                    xy_is_latlon=True,
+                )
+                roughness_values = self.roughness_ant.interp_roughness(
                     shared_dict["latitudes"],
                     shared_dict["longitudes"],
                     xy_is_latlon=True,
                 )
 
-                uncertainty = calc_uncertainty(
-                    slopes,
-                    self.ut_table_ant,  # type: ignore # already checked type in init
-                    self.ut_min_slope_ant,
-                    self.ut_max_slope_ant,
+                uncertainty = get_binned_values(
+                    slope_values,
+                    roughness_values,
+                    self.ut_table_ant,
+                    self.ant_slope_bins,
+                    self.ant_roughness_bins,
                 )
+
             else:
                 uncertainty = None
         else:
