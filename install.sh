@@ -90,6 +90,9 @@ poetry env use python3.12
 poetry lock
 poetry install
 
+# Get the hostname
+current_hostname=$(hostname)
+
 export ppath=$(poetry env info --path)
 
 echo "export PATH=$CLEV2ER_BASE_DIR/src/clev2er/tools:${ppath}/bin:\$PATH" >> $setup_file
@@ -118,6 +121,20 @@ echo "export CATS2008A_BASE_DIR=/raid6/cpdata/SATS/RA/CRY/L2I/SIN/CATS_tides" >>
 
 echo "# Base directory to find uncertainty LUTs" >> $setup_file
 echo "export CS2_UNCERTAINTY_BASE_DIR=/raid6/cryo-tempo/land_ice/uncertainty" >> $setup_file
+
+
+# Check if it matches "lec-cpom"
+if [[ "$current_hostname" == "lec-cpom" ]]; then
+    echo "Running on lec-cpom"
+    # Add your system-specific commands here
+    echo "export CT_PRODUCT_BASEDIR=~/cryotempo/products" >> $setup_file
+    echo "export CPDATA_DIR=/media/luna/archive" >> $setup_file
+    echo "export L1B_BASE_DIR=${CPDATA_DIR}/SATS/RA/CRY/L1B" >> $setup_file
+    echo "export FES2014B_BASE_DIR=/media/luna/archive/SATS/RA/CRY/L1B/FES2014" >> $setup_file
+    echo "export CATS2008A_BASE_DIR=/media/luna/archive/SATS/RA/CRY/L1B/CATS2008/SIN" >> $setup_file
+    echo "export CS2_UNCERTAINTY_BASE_DIR=/media/luna/archive/RESOURCES/ct_uncertainty" >> $setup_file
+    echo "export CPOM_SOFTWARE_DIR=/media/luna/shared/software/cpom_software" >> $setup_file
+fi
 
 
 echo "# for multi-processing/shared mem support set ulimit" >> $setup_file
