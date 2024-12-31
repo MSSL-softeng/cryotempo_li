@@ -114,10 +114,10 @@ echo "# L1b location: should contain LRM,SIN/<YYYY>/<MM>/" >> $setup_file
 echo "export L1B_BASE_DIR=${CPDATA_DIR}/SATS/RA/CRY/L1B" >> $setup_file
 
 echo "# FES2014b tides base directory containing LRM,SIN/<YYYY>/<MM>/CS*.fes2014b.nc" >> $setup_file
-echo "export FES2014B_BASE_DIR=/raid6/cpdata/SATS/RA/CRY/L1B/FES2014" >> $setup_file
+echo "export FES2014B_BASE_DIR=/cpdata/SATS/RA/CRY/L1B/FES2014" >> $setup_file
 
 echo "# CATS2008a base dir, containing <YYYY>/<MM>/CS*_cats2008a_tides.nc" >> $setup_file
-echo "export CATS2008A_BASE_DIR=/raid6/cpdata/SATS/RA/CRY/L2I/SIN/CATS_tides" >> $setup_file
+echo "export CATS2008A_BASE_DIR=/cpdata/SATS/RA/CRY/L1B/CATS2008" >> $setup_file
 
 echo "# Base directory to find uncertainty LUTs" >> $setup_file
 echo "export CS2_UNCERTAINTY_BASE_DIR=/raid6/cryo-tempo/land_ice/uncertainty" >> $setup_file
