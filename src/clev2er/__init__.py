@@ -124,9 +124,9 @@ source ./ct_activate.sh
 
 ## Chain Controller
 
-The framework's chain controller is a tool called *run_chain.py*.
+The framework's chain controller is a tool called **run_chain.py**.
 
-You can find all run_chain.py's command line options using:
+You can find all **run_chain.py**'s command line options using:
 
 ```
 run_chain.py -h (or --help)
@@ -155,7 +155,10 @@ following command line options:
 -  -n cryotempo: selects the **cryotempo** chain
 -  -b D -v 1 : uses baseline D001 config files
 -  -y 2020 -m 1 : process all L1b files in Jan 2020
--  -mp -np 20 : use multi-processing mode, and split over 20 processes
+-  -mp -np 20 : use multi-processing mode, and split over 20 processes. You can
+   use a higher or lower number of processes depending upon the number of cores
+   on your system and available memory. For operational monthly processing at MSSL
+   we use 200-400 processes for multi-processing on 128-core servers with 512GB RAM.
 
 ```
 run_chain.py -n cryotempo -b D -v 1 -y 2020 -m 1 -mp -np 20
@@ -166,6 +169,13 @@ command line options:
 
 ```
 run_chain.py -n cryotempo -b D -v 1 -y 2020 -mp -np 20
+```
+
+It is recommended to run the above commands within a **screen** session or using
+**nohup** so that the process is not killed when your current terminal times out.
+
+```
+nohup run_chain.py -n cryotempo -b D -v 1 -y 2020 -mp -np 20 > /tmp/output.log 2>&1
 ```
 
 ## Developer Requirements
