@@ -67,10 +67,10 @@ This section details major changes to the framework (not individual chains):
 ## Installation of the Framework
 
 Note that the framework installation has been tested on Linux and MacOS systems. Use on
-other operating systems is possible but may require additional install steps, and is not
+other operating systems is possible but may require additional install steps, and is not yet
 directly supported.
 
-Make sure you have *git* installed on your target system.
+Make sure you have *git* (v2+) installed on your target system.
 
 Clone the git public repository in to a suitable directory on your system.
 This will create a directory called **/cryotempo_li** in your current directory.
@@ -84,9 +84,21 @@ or with ssh:
 or with the GitHub CLI:
 `gh repo clone MSSL-softeng/cryotempo_li`
 
-## Installation of the Framework
+## Run the Install Script
 
-This section provides installation instructions for Linux/MacOS systems.
+The provided install script (for macos/linux) does the following:
+
+- check for availability of python 3.12.
+- if python 3.12 not available installs it within a local miniconda
+  environment.
+- installs *poetry* dependency manager
+- Using poetry installs all package dependencies in to a local
+  virtual environment
+- installs the *pre-commit* tool
+- installs pre-commit packages
+- creates **ct_activate.sh**, a script used to activate the CryoTEMPO
+  virtual environment and set environment variables.
+
 From the directory that you ran the git clone command, do the following:
 
 ```
@@ -95,13 +107,13 @@ cd cryotempo_li
 ```
 
 **Note** that you may need to edit *ct_activate.sh* if the install
-script reports that any paths pointed to by environment variables are
-missing.
+script reports that any paths pointed to by environment variables do not exist.
 
-## Setup and Activation
+## Regular Setup and Activation
 
 Whenever you use the CryoTEMPO software you need to activate
-the virtual environment and setup required environment variables. The installation
+the virtual environment and setup required environment variables
+within your current shell. The installation
 process creates a script to do this for you. Run this each time you
 start a new shell.
 
@@ -110,9 +122,21 @@ cd cryotempo_li
 source ./ct_activate.sh
 ```
 
-## Run a Test Chain
+## Chain Controller
 
-The following command should now run without error:
+The framework's chain controller is a tool called *run_chain.py*.
+
+You can find all run_chain.py's command line options using:
+
+```
+run_chain.py -h (or --help)
+```
+
+## Run a basic Test Chain
+
+The following command tests whether a versiobn of the  CLEV2ER
+framework (within which
+the CryoTEMPO chain runs) runs a separate test chain without error:
 
 ```
 run_chain.py -n testchain -ct
@@ -120,7 +144,8 @@ run_chain.py -n testchain -ct
 
 ## Examples of CryoTEMPO processing
 
-Process January 2020, by using the following command line options:
+Process January 2020 using multi-processing mode, by using the
+following command line options:
 
 -  -n cryotempo: selects the **cryotempo** chain
 -  -b D -v 1 : uses baseline D001 config files
@@ -129,6 +154,13 @@ Process January 2020, by using the following command line options:
 
 ```
 run_chain.py -n cryotempo -b D -v 1 -y 2020 -m 1 -mp -np 20
+```
+
+Process all of 2020 using multi-processing mode, by using the following
+command line options:
+
+```
+run_chain.py -n cryotempo -b D -v 1 -y 2020 -mp -np 20
 ```
 
 ## Developer Requirements
