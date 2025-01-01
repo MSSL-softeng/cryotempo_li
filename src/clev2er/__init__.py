@@ -12,7 +12,7 @@ workflow. There are many run-time options in the chain controller command line t
 
 The diagram below shows a simplified representation of the framework and its components.
 
-![my image](/framework.jpg "my image")
+![my image](/images/framework.jpg "my image")
 
 
 ```mermaid
