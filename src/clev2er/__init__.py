@@ -12,25 +12,7 @@ workflow. There are many run-time options in the chain controller command line t
 
 The diagram below shows a simplified representation of the framework and its components.
 
-![my image](/images/framework.jpg "my image")
-
-
-```mermaid
-graph LR;
-    L1b(L1b)-->Alg1
-    Alg1-->Alg2;
-    Alg2-->Alg3;
-    Alg3-->Alg4;
-    Alg4-->AlgN;
-    AlgN-->L2(L2)
-    S(Shared Dict)
-    S<-.->Alg1 & Alg3 & Alg4 & AlgN
-    S-.->Alg2
-```
-```mermaid
-graph LR;
-    C(Config)~~~L(Logs)~~~R{{Run Controller}}~~~LI(Alg List)-.-Ch(Chain)~~~Br(Breakpoints)
-```
+![framework](cryotempo_li/images/framework.jpg "framework")
 
 ## Main Features
 
