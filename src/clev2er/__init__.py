@@ -106,10 +106,13 @@ process creates a script to do this for you. Run this each time you
 start a new shell.
 
 ```
-source ct_activate.sh
+cd cryotempo_li
+source ./ct_activate.sh
 ```
 
-## Test
+## Run a Test Chain
+
+The following command should now run without error:
 
 ```
 run_chain.py -n testchain -ct
