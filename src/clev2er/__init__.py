@@ -115,7 +115,6 @@ ct_activate.sh
 run_chain.py -n testchain -ct
 ```
 
-
 #### cryotempo (land ice)
 
 The following is an example of additional environment variables required by the **cryotempo**

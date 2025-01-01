@@ -130,4 +130,5 @@ fi
 pre-commit install
 pre-commit autoupdate
 
-echo "Installation complete. Use ./setup_and_run.sh to set up and activate the environment."
+echo "Installation complete. "
+echo "Use $setup_and_run_file to set up and activate the environment."
