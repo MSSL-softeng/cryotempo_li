@@ -37,27 +37,28 @@ echo "export CATS2008A_BASE_DIR=/raid6/cpdata/SATS/RA/CRY/L1B/CATS2008/SIN" >> $
 echo "export CS2_UNCERTAINTY_BASE_DIR=/raid6/cryo-tempo/land_ice/uncertainty" >> $setup_and_run_file
 
 # Add path existence checks
+# Add path and environment variable existence checks
 echo "" >> $setup_and_run_file
 echo "# Check if specified paths exist" >> $setup_and_run_file
-echo "missing_paths=()" >> $setup_and_run_file
-echo "paths_to_check=(" >> $setup_and_run_file
-echo "    \"\$CT_PRODUCT_BASEDIR\"" >> $setup_and_run_file
-echo "    \"\$CT_LOG_DIR\"" >> $setup_and_run_file
-echo "    \"\$CPDATA_DIR\"" >> $setup_and_run_file
-echo "    \"\$L1B_BASE_DIR\"" >> $setup_and_run_file
-echo "    \"\$FES2014B_BASE_DIR\"" >> $setup_and_run_file
-echo "    \"\$CATS2008A_BASE_DIR\"" >> $setup_and_run_file
-echo "    \"\$CS2_UNCERTAINTY_BASE_DIR\"" >> $setup_and_run_file
+echo "declare -A path_env_map=(" >> $setup_and_run_file
+echo "    [\$CT_PRODUCT_BASEDIR]=CT_PRODUCT_BASEDIR" >> $setup_and_run_file
+echo "    [\$CT_LOG_DIR]=CT_LOG_DIR" >> $setup_and_run_file
+echo "    [\$CPDATA_DIR]=CPDATA_DIR" >> $setup_and_run_file
+echo "    [\$L1B_BASE_DIR]=L1B_BASE_DIR" >> $setup_and_run_file
+echo "    [\$FES2014B_BASE_DIR]=FES2014B_BASE_DIR" >> $setup_and_run_file
+echo "    [\$CATS2008A_BASE_DIR]=CATS2008A_BASE_DIR" >> $setup_and_run_file
+echo "    [\$CS2_UNCERTAINTY_BASE_DIR]=CS2_UNCERTAINTY_BASE_DIR" >> $setup_and_run_file
 echo ")" >> $setup_and_run_file
 echo "" >> $setup_and_run_file
-echo "for path in \"\${paths_to_check[@]}\"; do" >> $setup_and_run_file
+echo "missing_paths=()" >> $setup_and_run_file
+echo "for path in \"\${!path_env_map[@]}\"; do" >> $setup_and_run_file
 echo "    if [ ! -d \"\$path\" ]; then" >> $setup_and_run_file
-echo "        missing_paths+=(\"\$path\")" >> $setup_and_run_file
+echo "        missing_paths+=(\"\${path_env_map[\$path]}: \$path\")" >> $setup_and_run_file
 echo "    fi" >> $setup_and_run_file
 echo "done" >> $setup_and_run_file
 echo "" >> $setup_and_run_file
 echo "if [ \${#missing_paths[@]} -gt 0 ]; then" >> $setup_and_run_file
-echo "    echo \"WARNING: The following paths do not exist:\" >&2" >> $setup_and_run_file
+echo "    echo \"WARNING: The following environment variables have paths that do not exist:\" >&2" >> $setup_and_run_file
 echo "    for missing_path in \"\${missing_paths[@]}\"; do" >> $setup_and_run_file
 echo "        echo \"  - \$missing_path\" >&2" >> $setup_and_run_file
 echo "    done" >> $setup_and_run_file
