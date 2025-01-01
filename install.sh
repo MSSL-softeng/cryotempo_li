@@ -36,6 +36,18 @@ echo "export FES2014B_BASE_DIR=/raid6/cpdata/SATS/RA/CRY/L1B/FES2014" >> $setup_
 echo "export CATS2008A_BASE_DIR=/raid6/cpdata/SATS/RA/CRY/L1B/CATS2008/SIN" >> $setup_and_run_file
 echo "export CS2_UNCERTAINTY_BASE_DIR=/raid6/cryo-tempo/land_ice/uncertainty" >> $setup_and_run_file
 
+# Special handling for hostname "lec-cpom"
+current_hostname=$(hostname)
+if [[ "$current_hostname" == "lec-cpom" ]]; then
+    echo "export CT_PRODUCT_BASEDIR=~/cryotempo/products" >> $setup_and_run_file
+    echo "export CPDATA_DIR=/media/luna/archive" >> $setup_and_run_file
+    echo "export L1B_BASE_DIR=\${CPDATA_DIR}/SATS/RA/CRY/L1B" >> $setup_and_run_file
+    echo "export FES2014B_BASE_DIR=/media/luna/archive/SATS/RA/CRY/L1B/FES2014" >> $setup_and_run_file
+    echo "export CATS2008A_BASE_DIR=/media/luna/archive/SATS/RA/CRY/L1B/CATS2008/SIN" >> $setup_and_run_file
+    echo "export CS2_UNCERTAINTY_BASE_DIR=/media/luna/archive/RESOURCES/ct_uncertainty" >> $setup_and_run_file
+    echo "export CPOM_SOFTWARE_DIR=/media/luna/shared/software/cpom_software" >> $setup_and_run_file
+fi
+
 # Add path existence checks
 # Add path and environment variable existence checks
 echo "" >> $setup_and_run_file
