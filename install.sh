@@ -83,7 +83,6 @@ echo "ulimit -n 8192" >> $setup_and_run_file
 # Notify user the environment is ready
 echo "" >> $setup_and_run_file
 echo "echo \"Environment setup complete. You are now in the Poetry virtual environment.\"" >> $setup_and_run_file
-echo "bash" >> $setup_and_run_file  # Open a subshell to keep the environment active
 
 # Ensure the output script is executable
 chmod +x $setup_and_run_file

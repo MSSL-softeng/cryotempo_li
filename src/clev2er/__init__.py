@@ -106,7 +106,7 @@ process creates a script to do this for you. Run this each time you
 start a new shell.
 
 ```
-ct_activate.sh
+source ct_activate.sh
 ```
 
 ## Test
@@ -115,100 +115,18 @@ ct_activate.sh
 run_chain.py -n testchain -ct
 ```
 
-#### cryotempo (land ice)
+## Examples of CryoTEMPO processing
 
-The following is an example of additional environment variables required by the **cryotempo**
-chain. Values used are site specific.
+Process January 2020, by using the following command line options:
 
-```script
-# Environment for CLEV2ER:cryotempo chain
-export CPDATA_DIR=/cpdata
-export CPOM_SOFTWARE_DIR=/cpnet/software/cpom_software
-export FES2014B_BASE_DIR=/cpnet/mssldba_raid6/cpdata/SATS/RA/CRY/L1B/FES2014
-export CATS2008A_BASE_DIR=/cpnet/mssldba_raid6/cpdata/SATS/RA/CRY/L2I/SIN/CATS_tides
-export CS2_SLOPE_MODELS_DIR=/cpnet/mssldba_raid6/cpdata/RESOURCES/slope_models
-export CS2_UNCERTAINTY_BASE_DIR=/cpnet/mssldba_raid6/cryo-tempo/land_ice/uncertainty
-export CT_LOG_DIR=/tmp
-```
-
-## Python Requirement
-
-python v3.10 must be installed or available before proceeding.
-A recommended minimal method of installation of python 3.10 is using miniconda as
-follows (other appropriate methods may also be used):
-
-For miniconda installation, select the **python 3.10** installer for your operating
-system from:
-
-https://docs.conda.io/en/latest/miniconda.html
-
-For example, for Linux, download the installer and install
-a minimal python 3.10 installation using:
-
-```script
-wget https://repo.anaconda.com/miniconda/Miniconda3-py310_23.5.2-0-Linux-x86_64.sh
-chmod +x Miniconda3-py310_23.5.2-0-Linux-x86_64.sh
-./Miniconda3-py310_23.5.2-0-Linux-x86_64.sh
-
-Do you wish the installer to initialize Miniconda3
-by running conda init? [yes|no] yes
-```
-You may need to start a new shell to refresh your environment before
-checking that python 3.10 is in your path.
-
-Check that python v3.10 is now available, by typing:
+-  -n cryotempo: selects the **cryotempo** chain
+-  -b D -v 1 : uses baseline D001 config files
+-  -y 2020 -m 1 : process all L1b files in Jan 2020
+-  -mp -np 20 : use multi-processing mode, and split over 20 processes
 
 ```
-python -V
+run_chain.py -n cryotempo -b D -v 1 -y 2020 -m 1 -mp -np 20
 ```
-
-## Virtual Environment and Package Requirements
-
-This project uses *poetry* (a dependency manager, see: https://python-poetry.org/) to manage
-package dependencies and virtual envs.
-
-First, you need to install *poetry* on your system using instructions from
-https://python-poetry.org/docs/#installation. Normally this just requires running:
-
-`curl -sSL https://install.python-poetry.org | python3 -`
-
-You should also then ensure that poetry is in your path, such that the command
-
-`poetry --version`
-
-returns the poetry version number. You may need to modify your
-PATH variable in order to achieve this.
-
-### Install Required Python packages using Poetry
-
-Run the following command to install python dependencies for this project
-(for info, it uses settings in pyproject.toml to know what to install)
-
-```
-cd $CLEV2ER_BASE_DIR
-poetry install
-```
-
-
-### Load the Virtual Environment
-
-Now you are all setup to go. Whenever you want to run any CLEV2ER chains you
-must first load the virtual environment using the `poetry shell` command.
-
-```
-cd $CLEV2ER_BASE_DIR
-poetry shell
-```
-
-Note that if you have the wrong version of python (not v3.10) in your path you will see
-errors. You can tell poetry which version of python to use in this case using:
-
-```
-poetry env use $(which python3.10)
-poetry shell
-```
-
-You should now be setup to run processing chains, etc.
 
 ## Developer Requirements
 
