@@ -190,7 +190,10 @@ configuration files.
 
 ### Algorithm Code
 
-```clev2er.algorithms.cryotempo```
+Each algorithm in the chain is stored in a seperate Algorithm class file (alg_xxx.py) in
+the src/clev2er/algorithms/cryotempo/ directory.
+
+`clev2er.algorithms.cryotempo`
 
 ## Developer Processes
 
