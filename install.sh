@@ -4,7 +4,7 @@
 
 set -e  # Exit on any error
 
-setup_and_run_file=./setup_and_run.sh
+setup_and_run_file=./ct_activate.sh
 
 export CLEV2ER_BASE_DIR=$PWD
 

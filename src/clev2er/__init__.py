@@ -62,6 +62,7 @@ This section details major changes to the framework (not individual chains):
 | 10-Nov-23 | breakpoint support added. See section on breakpoints below. |
 | May-Sep-24 | Development of Baseline-D evolution to the cryotempo chain|
 | 20-Dec-24 | updated to use Python 3.12 |
+| 28-Dec-24 | new install process |
 
 ## Installation of the Framework
 
@@ -96,9 +97,13 @@ chmod +x ./install.sh
 
 ## Setup
 
+Whenever you use the CryoTEMPO software you need to activate
+the virtual environment and setup required environment variables. The installation
+process creates a script to do this for you. Run this each time you
+start a new shell.
+
 ```
-poetry shell
-. setup_env.sh
+ct_activate.sh
 ```
 
 ## Test
