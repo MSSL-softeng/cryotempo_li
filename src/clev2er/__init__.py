@@ -183,10 +183,16 @@ It is recommended to run the above commands within a **screen** or **tmux** sess
 nohup run_chain.py -n cryotempo -b D -v 1 -y 2020 -mp -np 20 > /tmp/output.log 2>&1
 ```
 
-## Developer Requirements
+## Developer Processes
 
 This section details additional installation requirements for developers who will develop/adapt
 new chains or algorithms.
+
+- create a new git branch (replace xxx with your initials, and my_new_feature
+  with a suitable name)
+  ```
+  git checkout -b xxx_my_new_feature
+  ```
 
 ## Configuration
 
