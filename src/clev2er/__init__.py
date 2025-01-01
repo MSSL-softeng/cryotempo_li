@@ -183,6 +183,15 @@ It is recommended to run the above commands within a **screen** or **tmux** sess
 nohup run_chain.py -n cryotempo -b D -v 1 -y 2020 -mp -np 20 > /tmp/output.log 2>&1
 ```
 
+## Chain Components and Configuration
+
+This section describes the location of the main chain components and chain
+configuration files.
+
+### Algorithm Code
+
+```clev2er.algorithms.cryotempo```
+
 ## Developer Processes
 
 This section details additional installation requirements for developers who will develop/adapt
