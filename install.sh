@@ -8,6 +8,7 @@ setup_and_run_file=./ct_activate.sh
 
 export CLEV2ER_BASE_DIR=$PWD
 
+# Generate the setup_and_run.sh script
 echo "#!/usr/bin/env bash" > $setup_and_run_file
 echo "" >> $setup_and_run_file
 echo "# Combined setup and run script for CryoTEMPO LI" >> $setup_and_run_file
@@ -35,23 +36,40 @@ echo "export FES2014B_BASE_DIR=/raid6/cpdata/SATS/RA/CRY/L1B/FES2014" >> $setup_
 echo "export CATS2008A_BASE_DIR=/raid6/cpdata/SATS/RA/CRY/L1B/CATS2008/SIN" >> $setup_and_run_file
 echo "export CS2_UNCERTAINTY_BASE_DIR=/raid6/cryo-tempo/land_ice/uncertainty" >> $setup_and_run_file
 
-# Special handling for hostname "lec-cpom"
-current_hostname=$(hostname)
-if [[ "$current_hostname" == "lec-cpom" ]]; then
-    echo "export CT_PRODUCT_BASEDIR=~/cryotempo/products" >> $setup_and_run_file
-    echo "export CPDATA_DIR=/media/luna/archive" >> $setup_and_run_file
-    echo "export L1B_BASE_DIR=\${CPDATA_DIR}/SATS/RA/CRY/L1B" >> $setup_and_run_file
-    echo "export FES2014B_BASE_DIR=/media/luna/archive/SATS/RA/CRY/L1B/FES2014" >> $setup_and_run_file
-    echo "export CATS2008A_BASE_DIR=/media/luna/archive/SATS/RA/CRY/L1B/CATS2008/SIN" >> $setup_and_run_file
-    echo "export CS2_UNCERTAINTY_BASE_DIR=/media/luna/archive/RESOURCES/ct_uncertainty" >> $setup_and_run_file
-    echo "export CPOM_SOFTWARE_DIR=/media/luna/shared/software/cpom_software" >> $setup_and_run_file
-fi
+# Add path existence checks
+echo "" >> $setup_and_run_file
+echo "# Check if specified paths exist" >> $setup_and_run_file
+echo "missing_paths=()" >> $setup_and_run_file
+echo "paths_to_check=(" >> $setup_and_run_file
+echo "    \"\$CT_PRODUCT_BASEDIR\"" >> $setup_and_run_file
+echo "    \"\$CT_LOG_DIR\"" >> $setup_and_run_file
+echo "    \"\$CPDATA_DIR\"" >> $setup_and_run_file
+echo "    \"\$L1B_BASE_DIR\"" >> $setup_and_run_file
+echo "    \"\$FES2014B_BASE_DIR\"" >> $setup_and_run_file
+echo "    \"\$CATS2008A_BASE_DIR\"" >> $setup_and_run_file
+echo "    \"\$CS2_UNCERTAINTY_BASE_DIR\"" >> $setup_and_run_file
+echo ")" >> $setup_and_run_file
+echo "" >> $setup_and_run_file
+echo "for path in \"\${paths_to_check[@]}\"; do" >> $setup_and_run_file
+echo "    if [ ! -d \"\$path\" ]; then" >> $setup_and_run_file
+echo "        missing_paths+=(\"\$path\")" >> $setup_and_run_file
+echo "    fi" >> $setup_and_run_file
+echo "done" >> $setup_and_run_file
+echo "" >> $setup_and_run_file
+echo "if [ \${#missing_paths[@]} -gt 0 ]; then" >> $setup_and_run_file
+echo "    echo \"WARNING: The following paths do not exist:\" >&2" >> $setup_and_run_file
+echo "    for missing_path in \"\${missing_paths[@]}\"; do" >> $setup_and_run_file
+echo "        echo \"  - \$missing_path\" >&2" >> $setup_and_run_file
+echo "    done" >> $setup_and_run_file
+echo "fi" >> $setup_and_run_file
 
 # Set ulimit
+echo "" >> $setup_and_run_file
 echo "ulimit -n 8192" >> $setup_and_run_file
 
 # Notify user the environment is ready
-echo "echo \"CryoTEMPO Environment setup complete. You are now in the Poetry virtual environment for CryoTEMPO.\"" >> $setup_and_run_file
+echo "" >> $setup_and_run_file
+echo "echo \"Environment setup complete. You are now in the Poetry virtual environment.\"" >> $setup_and_run_file
 echo "bash" >> $setup_and_run_file  # Open a subshell to keep the environment active
 
 # Ensure the output script is executable
@@ -89,6 +107,12 @@ poetry config virtualenvs.create true
 poetry env use python3.12
 poetry lock
 poetry install
+
+# Install pre-commit if not already installed
+if ! command -v pre-commit &>/dev/null; then
+    echo "Installing pre-commit..."
+    pip install pre-commit
+fi
 
 pre-commit install
 pre-commit autoupdate
