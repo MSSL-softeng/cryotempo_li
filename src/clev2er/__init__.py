@@ -12,7 +12,7 @@ workflow. There are many run-time options in the chain controller command line t
 
 The diagram below shows a simplified representation of the framework and its components.
 
-![framework](images/framework.jpg "framework")
+![framework](images/framework.jpg "framewrk")
 
 ## Main Features
 
