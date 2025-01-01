@@ -91,11 +91,14 @@ From the directory that you ran the git clone command, do the following:
 
 ```
 cd cryotempo_li
-chmod +x ./install.sh
 ./install.sh
 ```
 
-## Setup
+**Note** that you may need to edit *ct_activate.sh* if the install
+script reports that any paths pointed to by environment variables are
+missing.
+
+## Setup and Activation
 
 Whenever you use the CryoTEMPO software you need to activate
 the virtual environment and setup required environment variables. The installation
