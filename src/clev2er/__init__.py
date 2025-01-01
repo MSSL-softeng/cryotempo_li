@@ -106,7 +106,7 @@ cd cryotempo_li
 ./install.sh
 ```
 
-**Note** that you may need to edit *ct_activate.sh* if the install
+**Note** that you may need to edit **ct_activate.sh** if the install
 script reports that any paths pointed to by environment variables do not exist.
 
 ## Regular Setup and Activation
@@ -132,17 +132,22 @@ You can find all run_chain.py's command line options using:
 run_chain.py -h (or --help)
 ```
 
-## Run a basic Test Chain
+## Run a basic test chain
 
-The following command tests whether a versiobn of the  CLEV2ER
-framework (within which
-the CryoTEMPO chain runs) runs a separate test chain without error:
+The following command tests the  CLEV2ER
+framework (within which the CryoTEMPO chain runs) running a separate test
+chain which dynamically loads
+2 template algorithms and runs them on a set of CryoSat L1b files.
+This should run without any errors.
 
 ```
-run_chain.py -n testchain -ct
+run_chain.py -n testchain -d $CLEV2ER_BASE_DIR/testdata/cs2/l1bfiles
 ```
 
-## Examples of CryoTEMPO processing
+## Examples of CryoTEMPO processing of CryoSat-2 L1b files
+
+Here are examples of running the main CryoTEMPO Baseline-D Land Ice
+chain.
 
 Process January 2020 using multi-processing mode, by using the
 following command line options:
@@ -167,31 +172,6 @@ run_chain.py -n cryotempo -b D -v 1 -y 2020 -mp -np 20
 
 This section details additional installation requirements for developers who will develop/adapt
 new chains or algorithms.
-
-### Install pre-commit hooks
-
-pre-commit hooks are static code analysis scripts which are run (and must be passed) before
-each git commit. For this project they include pylint, ruff, mypy, black, isort, pdocs.
-
-To install pre-commit hooks, do the following: (note that the second line is not necessary if
-you have already loaded the virtual environment using `poetry shell`)
-
-```
-cd $CLEV2ER_BASE_DIR
-poetry shell
-pre-commit install
-pre-commit run --all-files
-```
-
-Now, whenever you make changes to your code, it is recommended to run the following
-in your current code directory.
-
-```pre-commit run --all-files```
-
-This will check that your code passes all static code
-tests prior to running git commit. Note that these same tests are also run when
-you do a new commit, ie using `git commit -a -m "commit message"`. If the tests fail
-you must correct the errors before proceeding, and then rerun the pre-commit and/or git commit.
 
 ## Run a simple chain test example
 
