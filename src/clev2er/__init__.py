@@ -193,7 +193,22 @@ configuration files.
 Each algorithm in the chain is stored in a seperate Algorithm class file (alg_xxx.py) in
 the src/clev2er/algorithms/cryotempo/ directory.
 
-`clev2er.algorithms.cryotempo`
+Links to the algorithms at: `clev2er.algorithms.cryotempo`
+
+### Chain Configuration
+
+These contain the tunable parameters for each version of the chain, and
+are located at:
+
+config/chain_configs/cryotempo/cryotempo_D*NNN*.yml, where *NNN* is the version number.
+number (ie 001, 002).
+
+### Algorithm Lists
+
+This contains the list and order of algorithms that are dynamically loaded:
+
+config/algorithm_lists/cryotempo/cryotempo_D*NNN*.yml, where *NNN* is the version number.
+number (ie 001, 002).
 
 ## Developer Processes
 
