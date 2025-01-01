@@ -193,6 +193,23 @@ new chains or algorithms.
   ```
   git checkout -b xxx_my_new_feature
   ```
+- code your new feature and tests, committing regularly to your new branch
+  ```
+  git commit -a -m "commit message"
+  ```
+- push your branch to GitHub
+  ```
+  git push
+  ```
+- create a pull request on GitHub for your branch
+
+- check that the GitHub actions tests show no errors in your pull request
+
+- repeat the above steps until you are happy with the feature branch
+
+- request a review on the GitHub pull request page
+
+- if the review passes the feature will be merged in to the master branch
 
 ## Configuration
 
