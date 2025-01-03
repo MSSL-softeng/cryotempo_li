@@ -120,14 +120,33 @@ poetry env use python3.12
 poetry lock
 poetry install
 
-# Install pre-commit if not already installed
-if ! command -v pre-commit &>/dev/null; then
-    echo "Installing pre-commit..."
-    pip install pre-commit
+# Get the version of git
+git_version=$(git --version | awk '{print $3}')
+
+# Convert the version to a comparable number (remove dots)
+version_number=$(echo "$git_version" | awk -F. '{printf "%d%02d%02d", $1, $2, $3}')
+
+# Compare the version
+required_version=20200  # Equivalent to 2.20.0
+
+if ((version_number > required_version)); then
+    echo "Git version is greater than 2.20. Performing the task..."
+    # Place your task commands here
+    # Install pre-commit if not already installed
+    if ! command -v pre-commit &>/dev/null; then
+        echo "Installing pre-commit..."
+        pip install pre-commit
+    fi
+
+    pre-commit install
+    pre-commit autoupdate
+else
+    echo "Git version is not greater than 2.20. Skipping the task."
+    echo "WARNING: git version is < 2.20. Can not install pre-commit hooks"
+    echo "Please upgrade git on your system and re-run the install"
 fi
 
-pre-commit install
-pre-commit autoupdate
+
 
 echo "Installation complete. "
 echo "Use $setup_and_run_file to set up and activate the environment."
