@@ -253,7 +253,8 @@ chain.</p>
 
 <p>Process a single CS2 L1b file using the <strong>cryotempo</strong> chain:</p>
 
-<pre><code>run_chain.py -n cryotempo -f   $CPDATA_DIR/SATS/RA/CRY/L1B/SIN/2020/01/CS_LTA__SIR_SIN_1B_20200131T233512_20200131T233720_E001.nc
+<pre><code>run_chain.py -n cryotempo -f
+CS_LTA__SIR_SIN_1B_20200131T233512_20200131T233720_E001.nc
 </code></pre>
 
 <p>Process January 2020 using multi-processing mode, by using the
@@ -270,7 +271,7 @@ we use 200-400 processes for multi-processing on 128-core servers with 512GB RAM
 </ul>
 
 <p>Note that the default location of the L1b files is in this case set by the chain
-configuration file (which is set to use env variable $L1B_BASE_DIR, to a path which should 
+configuration file (which is set to use env variable $L1B_BASE_DIR, to a path which should
 contain LRM,SIN/<YYYY>/<MM>/). L1B_BASE_DIR is set in the ct_activate.sh</p>
 
 <pre><code>run_chain.py -n cryotempo -b D -v 1 -y 2020 -m 1 -mp -np 20
@@ -283,7 +284,7 @@ command line options:</p>
 </code></pre>
 
 <p>It is recommended to run the above commands (which can take several hours to complete)
-within a <strong>screen</strong> or <strong>tmux</strong> session or using <strong>nohup</strong> so that the process is not 
+within a <strong>screen</strong> or <strong>tmux</strong> session or using <strong>nohup</strong> so that the process is not
 killed when your current terminal times out.</p>
 
 <pre><code>nohup run_chain.py -n cryotempo -b D -v 1 -y 2020 -mp -np 20 &gt; /tmp/output.log 2&gt;&amp;1
@@ -977,8 +978,8 @@ markdown to describe the directories beneath it.</p>
 </span><span id="L-142"><a href="#L-142"><span class="linenos">142</span></a><span class="sd">Process a single CS2 L1b file using the **cryotempo** chain:</span>
 </span><span id="L-143"><a href="#L-143"><span class="linenos">143</span></a>
 </span><span id="L-144"><a href="#L-144"><span class="linenos">144</span></a><span class="sd">```</span>
-</span><span id="L-145"><a href="#L-145"><span class="linenos">145</span></a><span class="sd">run_chain.py -n cryotempo -f \</span>
-</span><span id="L-146"><a href="#L-146"><span class="linenos">146</span></a><span class="sd">  $CPDATA_DIR/SATS/RA/CRY/L1B/SIN/2020/01/CS_LTA__SIR_SIN_1B_20200131T233512_20200131T233720_E001.nc</span>
+</span><span id="L-145"><a href="#L-145"><span class="linenos">145</span></a><span class="sd">run_chain.py -n cryotempo -f</span>
+</span><span id="L-146"><a href="#L-146"><span class="linenos">146</span></a><span class="sd">CS_LTA__SIR_SIN_1B_20200131T233512_20200131T233720_E001.nc</span>
 </span><span id="L-147"><a href="#L-147"><span class="linenos">147</span></a><span class="sd">```</span>
 </span><span id="L-148"><a href="#L-148"><span class="linenos">148</span></a>
 </span><span id="L-149"><a href="#L-149"><span class="linenos">149</span></a><span class="sd">Process January 2020 using multi-processing mode, by using the</span>
@@ -993,7 +994,7 @@ markdown to describe the directories beneath it.</p>
 </span><span id="L-158"><a href="#L-158"><span class="linenos">158</span></a><span class="sd">   we use 200-400 processes for multi-processing on 128-core servers with 512GB RAM.</span>
 </span><span id="L-159"><a href="#L-159"><span class="linenos">159</span></a>
 </span><span id="L-160"><a href="#L-160"><span class="linenos">160</span></a><span class="sd">Note that the default location of the L1b files is in this case set by the chain</span>
-</span><span id="L-161"><a href="#L-161"><span class="linenos">161</span></a><span class="sd">configuration file (which is set to use env variable $L1B_BASE_DIR, to a path which should </span>
+</span><span id="L-161"><a href="#L-161"><span class="linenos">161</span></a><span class="sd">configuration file (which is set to use env variable $L1B_BASE_DIR, to a path which should</span>
 </span><span id="L-162"><a href="#L-162"><span class="linenos">162</span></a><span class="sd">contain LRM,SIN/&lt;YYYY&gt;/&lt;MM&gt;/). L1B_BASE_DIR is set in the ct_activate.sh</span>
 </span><span id="L-163"><a href="#L-163"><span class="linenos">163</span></a>
 </span><span id="L-164"><a href="#L-164"><span class="linenos">164</span></a><span class="sd">```</span>
@@ -1008,7 +1009,7 @@ markdown to describe the directories beneath it.</p>
 </span><span id="L-173"><a href="#L-173"><span class="linenos">173</span></a><span class="sd">```</span>
 </span><span id="L-174"><a href="#L-174"><span class="linenos">174</span></a>
 </span><span id="L-175"><a href="#L-175"><span class="linenos">175</span></a><span class="sd">It is recommended to run the above commands (which can take several hours to complete)</span>
-</span><span id="L-176"><a href="#L-176"><span class="linenos">176</span></a><span class="sd">within a **screen** or **tmux** session or using **nohup** so that the process is not </span>
+</span><span id="L-176"><a href="#L-176"><span class="linenos">176</span></a><span class="sd">within a **screen** or **tmux** session or using **nohup** so that the process is not</span>
 </span><span id="L-177"><a href="#L-177"><span class="linenos">177</span></a><span class="sd">killed when your current terminal times out.</span>
 </span><span id="L-178"><a href="#L-178"><span class="linenos">178</span></a>
 </span><span id="L-179"><a href="#L-179"><span class="linenos">179</span></a><span class="sd">```</span>

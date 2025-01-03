@@ -142,8 +142,8 @@ chain.
 Process a single CS2 L1b file using the **cryotempo** chain:
 
 ```
-run_chain.py -n cryotempo -f \
-  $CPDATA_DIR/SATS/RA/CRY/L1B/SIN/2020/01/CS_LTA__SIR_SIN_1B_20200131T233512_20200131T233720_E001.nc
+run_chain.py -n cryotempo -f
+CS_LTA__SIR_SIN_1B_20200131T233512_20200131T233720_E001.nc
 ```
 
 Process January 2020 using multi-processing mode, by using the
@@ -158,7 +158,7 @@ following command line options:
    we use 200-400 processes for multi-processing on 128-core servers with 512GB RAM.
 
 Note that the default location of the L1b files is in this case set by the chain
-configuration file (which is set to use env variable $L1B_BASE_DIR, to a path which should 
+configuration file (which is set to use env variable $L1B_BASE_DIR, to a path which should
 contain LRM,SIN/<YYYY>/<MM>/). L1B_BASE_DIR is set in the ct_activate.sh
 
 ```
@@ -173,7 +173,7 @@ run_chain.py -n cryotempo -b D -v 1 -y 2020 -mp -np 20
 ```
 
 It is recommended to run the above commands (which can take several hours to complete)
-within a **screen** or **tmux** session or using **nohup** so that the process is not 
+within a **screen** or **tmux** session or using **nohup** so that the process is not
 killed when your current terminal times out.
 
 ```
