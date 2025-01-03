@@ -123,13 +123,19 @@ poetry install
 # Get the version of git
 git_version=$(git --version | awk '{print $3}')
 
-# Convert the version to a comparable number (remove dots)
-version_number=$(echo "$git_version" | awk -F. '{printf "%d%02d%02d", $1, $2, $3}')
+# Convert the version to a comparable number
+# Major version gets padded normally, while minor and patch versions are three digits
+version_number=$(echo "$git_version" | awk -F. '{printf "%d%03d%03d", $1, $2, $3}')
 
-# Compare the version
-required_version=20200  # Equivalent to 2.20.0
+# Define the required version (2.20.0)
+required_version=$(echo "2.20.0" | awk -F. '{printf "%d%03d%03d", $1, $2, $3}')
 
-if ((version_number > required_version)); then
+# Debugging output to ensure proper values
+echo "Detected Git version: $git_version (Numeric: $version_number)"
+echo "Required Git version: >= 2.20.0 (Numeric: $required_version)"
+
+# Compare the versions
+if [[ "$version_number" -gt "$required_version" ]]; then
     echo "Git version is greater than 2.20. Performing the task..."
     # Place your task commands here
     # Install pre-commit if not already installed
