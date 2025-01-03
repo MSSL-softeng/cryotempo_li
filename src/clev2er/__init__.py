@@ -12,7 +12,7 @@ workflow. There are many run-time options in the chain controller command line t
 
 The diagram below shows a simplified representation of the framework and its components.
 
-![framework](images/framework.jpg "framewrk")
+![framework](images/framework.jpg "framework")
 
 ## Main Features
 
@@ -172,8 +172,9 @@ command line options:
 run_chain.py -n cryotempo -b D -v 1 -y 2020 -mp -np 20
 ```
 
-It is recommended to run the above commands within a **screen** or **tmux** session or using
-**nohup** so that the process is not killed when your current terminal times out.
+It is recommended to run the above commands (which can take several hours to complete)
+within a **screen** or **tmux** session or using **nohup** so that the process is not 
+killed when your current terminal times out.
 
 ```
 nohup run_chain.py -n cryotempo -b D -v 1 -y 2020 -mp -np 20 > /tmp/output.log 2>&1
