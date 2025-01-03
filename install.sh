@@ -131,8 +131,8 @@ version_number=$(echo "$git_version" | awk -F. '{printf "%d%03d%03d", $1, $2, $3
 required_version=$(echo "2.20.0" | awk -F. '{printf "%d%03d%03d", $1, $2, $3}')
 
 # Debugging output to ensure proper values
-echo "Detected Git version: $git_version (Numeric: $version_number)"
-echo "Required Git version: >= 2.20.0 (Numeric: $required_version)"
+echo "Detected Git version: $git_version "
+echo "Required Git version: >= 2.20.0"
 
 # Compare the versions
 if [[ "$version_number" -gt "$required_version" ]]; then
@@ -153,6 +153,8 @@ else
 fi
 
 
-
+echo ""
+echo "-----------------------"
 echo "Installation complete. "
+echo "-----------------------"
 echo "Use $setup_and_run_file to set up and activate the environment."
