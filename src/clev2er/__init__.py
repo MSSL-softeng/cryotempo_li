@@ -139,10 +139,12 @@ run_chain.py -n testchain -d $CLEV2ER_BASE_DIR/testdata/cs2/l1bfiles
 Here are examples of running the main CryoTEMPO Baseline-D Land Ice
 chain.
 
-Process a single CS2 L1b SIN file using the **cryotempo** chain:
+Process a single CS2 L1b file using the **cryotempo** chain:
 
+```
 run_chain.py -n cryotempo -f \
   $CPDATA_DIR/SATS/RA/CRY/L1B/SIN/2020/01/CS_LTA__SIR_SIN_1B_20200131T233512_20200131T233720_E001.nc
+```
 
 Process January 2020 using multi-processing mode, by using the
 following command line options:
@@ -154,6 +156,10 @@ following command line options:
    use a higher or lower number of processes depending upon the number of cores
    on your system and available memory. For operational monthly processing at MSSL
    we use 200-400 processes for multi-processing on 128-core servers with 512GB RAM.
+
+Note that the default location of the L1b files is in this case set by the chain
+configuration file (which is set to use env variable $L1B_BASE_DIR, to a path which should 
+contain LRM,SIN/<YYYY>/<MM>/). L1B_BASE_DIR is set in the ct_activate.sh
 
 ```
 run_chain.py -n cryotempo -b D -v 1 -y 2020 -m 1 -mp -np 20
