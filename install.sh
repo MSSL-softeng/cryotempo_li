@@ -15,7 +15,7 @@ echo "" >> $setup_and_run_file
 echo "# Check if the script is being sourced or executed" >> $setup_and_run_file
 echo "if [[ \"${BASH_SOURCE[0]}\" == \"${0}\" ]]; then" >> $setup_and_run_file
 echo "    echo \"ERROR: This script must be sourced, not executed!\"" >> $setup_and_run_file
-echo "    echo \"Please run: source activate.sh\"" >> $setup_and_run_file
+echo "    echo \"Please run: source $setup_and_run_file\"" >> $setup_and_run_file
 echo "    exit 1" >> $setup_and_run_file
 echo "fi" >> $setup_and_run_file
 
