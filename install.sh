@@ -11,6 +11,14 @@ export CLEV2ER_BASE_DIR=$PWD
 # Generate the setup_and_run.sh script
 echo "#!/usr/bin/env bash" > $setup_and_run_file
 echo "" >> $setup_and_run_file
+
+echo "# Check if the script is being sourced or executed" > $setup_and_run_file
+echo "if [[ \"${BASH_SOURCE[0]}\" == \"${0}\" ]]; then" > $setup_and_run_file
+echo "    echo \"ERROR: This script must be sourced, not executed!\"" > $setup_and_run_file
+echo "    echo \"Please run: source activate.sh\"" > $setup_and_run_file
+echo "    exit 1" > $setup_and_run_file
+echo "fi" > $setup_and_run_file
+
 echo "# Combined setup and run script for CryoTEMPO LI" >> $setup_and_run_file
 echo "set -e" >> $setup_and_run_file
 echo "" >> $setup_and_run_file
