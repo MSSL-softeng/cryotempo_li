@@ -40,8 +40,8 @@ echo "export CT_PRODUCT_BASEDIR=/raid6/cryo-tempo/product_baselines" >> $setup_a
 echo "export CT_LOG_DIR=/tmp" >> $setup_and_run_file
 echo "export CPDATA_DIR=/cpdata" >> $setup_and_run_file
 echo "export L1B_BASE_DIR=\${CPDATA_DIR}/SATS/RA/CRY/L1B" >> $setup_and_run_file
-echo "export FES2014B_BASE_DIR=/raid6/cpdata/SATS/RA/CRY/L1B/FES2014" >> $setup_and_run_file
-echo "export CATS2008A_BASE_DIR=/raid6/cpdata/SATS/RA/CRY/L1B/CATS2008/SIN" >> $setup_and_run_file
+echo "export FES2014B_BASE_DIR=/cpdata/SATS/RA/CRY/L1B/FES2014" >> $setup_and_run_file
+echo "export CATS2008A_BASE_DIR=/cpdata/SATS/RA/CRY/L1B/CATS2008/SIN" >> $setup_and_run_file
 echo "export CS2_UNCERTAINTY_BASE_DIR=/raid6/cryo-tempo/land_ice/uncertainty" >> $setup_and_run_file
 
 # Special handling for hostname "lec-cpom"
