@@ -1,4 +1,4 @@
-""" clev2er.algorithms.templates.alg_template"""
+"""clev2er.algorithms.templates.alg_template"""
 
 import logging
 import os
@@ -446,8 +446,8 @@ class Algorithm(BaseAlgorithm):
             "Elevation of the ice surface above the reference ellipsoid (WGS84) at the "
             "measurement location [longitude] [latitude]. "
             "All instrumental and appropriate geophysical corrections included. "
-            "Corrected for surface slope via a slope model in LRM mode. Corrected for "
-            "surface slope via phase information in SARIn mode. "
+            "Corrected for surface slope via a DEM relocation method (adapted from Roemer) in LRM"
+            " mode. Corrected for surface slope via phase information in SARIn mode. "
             "Where elevation can not be calculated, the value is set to Nan."
         )
         nc_var[:] = shared_dict["height_filt"]  # use final filtered height
@@ -499,7 +499,7 @@ class Algorithm(BaseAlgorithm):
         nc_var.comment = (
             "Reference elevation values at each measurement location, extracted from an "
             "auxiliary Digital Elevation Model (DEM). "
-            "The 1km REMA v1.1 mosaic is used for Antarctica and the 1 km ArcticDEM v3 "
+            "The REMA v2 mosaic (1km) is used for Antarctica and the ArcticDEM v4.1 (1km)"
             "mosaic is used for Greenland."
         )
         nc_var[:] = shared_dict["dem_elevation_values"]
@@ -558,10 +558,24 @@ class Algorithm(BaseAlgorithm):
         nc_var.coordinates = "longitude latitude"
         nc_var.long_name = "uncertainty of elevation parameter"
         nc_var.standard_name = "elevation_uncertainty"
-        nc_var.comment = (
-            "Uncertainty associated with the ice sheet elevation measurement; defined as the "
-            "precision measured at orbital cross-overs per 0.1 degree band of slope."
-        )
+        if shared_dict["hemisphere"] == "south":
+            nc_var.comment = (
+                "Uncertainty estimate is derived from an empirical parameterisation based on the "
+                "ice sheet surface topographic characteristics of slope and roughness at each "
+                "measurement location. 1 year of CryoTEMPO Baseline-D elevation differences to "
+                "IceSAT-2 ATL-06 v5 were calculated and the mean difference calculated per bands of"
+                " slope and roughness using a bi-linear fit. The resulting uncertainty was then "
+                "calculated at each point using a 2d LUT."
+            )
+        else:
+            nc_var.comment = (
+                "Uncertainty estimate is derived from an empirical parameterisation based on the "
+                "ice sheet surface topographic characteristics of slope each "
+                "measurement location. 1 year of CryoTEMPO Baseline-D elevation differences to "
+                "IceSAT-2 ATL-06 v5 were calculated and the mean difference calculated per 0.1 deg "
+                "band of slope. The resulting uncertainty was then "
+                "calculated at each point using a LUT."
+            )
         nc_var[:] = shared_dict["uncertainty"]
 
         # Additional Parameters
