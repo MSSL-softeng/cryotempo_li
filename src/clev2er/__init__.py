@@ -142,8 +142,8 @@ chain.
 Process a single CS2 L1b file using the **cryotempo** chain:
 
 ```
-run_chain.py -n cryotempo -f
-CS_LTA__SIR_SIN_1B_20200131T233512_20200131T233720_E001.nc
+run_chain.py -n cryotempo -f \
+$CPDATA_DIR/SATS/RA/CRY/L1B/SIN/2020/01/CS_LTA__SIR_SIN_1B_20200131T233512_20200131T233720_E001.nc
 ```
 
 Process January 2020 using multi-processing mode, by using the
