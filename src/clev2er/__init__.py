@@ -221,9 +221,10 @@ new chains or algorithms.
   ```
   git commit -a -m "commit message"
   ```
-- push your branch to GitHub
+- push your branch to GitHub for the first time. Subsequently you can
+  just do a `git push`
   ```
-  git push
+  git push --set-upstream origin xxx_my_new_feature
   ```
 - create a pull request on GitHub for your branch
 
