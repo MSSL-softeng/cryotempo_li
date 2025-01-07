@@ -20,6 +20,7 @@ echo '    exit 1' >> $setup_and_run_file
 echo "fi" >> $setup_and_run_file
 
 echo "# Combined setup and run script for CryoTEMPO LI" >> $setup_and_run_file
+echo 'old_opts=$(set +o | grep errexit)' >> $setup_and_run_file
 echo "set -e" >> $setup_and_run_file
 echo "" >> $setup_and_run_file
 echo "# Activate Poetry virtual environment" >> $setup_and_run_file
@@ -90,6 +91,8 @@ echo "ulimit -n 8192" >> $setup_and_run_file
 
 # Notify user the environment is ready
 echo "" >> $setup_and_run_file
+echo "eval \"$old_opts\"" >> $setup_and_run_file
+
 echo "echo \"Environment setup complete. You are now in the CryoTEMPO Land Ice Poetry virtual environment.\"" >> $setup_and_run_file
 
 # Ensure the output script is executable
