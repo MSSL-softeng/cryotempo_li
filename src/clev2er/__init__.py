@@ -142,7 +142,7 @@ chain.
 Process a single CS2 L1b file using the **cryotempo** chain:
 
 ```
-run_chain.py -n cryotempo -f \
+run_chain.py -n cryotempo -f -b D -v 1\
 $CPDATA_DIR/SATS/RA/CRY/L1B/SIN/2020/01/CS_LTA__SIR_SIN_1B_20200131T233512_20200131T233720_E001.nc
 ```
 
@@ -179,6 +179,46 @@ killed when your current terminal times out.
 ```
 nohup run_chain.py -n cryotempo -b D -v 1 -y 2020 -mp -np 20 > /tmp/output.log 2>&1
 ```
+
+## Baselines and Versions
+
+The CryoTEMPO chain uses a major baseline letter (A,B,C,D,..) and a 
+version number 1,... for it processing and products. The latest version
+is D001, resulting in products such as:
+
+CS_OFFL_SIR_TDP_LI_ANTARC_20200131T233512_20200131T233720_12_00205_**D001**.nc
+
+to process a specific version using run_chain.py: (ie D002)
+
+run_chain.py -b D -v 2 .....
+
+Each baseline and version has associated configuration files in
+
+`config/chain_configs/cryotempo/cryotempo_D*NNN*.yml`, where *NNN* is the version number.
+number (ie 001, 002).
+
+and algorithm lists in
+
+`config/algorithm_lists/cryotempo/cryotempo_D*NNN*.yml`, where *NNN* is the version number.
+number (ie 001, 002).
+
+If you want to create a new version of a baseline for testing/validation 
+purposes, then you should create the necessary config files by copying the 
+base config files for that baseline. ie copy D001 config files to D002 and then 
+modify any settings in D002.
+
+## Output Location
+
+Note that products are generated in the directory specified in the chain
+config file:
+
+`product_base_dir: ${CT_PRODUCT_BASEDIR}`
+
+This may be an environment variable, previously set in ct_activate.sh or it may
+be a direct path. 
+The files will be written to sub-directories of this as follows:
+
+`/<baseline>/<version:03>/LAND_ICE/<ANTARC,GREENL>/<YYYY>/<MM>/
 
 ## Chain Components and Configuration
 
