@@ -1,31 +1,31 @@
-""" clev2er.algorithms.testchain.alg_template1.py
+"""clev2er.algorithms.testchain.alg_template1.py
 
-    Algorithm class module, used to implement a single chain algorithm
+Algorithm class module, used to implement a single chain algorithm
 
-    #Description of this Algorithm's purpose
-    
-    This is an example Algorithm which should be used as a template
-    for other Algorithm modules. 
-    
-    As an example this Algorithm calculates 2 x the L1b ocean tide parameter
-    and saves it in the shared_dict as shared_dict["twice_ocean_tide_01"]
+#Description of this Algorithm's purpose
 
-    #Main initialization (init() function) steps/resources required
+This is an example Algorithm which should be used as a template
+for other Algorithm modules.
 
-    None
+As an example this Algorithm calculates 2 x the L1b ocean tide parameter
+and saves it in the shared_dict as shared_dict["twice_ocean_tide_01"]
 
-    #Main process() function steps
+#Main initialization (init() function) steps/resources required
 
-    Calculates 2 x the L1b ocean_tide_01 parameter as an example
+None
 
-    #Contribution to shared_dict
+#Main process() function steps
 
-    shared_dict["twice_ocean_tide_01"] (np.array[int]) : example contains 2 x the L1b ocean_tide_01 
-                                                         parameter
+Calculates 2 x the L1b ocean_tide_01 parameter as an example
 
-    #Requires from shared_dict
+#Contribution to shared_dict
 
-    None
+shared_dict["twice_ocean_tide_01"] (np.array[int]) : example contains 2 x the L1b ocean_tide_01
+                                                     parameter
+
+#Requires from shared_dict
+
+None
 """
 
 from time import sleep
@@ -118,7 +118,7 @@ class Algorithm(BaseAlgorithm):
         # \/    down the chain in the 'shared_dict' dict     \/
         # -------------------------------------------------------------------
 
-        sleep(5)  # dummy operation
+        sleep(2)  # dummy operation
         self.log.debug("example of a debug message")
 
         # example line below to calculate 2 x ocean_tide_01 in shared_dict,

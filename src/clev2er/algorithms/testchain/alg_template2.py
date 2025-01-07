@@ -1,28 +1,28 @@
-""" clev2er.algorithms.testchain.alg_template2.py
+"""clev2er.algorithms.testchain.alg_template2.py
 
-    Algorithm class module, used to implement a single chain algorithm
+Algorithm class module, used to implement a single chain algorithm
 
-    #Description of this Algorithm's purpose
-    
-    This is an example Algorithm which should be used as a template
-    for other Algorithm modules.
+#Description of this Algorithm's purpose
 
-    #Main initialization (init() function) steps/resources required
+This is an example Algorithm which should be used as a template
+for other Algorithm modules.
 
-    None
+#Main initialization (init() function) steps/resources required
 
-    #Main process() function steps
+None
 
-    Calculates 2 x the L1b ocean_tide_01 parameter as an example
+#Main process() function steps
 
-    #Contribution to shared_dict
+Calculates 2 x the L1b ocean_tide_01 parameter as an example
 
-    shared_dict["twice_ocean_tide_01"] (np.array[int]) : example contains 2 x the L1b ocean_tide_01 
-                                                         parameter
+#Contribution to shared_dict
 
-    #Requires from shared_dict
+shared_dict["twice_ocean_tide_01"] (np.array[int]) : example contains 2 x the L1b ocean_tide_01
+                                                     parameter
 
-    None
+#Requires from shared_dict
+
+None
 """
 
 from typing import Tuple
