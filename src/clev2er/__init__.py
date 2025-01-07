@@ -218,7 +218,9 @@ This may be an environment variable, previously set in ct_activate.sh or it may
 be a direct path. 
 The files will be written to sub-directories of this as follows:
 
-`/<baseline>/<version:03>/LAND_ICE/<ANTARC,GREENL>/<YYYY>/<MM>/
+```
+/<baseline>/<version:03>/LAND_ICE/<ANTARC,GREENL>/<YYYY>/<MM>/
+```
 
 ## Chain Components and Configuration
 
