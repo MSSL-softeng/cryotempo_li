@@ -18,13 +18,13 @@
     <append_year_month_to_logname>true</append_year_month_to_logname>
 
     <!-- debug : str : path of the debug log file -->
-    <debug>/tmp/debug.log</debug>
+    <debug>/tmp/debug.log.kb</debug>
 
     <!-- info : str : path of the info log file -->
-    <info>/tmp/info.log</info>
+    <info>/tmp/info.log.kb</info>
 
     <!-- errors : str : path of the errors log file -->
-    <errors>/tmp/errors.log</errors>
+    <errors>/tmp/errors.log.kb</errors>
 </log_files>
 
 <!-- We can override settings from main_config.xml if we wish -->
