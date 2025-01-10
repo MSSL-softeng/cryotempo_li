@@ -165,7 +165,7 @@ geophysical:
   speed_light: 299792458.0
 
 product_output:
-  include_additional_parameters: False
+  include_additional_parameters: True
 
 #-------------------------------------------------------------------------------------
 # Resource Locators

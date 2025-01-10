@@ -592,6 +592,177 @@ class Algorithm(BaseAlgorithm):
                 nc_var[:] = shared_dict["relocation_distance"]
             else:
                 nc_var[:] = np.full_like(time_20_ku, np.nan, dtype=float)
+        
+            # Ambiguity correction assessment parameters
+            nc_var = dset.createVariable("phase_unwrapped", "double", ("time",))
+            nc_var.coordinates = "longitude latitude"
+            nc_var.long_name = "implementation of phase unwrapping"
+            nc_var.standard_name = "unwrap"
+            nc_var.comment = "True: unwrapped phase used for POCA; False: computed phase used for POCA"
+            if "phase_unwrapped" in shared_dict:
+                nc_var[:] = shared_dict["phase_unwrapped"]
+            else:
+                nc_var[:] = np.full_like(time_20_ku, np.nan, dtype=float)
+
+            # elevation using computed phase
+            nc_var = dset.createVariable("height_initial_20_ku", "double", ("time",))
+            nc_var.units = "m"
+            nc_var.coordinates = "longitude latitude"
+            nc_var.long_name = "height at POCA using computed phase"
+            nc_var.standard_name = "height_initial_20_ku"
+            nc_var.comment = "height at POCA using computed phase"
+            if "height_initial_20_ku" in shared_dict:
+                nc_var[:] = shared_dict["height_initial_20_ku"]
+            else:
+                nc_var[:] = np.full_like(time_20_ku, np.nan, dtype=float)
+
+            # latitude at POCA using computed phase
+            nc_var = dset.createVariable("lat_initial", "double", ("time",))
+            nc_var.units = "degrees north"
+            nc_var.coordinates = "time"
+            nc_var.valid_min = -90
+            nc_var.valid_max = 90
+            nc_var.long_name = "latitude at POCA using computed phase"
+            nc_var.standard_name = "lat_initial"
+            nc_var.comment = (
+                "Latitude at POCA using computed phase. "
+                "Latitude of measurement in decimal degrees; a positive latitude indicates "
+                "Northern hemisphere a negative latitude indicates Southern hemisphere. "
+                )
+            nc_var[:] = shared_dict["lat_initial_20_ku"]
+            
+            # longitude at POCA using computed phase
+            nc_var = dset.createVariable("lon_initial", "double", ("time",))
+            nc_var.units = "degrees east"
+            nc_var.coordinates = "time"
+            nc_var.valid_min = -180
+            nc_var.valid_max = 180
+            nc_var.long_name = "longitude at POCA using computed phase"
+            nc_var.standard_name = "lon_initial"
+            nc_var.comment = (
+                "Longitude at POCA using computed phase. "
+                "Longitude of measurement in decimal degrees east (-180,180) relative to the "
+                "Greenwich meridian. "
+                )
+            nc_var[:] = shared_dict["lon_initial_20_ku"]
+
+            # elevation of reference dem at POCA using computed phase
+            nc_var = dset.createVariable("orig_dem", "double", ("time",))
+            nc_var.units = "m"
+            nc_var.coordinates = "longitude latitude"
+            nc_var.long_name = "elevation from external Digital Elevation Model at POCA using computed phase"
+            nc_var.standard_name = "orig_dem_elevation"
+            nc_var.comment = (
+                "Elevation values at each measurement location, extracted from an "
+                "auxiliary Digital Elevation Model (DEM), where POCA is determined "
+                "from the computed phase. "
+                "The REMA v2 mosaic (1km) is used for Antarctica and the ArcticDEM v4.1 (1km)"
+                "mosaic is used for Greenland."
+            )
+            nc_var[:] = shared_dict["orig_dem"]
+
+            # elevation difference to reference dem at POCA using computed phase
+            nc_var = dset.createVariable("delta_h", "double", ("time",))
+            nc_var.units = "m"
+            nc_var.coordinates = "longitude latitude"
+            nc_var.long_name = "elevation difference to external Digital Elevation Model at POCA using computed phase"
+            nc_var.standard_name = "delta_h"
+            nc_var.comment = (
+                "Elevation difference values at each measurement location to an "
+                "auxiliary Digital Elevation Model (DEM), where POCA is determined "
+                "from the computed phase. "
+                "The REMA v2 mosaic (1km) is used for Antarctica and the ArcticDEM v4.1 (1km)"
+                "mosaic is used for Greenland."
+            )
+            nc_var[:] = shared_dict["delta_h"]
+
+            # elevation using unwrapped phase
+            nc_var = dset.createVariable("height_unwrap_20_ku", "double", ("time",))
+            nc_var.units = "m"
+            nc_var.coordinates = "longitude latitude"
+            nc_var.long_name = "height at POCA using unwrapped phase"
+            nc_var.standard_name = "height_unwrap_20_ku"
+            nc_var.comment = "height at POCA using unwrapped phase"
+            if "height_unwrap_20_ku" in shared_dict:
+                nc_var[:] = shared_dict["height_unwrap_20_ku"]
+            else:
+                nc_var[:] = np.full_like(time_20_ku, np.nan, dtype=float)
+
+            # latitude at POCA using computed phase
+            nc_var = dset.createVariable("lat_unwrap", "double", ("time",))
+            nc_var.units = "degrees north"
+            nc_var.coordinates = "time"
+            nc_var.valid_min = -90
+            nc_var.valid_max = 90
+            nc_var.long_name = "latitude at POCA using unwrapped phase"
+            nc_var.standard_name = "lat_unwrap"
+            nc_var.comment = (
+                "Latitude at POCA using unwrapped phase. "
+                "Latitude of measurement in decimal degrees; a positive latitude indicates "
+                "Northern hemisphere a negative latitude indicates Southern hemisphere. "
+                )
+            nc_var[:] = shared_dict["lat_unwrap_20_ku"]
+            
+            # longitude at POCA using computed phase
+            nc_var = dset.createVariable("lon_unwrap", "double", ("time",))
+            nc_var.units = "degrees east"
+            nc_var.coordinates = "time"
+            nc_var.valid_min = -180
+            nc_var.valid_max = 180
+            nc_var.long_name = "longitude at POCA using unwrapped phase"
+            nc_var.standard_name = "lon_unwrap"
+            nc_var.comment = (
+                "Longitude at POCA using unwrapped phase. "
+                "Longitude of measurement in decimal degrees east (-180,180) relative to the "
+                "Greenwich meridian. "
+                )
+            nc_var[:] = shared_dict["lon_unwrap_20_ku"]
+
+            # elevation of reference dem at POCA using computed phase
+            nc_var = dset.createVariable("unwrap_dem", "double", ("time",))
+            nc_var.units = "m"
+            nc_var.coordinates = "longitude latitude"
+            nc_var.long_name = "elevation from external Digital Elevation Model at POCA using unwrapped phase"
+            nc_var.standard_name = "unwrap_dem_elevation"
+            nc_var.comment = (
+                "Elevation values at each measurement location, extracted from an "
+                "auxiliary Digital Elevation Model (DEM), where POCA is determined "
+                "from the unwrapped phase. "
+                "The REMA v2 mosaic (1km) is used for Antarctica and the ArcticDEM v4.1 (1km)"
+                "mosaic is used for Greenland."
+            )
+            nc_var[:] = shared_dict["unwrap_dem"]
+
+            # elevation difference to reference dem at POCA using computed phase
+            nc_var = dset.createVariable("delta_unwrap_h", "double", ("time",))
+            nc_var.units = "m"
+            nc_var.coordinates = "longitude latitude"
+            nc_var.long_name = "elevation difference to external Digital Elevation Model at POCA using unwrapped phase"
+            nc_var.standard_name = "delta_unwrap_h"
+            nc_var.comment = (
+                "Elevation difference values at each measurement location to an "
+                "auxiliary Digital Elevation Model (DEM), where POCA is determined "
+                "from the unwrapped phase. "
+                "The REMA v2 mosaic (1km) is used for Antarctica and the ArcticDEM v4.1 (1km)"
+                "mosaic is used for Greenland."
+            )
+            nc_var[:] = shared_dict["delta_unwrap_h"]
+
+            # Waveform number
+            nc_var = dset.createVariable("waveform_no", "double", ("time",))
+            nc_var.coordinates = "longitude latitude"
+            nc_var.long_name = "waveform_number"
+            nc_var.standard_name = "waveform_no"
+            nc_var.comment = "Waveform number. Index of elevation value in file. "
+            nc_var[:] = shared_dict["waveform_no"]
+
+            # POCA sample number
+            nc_var = dset.createVariable("ind_wfm_retrack_20_ku", "double", ("time",))
+            nc_var.coordinates = "longitude latitude"
+            nc_var.long_name = "closest bin number to retracking point(s)"
+            nc_var.standard_name = "ind_wfm_retrack_20_ku"
+            nc_var.comment = "closest bin number to retracking point(s)"
+            nc_var[:] = shared_dict["ind_wfm_retrack_20_ku"]
 
         # ----------------------------------------------------------------
         # Close netCDF dataset

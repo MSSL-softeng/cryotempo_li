@@ -136,7 +136,11 @@ class Algorithm(BaseAlgorithm):
             return (True, "algorithm skipped as not SIN file")
 
         self.log.info("Calling SIN geolocation")
-        height_20_ku, lat_poca_20_ku, lon_poca_20_ku = geolocate_sin(
+        # height_20_ku, lat_poca_20_ku, lon_poca_20_ku = geolocate_sin(
+        (height_20_ku, lat_poca_20_ku, lon_poca_20_ku, 
+        height_initial_20_ku, lat_initial_20_ku, lon_initial_20_ku, orig_dem, delta_h, 
+        height_unwrap_20_ku, lat_unwrap_20_ku, lon_unwrap_20_ku, unwrap_dem, delta_unwrap_h, 
+        phase_unwrapped, waveform_no) = geolocate_sin(
             l1b,
             self.config,
             self.dem_ant,
@@ -150,6 +154,19 @@ class Algorithm(BaseAlgorithm):
         np.seterr(under="ignore")  # otherwise next line can fail
         shared_dict["lon_poca_20_ku"] = lon_poca_20_ku % 360.0
         shared_dict["height_20_ku"] = height_20_ku
+
+        shared_dict["height_initial_20_ku"] = height_initial_20_ku
+        shared_dict["lat_initial_20_ku"] = lat_initial_20_ku
+        shared_dict["lon_initial_20_ku"] = lon_initial_20_ku
+        shared_dict["orig_dem"] = orig_dem
+        shared_dict["delta_h"] = delta_h
+        shared_dict["height_unwrap_20_ku"] = height_unwrap_20_ku
+        shared_dict["lat_unwrap_20_ku"] = lat_unwrap_20_ku
+        shared_dict["lon_unwrap_20_ku"] = lon_unwrap_20_ku
+        shared_dict["unwrap_dem"] = unwrap_dem
+        shared_dict["delta_unwrap_h"] = delta_unwrap_h
+        shared_dict["phase_unwrapped"] = phase_unwrapped
+        shared_dict["waveform_no"] = waveform_no
 
         # Calculate final product latitudes, longitudes from POCA, set to
         # nadir where no POCA available

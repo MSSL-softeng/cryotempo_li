@@ -248,7 +248,24 @@ def geolocate_sin(l1b, config, dem_ant, dem_grn, range_cor_20_ku, ind_wfm_retrac
         e: _description_
 
     Returns:
-        _type_: _description_
+        final_height_20_ku: POCA elevation from selected phase correction
+        final_lat_20_ku: POCA lat from selected phase correction
+        final_lon_20_ku: POCA lon from selected phase correction
+        height_20_ku (np.array): POCA elevation from computed phase
+        lat_initial_20_ku (np.array): POCA lat from computed phase
+        lon_initial_20_ku (np.array): POCA lon from computed phase
+        orig_dem (np.array): DEM elevation at POCA from computed phase
+        delta_h (np.array): Difference between DEM elevation and CS2 
+                            elevation at POCA from computed phase
+        height_unwrap_20_ku (np.array): POCA elevation from unwrapped phase
+        lat_unwrap_20_ku (np.array): POCA lat from unwrapped phase
+        lon_unwrap_20_ku (np.array): POCA lon from unwrapped phase
+        unwrap_dem (np.array): DEM elevation at POCA from unwrapped phase
+        delta_unwrap_h (np.array): Difference between DEM elevation and CS2 
+                                    elevation at POCA from unwrapped phase
+        phase_unwrapped (np.array): 0=computed phase elevation chosen; 1=unwrapped 
+                                    phase elevation chosen
+        waveform_no(np.array): Index of elevation value in file
     """
     # Do phase estimation
     # Use phase, vectors to get lat/lon/height
@@ -269,17 +286,22 @@ def geolocate_sin(l1b, config, dem_ant, dem_grn, range_cor_20_ku, ind_wfm_retrac
     height_20_ku = np.zeros(nrec)
     final_lat_20_ku = np.zeros(nrec)
     final_lon_20_ku = np.zeros(nrec)
+    final_height_20_ku = np.zeros(nrec)
 
     angle_20_ku = np.zeros(nrec)
 
     lat_initial_20_ku = np.zeros(nrec)
     lon_initial_20_ku = np.zeros(nrec)
+    delta_h = np.zeros(nrec)
     lat_unwrap_20_ku = np.zeros(nrec)
     lon_unwrap_20_ku = np.zeros(nrec)
     dem_unwrap_20_ku = np.zeros(nrec)
     angle_unwrap_20_ku = np.zeros(nrec)
     delta_unwrap_h = np.zeros(nrec)
     height_unwrap_20_ku = np.zeros(nrec)
+
+    phase_unwrapped = np.zeros(nrec)
+    waveform_no = np.zeros(nrec)
 
     config_fitter = config["sin_geolocation"]["phase_method"]
     if config_fitter == 1:
@@ -342,6 +364,7 @@ def geolocate_sin(l1b, config, dem_ant, dem_grn, range_cor_20_ku, ind_wfm_retrac
 
             # Calculate the POCA location and height
             log.debug("-- GEOLOCATING  --")
+            # calculate POCA using computed phase
             lat_poca, lon_poca, elev_poca = angle_to_poca(
                 angle,
                 lat_20_ku[i],
@@ -363,6 +386,7 @@ def geolocate_sin(l1b, config, dem_ant, dem_grn, range_cor_20_ku, ind_wfm_retrac
 
                 angle_unwrap_20_ku[i] = phase_to_angle(unwrap_phase)
                 log.debug("-- GEOLOCATING  unwrapped --")
+                # calculate POCA using unwrapped phase
                 lat_poca, lon_poca, elev_poca = angle_to_poca(
                     angle_unwrap_20_ku[i],
                     lat_20_ku[i],
@@ -430,13 +454,27 @@ def geolocate_sin(l1b, config, dem_ant, dem_grn, range_cor_20_ku, ind_wfm_retrac
         lon_initial_20_ku[:] = final_lon_20_ku[:]
 
         # Use the alternate solution if better
+        final_height_20_ku[:] = height_20_ku[:]
         if len(idx) > 0:
-            height_20_ku[idx] = height_unwrap_20_ku[idx]
+            final_height_20_ku[idx] = height_unwrap_20_ku[idx]
             final_lat_20_ku[idx] = lat_unwrap_20_ku[idx]
             final_lon_20_ku[idx] = lon_unwrap_20_ku[idx]
+            # Create variable specifying whether phase unwrapping is implemented
+            phase_unwrapped[idx] = 1
             log.info("Phase unwrapping replaced %d measurements", len(idx))
+
+        # save differences to DEM as variable
+        delta_h[:] = height_20_ku - orig_dem
+        delta_unwrap_h[:] = height_unwrap_20_ku - unwrap_dem
+
+        # save waveform number
+        waveform_no[:] = np.asarray(range(nrec))
 
     log.debug("bad counts 1=%d 2=%d 3=%d", bad_1, bad_2, bad_3)
     log.info("Processed %d records", i + 1)
 
-    return height_20_ku, final_lat_20_ku, final_lon_20_ku
+    # return height_20_ku, final_lat_20_ku, final_lon_20_ku
+    return (final_height_20_ku, final_lat_20_ku, final_lon_20_ku,
+    height_20_ku, lat_initial_20_ku, lon_initial_20_ku, orig_dem, delta_h, 
+    height_unwrap_20_ku, lat_unwrap_20_ku, lon_unwrap_20_ku, unwrap_dem, delta_unwrap_h, 
+    phase_unwrapped, waveform_no)
