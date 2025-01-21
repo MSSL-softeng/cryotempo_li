@@ -7,7 +7,7 @@ if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
     exit 1
 fi
 # Combined setup and run script for CryoTEMPO LI
-set -e
+# set -e
 
 # Activate Poetry virtual environment
 VENV_PATH=$(poetry env info --path)

@@ -10,6 +10,7 @@ from netCDF4 import Dataset  # pylint:disable=E0611
 from clev2er.algorithms.base.base_alg import BaseAlgorithm
 from clev2er.utils.cs2.geolocate.geolocate_sin import geolocate_sin
 from clev2er.utils.dems.dems import Dem
+from clev2er.utils.dhdt_data.dhdt import Dhdt
 
 # -------------------------------------------------
 
@@ -92,6 +93,23 @@ class Algorithm(BaseAlgorithm):
             store_in_shared_memory=init_shared_mem,
             thislog=self.log,
         )
+
+        # Define the attributes outside the if-else block
+        self.dhdt_grn = None
+        self.dhdt_ant = None
+
+        # Load dh/dt data set if required
+        if self.config["sin_geolocation"]["include_dhdt_correction"]:
+            self.log.info("dhdt correction to DEMs enabled")
+            self.dhdt_grn = Dhdt(
+                self.config["sin_geolocation"]["dhdt_grn_name"],
+                config=self.config,
+            )
+            self.dhdt_ant = Dhdt(
+                self.config["sin_geolocation"]["dhdt_ant_name"],
+                config=self.config,
+            )
+
         # Important Note :
         #     each Dem classes instance must run Dem.clean_up() in Algorithm.finalize()
 
@@ -135,6 +153,11 @@ class Algorithm(BaseAlgorithm):
             self.log.info("algorithm skipped as not SIN file")
             return (True, "algorithm skipped as not SIN file")
 
+        if shared_dict["hemisphere"] == "south":
+            this_dhdt = self.dhdt_ant
+        else:
+            this_dhdt = self.dhdt_grn
+
         self.log.info("Calling SIN geolocation")
         # height_20_ku, lat_poca_20_ku, lon_poca_20_ku = geolocate_sin(
         (height_20_ku, lat_poca_20_ku, lon_poca_20_ku, 
@@ -145,8 +168,10 @@ class Algorithm(BaseAlgorithm):
             self.config,
             self.dem_ant,
             self.dem_grn,
+            this_dhdt,
             shared_dict["range_cor_20_ku"],
             shared_dict["ind_wfm_retrack_20_ku"],
+            self.config["sin_geolocation"]["include_dhdt_correction"] 
         )
         self.log.info("SIN geolocation completed")
 

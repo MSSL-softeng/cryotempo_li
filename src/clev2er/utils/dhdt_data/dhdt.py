@@ -246,7 +246,7 @@ class Dhdt:
     # Where your input points are outside the DEM area, then np.nan values will be returned
     # ----------------------------------------------------------------------------------------------
 
-    def interp_dhdt(self, x, y, method="nearest", xy_is_latlon=False) -> np.ndarray:
+    def interp_dhdt(self, x, y, method="nearest", xy_is_latlon=False, fill_value=np.nan, bounds_error=False) -> np.ndarray:
         """Interpolate DEM to return elevation values corresponding to
            cartesian x,y in DEM's projection or lat,lon values
 
@@ -272,8 +272,8 @@ class Dhdt:
             myzdem,
             (y, x),
             method=method,
-            bounds_error=False,
-            fill_value=np.nan,
+            bounds_error=bounds_error,
+            fill_value=fill_value,
         )
 
     def get_filename(self, default_dir: str, filename: str) -> str:
