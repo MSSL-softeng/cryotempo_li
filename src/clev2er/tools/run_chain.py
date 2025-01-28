@@ -734,6 +734,12 @@ def main() -> None:
     )
 
     parser.add_argument(
+        "--files",
+        "-fs",
+        help=("[Optional] path of a text file with multiple input L1b file"),
+    )
+
+    parser.add_argument(
         "--dir",
         "-d",
         help=("[Optional] path of a directory containing input L1b files"),
@@ -998,7 +1004,7 @@ def main() -> None:
     # Check we have enough input command line args
     # -------------------------------------------------------------------------
 
-    if not args.cs2testdir and not args.file and not args.dir and not args.year and not args.month:
+    if not args.cs2testdir and not args.file and not args.files and not args.dir and not args.year and not args.month:
         sys.exit(
             f"usage error: No inputs specified for the {args.name} chain. Must have either "
             "\n--cs2testdir (-ct),"
@@ -1132,6 +1138,11 @@ def main() -> None:
         l1b_file_list = glob.glob(f"{os.environ['CLEV2ER_BASE_DIR']}/testdata/cs2/l1bfiles/*")
     elif args.file:
         l1b_file_list = [args.file]
+    elif args.files:
+        file = open(args.files, 'r')
+        data = file.read()
+        l1b_file_list = data.split("\n")
+        file.close()
     elif args.dir:
         l1b_file_list = glob.glob(args.dir + "/*.nc")
     else:
