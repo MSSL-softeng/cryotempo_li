@@ -93,6 +93,7 @@ def retrack_tcog_waveforms_cs2(
     l1b_file: str = "",
     waveforms: np.ndarray | None = None,
     retrack_threshold_lrm: float = 0.2,
+    retrack_threshold_sar: float = 0.5,
     retrack_threshold_sin: float = 0.5,
     retrack_smooth_wf: bool = False,
     debug_flag: bool = False,
@@ -103,12 +104,14 @@ def retrack_tcog_waveforms_cs2(
     savitsky_golay_width: int = 9,
     savitsky_golay_poly_order: int = 3,
     ref_bin_ind_lrm: int = 64,
+    ref_bin_ind_sar: int = 128,
     ref_bin_ind_sin: int = 512,
     noise_sample_limit: int = 6,
     wf_oversampling_factor: int = 100,
     noise_threshold: float = 0.3,
     le_id_threshold: float = 0.05,
     le_dp_threshold: float = 0.20,
+    instr_mode: str = None,
 ) -> Tuple[
     np.ndarray,
     np.ndarray,
@@ -133,6 +136,7 @@ def retrack_tcog_waveforms_cs2(
                                         This is the array returned by
                                         nc.variables['pwr_waveform_20_ku'][:].data
         retrack_threshold_lrm(float, def=0.2): lrm retracker threshold
+        retrack_threshold_sar(float, def=0.2): lrm retracker threshold
         retrack_threshold_sin(float, def=0.5): sin retracker threshold
         retrack_smooth_wf(bool, def=False): specify whether to retrack raw or smoothed waveform
                                             False - raw waveform  |  True - smoothed waveform
@@ -148,6 +152,7 @@ def retrack_tcog_waveforms_cs2(
         savitsky_golay_width(int, def=9): Savitsky Golay smoothing width
         savitsky_golay_poly_order(int, def=3): Savitsky Golay polynomial order
         ref_bin_ind_lrm(int, def=64): from CS2 Baseline-D User Manual, p36;
+        ref_bin_ind_sar(int, def=512): from CS2 Baseline-D 1.1 User Manual, p35
         ref_bin_ind_sin(int, def=512): from CS2 Baseline-D User Manual, p36
         noise_sample_limit(int, def=6): maximum bin used to compute noise statistics
         wf_oversampling_factor(int,def=100): waveform oversampling factor
@@ -157,6 +162,7 @@ def retrack_tcog_waveforms_cs2(
                                           identified as a leading edge
         le_dp_threshold(float, def=0.20): define threshold on normalised amplitude change which
                                           is required to be accepted as lead edge
+        instr_mode (string): instrument mode
 
     Returns:
         Tuple (dr_bin_tcog, dr_meters_tcog, leading_edge_start, leading_edge_stop,
@@ -185,6 +191,8 @@ def retrack_tcog_waveforms_cs2(
 
     if retrack_threshold_lrm < 0.0 or retrack_threshold_lrm > 1.0:
         raise ValueError(f"retrack_threshold_lrm {retrack_threshold_lrm} not between 0. and 1.")
+    if retrack_threshold_sar < 0.0 or retrack_threshold_sar > 1.0:
+        raise ValueError(f"retrack_threshold_sar {retrack_threshold_sar} not between 0. and 1.")
     if retrack_threshold_sin < 0.0 or retrack_threshold_sin > 1.0:
         raise ValueError(f"retrack_threshold_sin {retrack_threshold_sin} not between 0. and 1.")
     if noise_threshold < 0.0 or noise_threshold > 1.0:
@@ -202,16 +210,19 @@ def retrack_tcog_waveforms_cs2(
 
     mode_str = "unknown"
     lrm_mode = False
+    sar_mode = False
 
     if l1b_file:
         if "SIR_SIN_1B" in l1b_file:
-            lrm_mode = False
             mode_str = "SIN"
+        elif "SIR_SAR_1B" in l1b_file:
+            sar_mode = True
+            mode_str = "SAR"
         elif "SIR_LRM_1B" in l1b_file:
             lrm_mode = True
             mode_str = "LRM"
         else:
-            raise ValueError(f"L1b file name {l1b_file} must include SIR_SIN_1B or SIR_LRM_1B")
+            raise ValueError(f"L1b file name {l1b_file} must include SIR_SIN_1B or SIR_SAR_1B or SIR_LRM_1B")
 
         # Load netcdf L1 data file
         nc = Dataset(l1b_file)
@@ -221,16 +232,24 @@ def retrack_tcog_waveforms_cs2(
         n_waveforms, waveform_size = np.shape(wfs)
 
     elif waveforms is not None:
-        if waveforms.ndim == 2 and waveforms.shape[1] in [128, 1024]:
-            n_waveforms, waveform_size = np.shape(waveforms)
-            if waveform_size == 128:
-                lrm_mode = True
-                mode_str = "LRM"
-            else:
-                lrm_mode = False
-                mode_str = "SIN"
-        else:
-            raise ValueError("waveforms size must be (,128) for LRM or (,1024) for SIN")
+        # if waveforms.ndim == 2 and waveforms.shape[1] in [128, 1024]:
+        #     n_waveforms, waveform_size = np.shape(waveforms)
+        #     if waveform_size == 128:
+        #         lrm_mode = True
+        #         mode_str = "LRM"
+        #     else:
+        #         lrm_mode = False
+        #         mode_str = "SIN"
+        # else:
+        #     raise ValueError("waveforms size must be (,128) for LRM or (,1024) for SIN")
+        if instr_mode == 'LRM':
+            lrm_mode = True
+            mode_str = "LRM"
+        elif instr_mode == 'SAR':
+            sar_mode = True
+            mode_str = "SAR"
+        else: 
+            mode_str = "SIN"
 
         wfs = waveforms
 
@@ -250,6 +269,9 @@ def retrack_tcog_waveforms_cs2(
     rbin_size_lrm = speed_of_light / (
         2 * bandwidth
     )  # meters; from CS2 Baseline-D User Manual, p36.
+    rbin_size_sar = speed_of_light / (
+        4 * bandwidth
+    )  # meters; from CS2 Baseline-D User Manual, p37.
     rbin_size_sin = speed_of_light / (
         4 * bandwidth
     )  # meters; from CS2 Baseline-D User Manual, p37.
@@ -261,6 +283,8 @@ def retrack_tcog_waveforms_cs2(
     #   define width of fast smoothing window applied to waveform
     if lrm_mode:
         sm_width = 3
+    elif sar_mode:
+        sm_width = 11
     else:  # SIN
         sm_width = 11
 
@@ -513,6 +537,9 @@ def retrack_tcog_waveforms_cs2(
                 if lrm_mode:
                     # compute retracking threshold as proportion of tcog amplitude
                     retrack_wf_threshold_tcog = retrack_threshold_lrm * tcog_amp
+                elif sar_mode: 
+                    # compute retracking threshold as proportion of tcog amplitude
+                    retrack_wf_threshold_tcog = retrack_threshold_sar * tcog_amp
                 else:  # SIN mode
                     # compute retracking threshold as proportion of tcog amplitude
                     retrack_wf_threshold_tcog = retrack_threshold_sin * tcog_amp
@@ -728,6 +755,13 @@ def retrack_tcog_waveforms_cs2(
 
         # convert offsets to meters
         dr_meters_tcog = dr_bin_tcog * rbin_size_lrm
+    
+    elif sar_mode:  # SAR mode
+        # compute range offsets from reference to retracked bins
+        dr_bin_tcog = np.array(retrack_point_tcog)[:, 0] - ref_bin_ind_sar
+
+        # convert offsets to meters
+        dr_meters_tcog = dr_bin_tcog * rbin_size_sar
 
     else:  # SIN mode
         # compute range offsets from reference to retracked bins
