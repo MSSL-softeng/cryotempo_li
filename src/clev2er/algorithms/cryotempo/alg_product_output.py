@@ -453,19 +453,19 @@ class Algorithm(BaseAlgorithm):
         nc_var[:] = shared_dict["height_filt"]  # use final filtered height
 
         # Backscatter (from sig0_20_ku)
-        nc_var = dset.createVariable("backscatter", "double", ("time",))
-        nc_var.units = "dB"
-        nc_var.coordinates = "longitude latitude"
-        nc_var.long_name = "backscatter coefficient"
-        nc_var.standard_name = "surface_backscattering_coefficient_of_radar_wave"
-        nc_var.comment = (
-            "The measured backscatter from the surface, corrected for instrument effects, and "
-            "including a system bias that calibrates the results against previous missions. "
-            "The backscatter is computed from the amplitude of the waveform in Watts, "
-            "as measured by the retracker. The measured power is used to solve the radar "
-            "equation to recover the value for backscatter."
-        )
-        nc_var[:] = shared_dict["sig0_20_ku"]
+        # nc_var = dset.createVariable("backscatter", "double", ("time",))
+        # nc_var.units = "dB"
+        # nc_var.coordinates = "longitude latitude"
+        # nc_var.long_name = "backscatter coefficient"
+        # nc_var.standard_name = "surface_backscattering_coefficient_of_radar_wave"
+        # nc_var.comment = (
+        #     "The measured backscatter from the surface, corrected for instrument effects, and "
+        #     "including a system bias that calibrates the results against previous missions. "
+        #     "The backscatter is computed from the amplitude of the waveform in Watts, "
+        #     "as measured by the retracker. The measured power is used to solve the radar "
+        #     "equation to recover the value for backscatter."
+        # )
+        # nc_var[:] = shared_dict["sig0_20_ku"]
 
         # surface_type
         nc_var = dset.createVariable("surface_type", np.byte, ("time",), fill_value=-128)

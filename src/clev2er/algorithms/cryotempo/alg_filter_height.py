@@ -117,7 +117,7 @@ class Algorithm(BaseAlgorithm):
 
         if (
             "max_diff_to_ref_dem_lrm" in self.config["height_filters"]
-            and shared_dict["instr_mode"] == "LRM"
+            and shared_dict["instr_mode"] != "SIN"
         ):
             max_diff = self.config["height_filters"]["max_diff_to_ref_dem_lrm"]
         elif (

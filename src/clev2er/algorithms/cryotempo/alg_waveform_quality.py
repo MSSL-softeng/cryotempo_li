@@ -139,6 +139,11 @@ class Algorithm(BaseAlgorithm):
                     "high_position_max_power"
                 ],
             )
+
+        elif shared_dict["instr_mode"] == "SAR":
+            n_waveforms, waveform_size = np.shape(pwr_waveform_20_ku)
+            waveforms_ok = np.ones(n_waveforms, dtype=bool)
+
         else:
             waveforms_ok = lrm_waveform_qc_checks(
                 pwr_waveform_20_ku,
