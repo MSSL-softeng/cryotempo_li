@@ -212,6 +212,7 @@ def geolocate_roemer(
     geo_corrected_tracker_range: np.ndarray,
     retracker_correction: np.ndarray,
     waveforms_to_include: np.ndarray,
+    instrument_mode: str
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     """Geolocate CS2 LRM measurements using an adapted Roemer (Roemer et al, 2007) method
 
@@ -224,6 +225,7 @@ def geolocate_roemer(
         geo_corrected_tracker_range (np.ndarray) : geo-corrected tracker range (NOT retracked)
         retracker_correction (np.ndarray) : retracker correction to range (m)
         waveforms_to_include (np.ndarray) : boolean array of waveforms to include (False == reject)
+        instrument_mode (str): instrument mode (LRM, SAR or SIN)
     Returns:
         (np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray):
         (height_20_ku, lat_poca_20_ku, lon_poca_20_ku, slope_ok, relocation_distance)
@@ -239,8 +241,12 @@ def geolocate_roemer(
     # during loops further down the function)
     # ------------------------------------------------------------------------------------
 
-    across_track_beam_width = config["instrument"]["across_track_beam_width_lrm"]  # meters
-    pulse_limited_footprint_size_lrm = config["instrument"]["pulse_limited_footprint_size_lrm"]  # m
+    if instrument_mode == "LRM":
+        across_track_beam_width = config["instrument"]["across_track_beam_width_lrm"]  # meters
+        pulse_limited_footprint_size_lrm = config["instrument"]["pulse_limited_footprint_size_lrm"]  # m
+    elif instrument_mode == "SAR":
+        across_track_beam_width = config["instrument"]["across_track_beam_width_sar"]  # meters
+        pulse_limited_footprint_size_lrm = config["instrument"]["pulse_limited_footprint_size_sar"]  # m
     reference_bin_index = config["instrument"]["ref_bin_index_lrm"]
     range_bin_size = config["instrument"]["range_bin_size_lrm"]  # meters
     num_bins = config["instrument"]["num_range_bins_lrm"]

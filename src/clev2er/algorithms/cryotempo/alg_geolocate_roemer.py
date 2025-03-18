@@ -8,6 +8,7 @@ from netCDF4 import Dataset  # pylint:disable=E0611
 
 from clev2er.algorithms.base.base_alg import BaseAlgorithm
 from clev2er.utils.cs2.geolocate.geolocate_roemer import geolocate_roemer
+from clev2er.utils.cs2.geolocate.geolocate_roemer_sar import geolocate_roemer_sar
 from clev2er.utils.dems.dems import Dem
 from clev2er.utils.dhdt_data.dhdt import Dhdt
 
@@ -176,9 +177,9 @@ class Algorithm(BaseAlgorithm):
         # \/    down the chain in the 'shared_dict' dict     \/
         # -------------------------------------------------------------------
 
-        if shared_dict["instr_mode"] != "LRM":
-            self.log.info("algorithm skipped as not LRM file")
-            return (True, "algorithm skipped as not LRM file")
+        if shared_dict["instr_mode"] == "SIN":
+            self.log.info("algorithm skipped as not LRM or SAR file")
+            return (True, "algorithm skipped as not LRM or SAR file")
 
         if shared_dict["hemisphere"] == "south":
             thisdem = self.dem_ant
@@ -191,29 +192,56 @@ class Algorithm(BaseAlgorithm):
 
         # Run the slope correction to calculate POCA lat,lon and height
         # If geolocation fails, lat,lon are set to nadir and height to np.nan
-        (
-            height_20_ku,
-            lat_poca_20_ku,
-            lon_poca_20_ku,
-            slope_ok,
-            relocation_distance,
-        ) = geolocate_roemer(
-            l1b,
-            thisdem,
-            thisdem_fine,
-            thisdhdt,
-            self.config,
-            shared_dict["cryotempo_surface_type"],
-            shared_dict["geo_corrected_tracker_range"],
-            shared_dict["retracker_correction"],
-            shared_dict["waveforms_to_include"],
-        )
+        if shared_dict['instr_mode'] == 'LRM':
+            (
+                height_20_ku,
+                lat_poca_20_ku,
+                lon_poca_20_ku,
+                slope_ok,
+                relocation_distance,
+            ) = geolocate_roemer(
+                l1b,
+                thisdem,
+                thisdem_fine,
+                thisdhdt,
+                self.config,
+                shared_dict["cryotempo_surface_type"],
+                shared_dict["geo_corrected_tracker_range"],
+                shared_dict["retracker_correction"],
+                shared_dict["waveforms_to_include"],
+                shared_dict["instr_mode"]
+            )
 
-        self.log.info("LRM roemer geolocation completed")
-        self.log.info(
-            "Roemer slope correction succeded in %.2f %% of measurements",
-            np.mean(slope_ok) * 100,
-        )
+            self.log.info("LRM roemer geolocation completed")
+            self.log.info(
+                "Roemer slope correction succeded in %.2f %% of measurements",
+                np.mean(slope_ok) * 100,
+            )
+        
+        elif shared_dict['instr_mode'] == 'SAR':
+            (
+                height_20_ku,
+                lat_poca_20_ku,
+                lon_poca_20_ku,
+                slope_ok,
+                relocation_distance,
+            ) = geolocate_roemer_sar(
+                l1b["lat_20_ku"][:].data,
+                l1b["lon_20_ku"][:].data % 360.0,
+                l1b["alt_20_ku"][:].data,
+                thisdem,
+                thisdem_fine,
+                self.config,
+                shared_dict["geo_corrected_tracker_range"],
+                shared_dict["retracker_correction"],
+                shared_dict["waveforms_to_include"],
+            )
+
+            self.log.info("SAR roemer geolocation completed")
+            self.log.info(
+                "Roemer slope correction succeded in %.2f %% of measurements",
+                np.mean(slope_ok) * 100,
+            )
 
         shared_dict["lat_poca_20_ku"] = lat_poca_20_ku
         np.seterr(under="ignore")  # otherwise next line can fail
