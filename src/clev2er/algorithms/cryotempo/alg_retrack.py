@@ -6,12 +6,14 @@ from typing import Tuple
 import numpy as np
 from codetiming import Timer  # used to time the Algorithm.process() function
 from netCDF4 import Dataset  # pylint:disable=E0611
+import matplotlib.pyplot as plt
 
 from clev2er.algorithms.base.base_alg import BaseAlgorithm
 from clev2er.utils.cs2.retrackers.cs2_sin_max_coherence_retracker import (
     retrack_cs2_sin_max_coherence,
 )
 from clev2er.utils.cs2.retrackers.cs2_tcog_retracker import retrack_tcog_waveforms_cs2
+from clev2er.utils.cs2.retrackers.cs2_sar_samosa_plus_retracker import launch_sampy_cs2_sar
 
 # too-many-locals, pylint: disable=R0914
 
@@ -115,106 +117,129 @@ class Algorithm(BaseAlgorithm):
         waveforms_to_include = shared_dict["waveforms_to_include"]
         n_waveforms_to_include = np.count_nonzero(waveforms_to_include)
 
-        if shared_dict["instr_mode"] == "SIN":
-            self.log.debug("noise_threshold=%f", self.config["mc_retracker"]["noise_threshold"])
+        if self.config["use_samosa_plus"] == True:
 
-            coherence_waveform_20_ku = l1b.variables["coherence_waveform_20_ku"][:].data
-            ref_bin_index = self.config["mc_retracker"]["ref_bin_ind_sin"]
+            self.log.info("Retracking waveform using SAMOSA+ Retracker..")
 
-            self.log.info("Retracking SIN waveform using MC Retracker..")
-            (
-                dr_bin,
-                dr_meters,
-                leading_edge_start,
-                leading_edge_stop,
-                pwr_at_rtrk_point,
-                n_retrack_failed,
-                _,  # retracker_flags
-            ) = retrack_cs2_sin_max_coherence(
-                plot_flag=self.config["mc_retracker"]["show_plots"],
-                waveforms=pwr_waveform_20_ku,  # input waveforms
-                coherence=coherence_waveform_20_ku,  # coherence waveform (SIN only)
-                ref_bin_ind_sin=self.config["mc_retracker"]["ref_bin_ind_sin"],
-                wf_oversampling_factor=self.config["mc_retracker"][
-                    "wf_oversampling_factor"
-                ],  # Waveform oversampling factor
-                noise_sample_limit=self.config["mc_retracker"][
-                    "noise_sample_limit"
-                ],  # maximum bin used to compute noise statistics
-                noise_threshold=self.config["mc_retracker"][
-                    "noise_threshold"
-                ],  # if mean amplitude in noise bins exceeds threshold then reject waveform
-                savitsky_golay_width=self.config["mc_retracker"][
-                    "savitsky_golay_width"
-                ],  # Width of Savitsky-Golay waveform smoothing window
-                savitsky_golay_poly_order=self.config["mc_retracker"][
-                    "savitsky_golay_poly_order"
-                ],  # Savitsky-Golay polynomial order
-                le_id_threshold=self.config["mc_retracker"][
-                    "le_id_threshold"
-                ],  # power must exceed thermal noise by this amount to be identified as
-                # leading edge
-                le_dp_threshold=self.config["mc_retracker"][
-                    "le_dp_threshold"
-                ],  # define threshold on normalised amplitude change which is required to
-                # be accepted as lead edge
-                coherence_smoothing_width=self.config["mc_retracker"][
-                    "coherence_smoothing_width"
-                ],  # define coherence boxcar average smoothing width
-                include_measurements_array=waveforms_to_include,
-            )  # if not None, pass a boolean array to indicate which waveforms to retrack
+            SSHunc, Pu, epoch_sec, retracker_bin_index, model, wf_norm, SWH = launch_sampy_cs2_sar(l1b, waveforms_to_include, shared_dict["instr_mode"])
 
-            # calculate the closest  bin number to the retracking point : units count
+            pwr_at_rtrk_point = Pu
+            dr_meters = epoch_sec * 0.5 * self.config["geophysical"]["speed_light"]
 
-            ind_wfm_retrack_20_ku = 512.0 + np.array(dr_bin)
+            # np.save('/media/luna/boxallk/clev2er/physical_retracker/samosaplus_model.npy', model)
+            # np.save('/media/luna/boxallk/clev2er/physical_retracker/samosaplus_retrackerbinindex.npy', retracker_bin_index)
+            # np.save('/media/luna/boxallk/clev2er/physical_retracker/samosaplus_waveform.npy', wf_norm)
+            # np.save('/media/luna/boxallk/clev2er/physical_retracker/samosaplus_SWH.npy', SWH)
 
+            n_retrack_failed = 0
+            leading_edge_start = None
+            leading_edge_stop = None
+        
         else:
-            self.log.info("Retracking LRM waveform using TCOG Retracker..")
 
-            ref_bin_index = self.config["tcog_retracker"]["ref_bin_ind_lrm"]
+            if shared_dict["instr_mode"] == "SIN":
+                self.log.debug("noise_threshold=%f", self.config["mc_retracker"]["noise_threshold"])
 
-            (
-                dr_bin,
-                dr_meters,
-                leading_edge_start,
-                leading_edge_stop,
-                pwr_at_rtrk_point,
-                n_retrack_failed,
-                _,  # retracker_flags
-            ) = retrack_tcog_waveforms_cs2(
-                plot_flag=self.config["tcog_retracker"]["show_plots"],
-                waveforms=pwr_waveform_20_ku,  # input waveforms
-                retrack_threshold_lrm=self.config["tcog_retracker"]["retrack_threshold_lrm"],
-                ref_bin_ind_lrm=self.config["tcog_retracker"][
-                    "ref_bin_ind_lrm"
-                ],  # from CS2 Baseline-D User Manual, p36;
-                noise_sample_limit=self.config["tcog_retracker"][
-                    "noise_sample_limit"
-                ],  # maximum bin used to compute noise statistics
-                savitsky_golay_width=self.config["tcog_retracker"][
-                    "savitsky_golay_width"
-                ],  # Width of Savitsky-Golay waveform smoothing window
-                savitsky_golay_poly_order=self.config["tcog_retracker"][
-                    "savitsky_golay_poly_order"
-                ],  # Savitsky-Golay polynomial order
-                wf_oversampling_factor=self.config["tcog_retracker"][
-                    "wf_oversampling_factor"
-                ],  # Waveform oversampling factor
-                noise_threshold=self.config["tcog_retracker"][
-                    "noise_threshold"
-                ],  # if mean amplitude in noise bins exceeds threshold then reject waveform
-                le_id_threshold=self.config["tcog_retracker"][
-                    "le_id_threshold"
-                ],  # power must exceed thermal noise by this amount to be identified as
-                # leading edge
-                le_dp_threshold=self.config["tcog_retracker"][
-                    "le_dp_threshold"
-                ],  # define threshold on normalised amplitude change which is required to
-                # be accepted as lead edge
-                include_measurements_array=waveforms_to_include,
-            )  # if not None, pass a boolean array to indicate which waveforms to retrack
+                coherence_waveform_20_ku = l1b.variables["coherence_waveform_20_ku"][:].data
+                ref_bin_index = self.config["mc_retracker"]["ref_bin_ind_sin"]
 
-            # calculate the closest  bin number to the retracking point : units count
+                self.log.info("Retracking SIN waveform using MC Retracker..")
+                (
+                    dr_bin,
+                    dr_meters,
+                    leading_edge_start,
+                    leading_edge_stop,
+                    pwr_at_rtrk_point,
+                    n_retrack_failed,
+                    _,  # retracker_flags
+                ) = retrack_cs2_sin_max_coherence(
+                    plot_flag=self.config["mc_retracker"]["show_plots"],
+                    waveforms=pwr_waveform_20_ku,  # input waveforms
+                    coherence=coherence_waveform_20_ku,  # coherence waveform (SIN only)
+                    ref_bin_ind_sin=self.config["mc_retracker"]["ref_bin_ind_sin"],
+                    wf_oversampling_factor=self.config["mc_retracker"][
+                        "wf_oversampling_factor"
+                    ],  # Waveform oversampling factor
+                    noise_sample_limit=self.config["mc_retracker"][
+                        "noise_sample_limit"
+                    ],  # maximum bin used to compute noise statistics
+                    noise_threshold=self.config["mc_retracker"][
+                        "noise_threshold"
+                    ],  # if mean amplitude in noise bins exceeds threshold then reject waveform
+                    savitsky_golay_width=self.config["mc_retracker"][
+                        "savitsky_golay_width"
+                    ],  # Width of Savitsky-Golay waveform smoothing window
+                    savitsky_golay_poly_order=self.config["mc_retracker"][
+                        "savitsky_golay_poly_order"
+                    ],  # Savitsky-Golay polynomial order
+                    le_id_threshold=self.config["mc_retracker"][
+                        "le_id_threshold"
+                    ],  # power must exceed thermal noise by this amount to be identified as
+                    # leading edge
+                    le_dp_threshold=self.config["mc_retracker"][
+                        "le_dp_threshold"
+                    ],  # define threshold on normalised amplitude change which is required to
+                    # be accepted as lead edge
+                    coherence_smoothing_width=self.config["mc_retracker"][
+                        "coherence_smoothing_width"
+                    ],  # define coherence boxcar average smoothing width
+                    include_measurements_array=waveforms_to_include,
+                )  # if not None, pass a boolean array to indicate which waveforms to retrack
+
+                # calculate the closest  bin number to the retracking point : units count
+
+                ind_wfm_retrack_20_ku = 512.0 + np.array(dr_bin)
+
+            else:
+                self.log.info("Retracking LRM waveform using TCOG Retracker..")
+
+                ref_bin_index = self.config["tcog_retracker"]["ref_bin_ind_lrm"]
+
+                (
+                    dr_bin,
+                    dr_meters,
+                    leading_edge_start,
+                    leading_edge_stop,
+                    pwr_at_rtrk_point,
+                    n_retrack_failed,
+                    _,  # retracker_flags
+                ) = retrack_tcog_waveforms_cs2(
+                    plot_flag=self.config["tcog_retracker"]["show_plots"],
+                    waveforms=pwr_waveform_20_ku,  # input waveforms
+                    retrack_threshold_lrm=self.config["tcog_retracker"]["retrack_threshold_lrm"],
+                    ref_bin_ind_lrm=self.config["tcog_retracker"][
+                        "ref_bin_ind_lrm"
+                    ],  # from CS2 Baseline-D User Manual, p36;
+                    retrack_threshold_sar=self.config["tcog_retracker"]["retrack_threshold_sar"],
+                    ref_bin_ind_sar=self.config["tcog_retracker"]["ref_bin_ind_sar"], 
+                    noise_sample_limit=self.config["tcog_retracker"][
+                        "noise_sample_limit"
+                    ],  # maximum bin used to compute noise statistics
+                    savitsky_golay_width=self.config["tcog_retracker"][
+                        "savitsky_golay_width"
+                    ],  # Width of Savitsky-Golay waveform smoothing window
+                    savitsky_golay_poly_order=self.config["tcog_retracker"][
+                        "savitsky_golay_poly_order"
+                    ],  # Savitsky-Golay polynomial order
+                    wf_oversampling_factor=self.config["tcog_retracker"][
+                        "wf_oversampling_factor"
+                    ],  # Waveform oversampling factor
+                    noise_threshold=self.config["tcog_retracker"][
+                        "noise_threshold"
+                    ],  # if mean amplitude in noise bins exceeds threshold then reject waveform
+                    le_id_threshold=self.config["tcog_retracker"][
+                        "le_id_threshold"
+                    ],  # power must exceed thermal noise by this amount to be identified as
+                    # leading edge
+                    le_dp_threshold=self.config["tcog_retracker"][
+                        "le_dp_threshold"
+                    ],  # define threshold on normalised amplitude change which is required to
+                    # be accepted as lead edge
+                    include_measurements_array=waveforms_to_include,
+                    instr_mode=shared_dict["instr_mode"],
+                )  # if not None, pass a boolean array to indicate which waveforms to retrack
+
+                # calculate the closest  bin number to the retracking point : units count
 
         self.log.info(
             "Number of retracker failures inside mask= %d of %d, %.2f %%",
@@ -226,7 +251,12 @@ class Algorithm(BaseAlgorithm):
         # -------------------------------------------------------------------------------------
         # Calculate the closest  bin number to the retracking point : units count
         # --------------------------------------------------------------------------------------
-        ind_wfm_retrack_20_ku = ref_bin_index + dr_bin
+        
+        if self.config["use_samosa_plus"] == True:
+            ind_wfm_retrack_20_ku = retracker_bin_index
+        
+        else:
+            ind_wfm_retrack_20_ku = ref_bin_index + dr_bin
 
         # set Nan values to Fillvalue of -32768
         ind_wfm_retrack_20_ku[np.isnan(ind_wfm_retrack_20_ku)] = -32768
@@ -253,6 +283,10 @@ class Algorithm(BaseAlgorithm):
 
         # Store fully corrected range
         shared_dict["retracker_correction"] = dr_meters
+
+        # Save uncorrected elevation
+        uncorr_elev = l1b.variables["alt_20_ku"][:].data - 0.5*self.config["geophysical"]["speed_light"]*l1b.variables["window_del_20_ku"][:].data - dr_meters
+        # np.save('/media/luna/boxallk/clev2er/physical_retracker/uncor_elev.npy', uncorr_elev)
 
         # Store fully corrected range
         shared_dict["range_cor_20_ku"] = shared_dict["geo_corrected_tracker_range"] + dr_meters
