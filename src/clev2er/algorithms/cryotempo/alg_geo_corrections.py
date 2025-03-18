@@ -101,27 +101,34 @@ class Algorithm(BaseAlgorithm):
         ind_meas_1hz_20_ku = l1b.variables["ind_meas_1hz_20_ku"][:].data
 
         # Retrieve FES2014b corrections
-        try:
-            load_tide_20 = shared_dict["fes2014b_corrections"]["load_tide_20"]
-            ocean_tide_20 = shared_dict["fes2014b_corrections"]["ocean_tide_20"]
-            ocean_tide_eq_20 = shared_dict["fes2014b_corrections"]["ocean_tide_eq_20"]
-        except KeyError:
-            self.log.error(
-                "fes2014b_corrections.load_tide_20 missing from shared_dict",
-            )
-            return (False, "fes2014b_corrections.load_tide_20 missing from shared_dict")
+        # try:
+        #     load_tide_20 = shared_dict["fes2014b_corrections"]["load_tide_20"]
+        #     ocean_tide_20 = shared_dict["fes2014b_corrections"]["ocean_tide_20"]
+        #     ocean_tide_eq_20 = shared_dict["fes2014b_corrections"]["ocean_tide_eq_20"]
+        # except KeyError:
+        #     self.log.error(
+        #         "fes2014b_corrections.load_tide_20 missing from shared_dict",
+        #     )
+        #     return (False, "fes2014b_corrections.load_tide_20 missing from shared_dict")
 
         # Retrieve CATS2008a tide corrections for SIN mode files in southern hemi
-        if shared_dict["cats_tide_required"]:
-            try:
-                cats_tide = shared_dict["cats_tide"]
-            except KeyError:
-                self.log.error(
-                    "cats_tide missing from shared_dict",
-                )
-                return (False, "cats_tide missing from shared_dict")
-        else:
-            cats_tide = None
+        # if shared_dict["cats_tide_required"]:
+        #     try:
+        #         cats_tide = shared_dict["cats_tide"]
+        #     except KeyError:
+        #         self.log.error(
+        #             "cats_tide missing from shared_dict",
+        #         )
+        #         return (False, "cats_tide missing from shared_dict")
+        # else:
+        #     cats_tide = None
+        
+        load_tide_20 = l1b.variables["load_tide_01"][:].data[
+                ind_meas_1hz_20_ku
+            ]
+        
+        ocean_tide_20 = l1b.variables["ocean_tide_01"][:].data[ind_meas_1hz_20_ku]
+        ocean_tide_eq_20 = l1b.variables["ocean_tide_eq_01"][:].data[ind_meas_1hz_20_ku]
 
         # Read in common geo-corrections at 1hz from L1b.
         # Note OLT (load_tide_20) is replaced by FES2014b (load_tide_20)
@@ -181,13 +188,17 @@ class Algorithm(BaseAlgorithm):
                 # Apply the tide corrections, just over floating ice
                 sum_cor_20_ku[shared_dict["floating_ice_locations"]] += (
                     hf_fluct_total_cor_20[shared_dict["floating_ice_locations"]]
-                    + cats_tide[shared_dict["floating_ice_locations"]]
+                    # + cats_tide[shared_dict["floating_ice_locations"]]
+                    + ocean_tide_eq_20[shared_dict["floating_ice_locations"]]
+                    + ocean_tide_20[shared_dict["floating_ice_locations"]]
                 )
             if shared_dict["ocean_locations"].size > 0:
                 # Apply the tide corrections, just over floating ice
                 sum_cor_20_ku[shared_dict["ocean_locations"]] += (
                     hf_fluct_total_cor_20[shared_dict["ocean_locations"]]
-                    + cats_tide[shared_dict["ocean_locations"]]
+                    # + cats_tide[shared_dict["ocean_locations"]]
+                    + ocean_tide_eq_20[shared_dict["ocean_locations"]]
+                    + ocean_tide_20[shared_dict["ocean_locations"]]
                 )
 
         # Find how many correction locations are invalid (nan)
