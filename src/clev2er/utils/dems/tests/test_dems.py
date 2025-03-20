@@ -21,6 +21,7 @@ log = logging.getLogger(__name__)
             [-34.42389],
             [1983.98],
         ),  # GIS location, elevations from CS2 CryoTEMPO Baseline-B
+        ("atl14_ant_100m_004_004_zarr", [-77], [106], [3516]),  # Vostok
         ("rema_gapless_100m_zarr", [-77], [106], [3516]),  # Vostok
         ("rema_gapless_1km_zarr", [-77], [106], [3516]),  # Vostok
         ("rema_ant_1km_v2_zarr", [-77], [106], [3516]),  # Vostok
