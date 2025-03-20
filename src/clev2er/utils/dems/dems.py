@@ -56,6 +56,8 @@ dem_list = [
     "arcticdem_100m_greenland",  # ArcticDEM v3.0, 100m resolution, subarea greenland
     "arcticdem_100m_greenland_v4.1",  # ArcticDEM v4.1, 100m resolution, subarea greenland
     "arcticdem_100m_greenland_v4.1_zarr",  # Zarr format of ArcticDEM v4.1, 100m resolution, grn
+    "atl14_grn_100m_004_003_zarr",  # Zarr format of IS/IS2 ATL14_GL_0324_100m_004_03.nc
+    "atl14_ant_100m_004_004_zarr",  # Zarr format of IS/IS2 ATL14_A(1-4)_0324_100m_004_04.nc
 ]
 
 
@@ -106,6 +108,7 @@ class Dem:
         self.shared_mem_child = False  # set to True if a child process
         self.npz_type = False  # set to True when using .npz DEM file
         self.zarr_type = False  # set to True when using .zarr DEM file
+        self.void_value: float | int
 
         # is accessing the Dem's shared memory
         # default is False (parent process which allocates
@@ -352,7 +355,7 @@ class Dem:
         if self.name == "awi_ant_1km":
             filename = "DEM_ANT_CS_20130901.tif"
             filled_filename = "DEM_ANT_CS_20130901.tif"
-            default_dir = f'{os.environ["CPDATA_DIR"]}/SATS/RA/DEMS/ant_awi_2013_dem'
+            default_dir = f"{os.environ['CPDATA_DIR']}/SATS/RA/DEMS/ant_awi_2013_dem"
             self.src_url = (
                 "http://data.pgc.umn.edu/elev/dem/setsm/REMA/mosaic/v1.1/1km/REMA_1km_dem.tif"
             )
@@ -374,7 +377,7 @@ class Dem:
         elif self.name == "awi_ant_1km_grounded":
             filename = "ant_awi_2013_dem_grounded.npz"
             filled_filename = "ant_awi_2013_dem_grounded.npz"
-            default_dir = f'{os.environ["CPDATA_DIR"]}/SATS/RA/DEMS/ant_awi_2013_dem'
+            default_dir = f"{os.environ['CPDATA_DIR']}/SATS/RA/DEMS/ant_awi_2013_dem"
             self.src_url = ""
             self.src_url_filled = ""
             self.dem_version = "1.0"
@@ -392,7 +395,7 @@ class Dem:
         elif self.name == "awi_ant_1km_floating":
             filename = "ant_awi_2013_dem_floating.npz"
             filled_filename = "ant_awi_2013_dem_floating.npz"
-            default_dir = f'{os.environ["CPDATA_DIR"]}/SATS/RA/DEMS/ant_awi_2013_dem'
+            default_dir = f"{os.environ['CPDATA_DIR']}/SATS/RA/DEMS/ant_awi_2013_dem"
             self.src_url = ""
             self.src_url_filled = ""
             self.dem_version = "1.0"
@@ -408,7 +411,7 @@ class Dem:
         elif self.name == "awi_grn_1km":
             filename = "DEM_GRE_CS_20130826.tif"
             filled_filename = "DEM_GRE_CS_20130826.tif"
-            default_dir = f'{os.environ["CPDATA_DIR"]}/SATS/RA/DEMS/grn_awi_2013_dem'
+            default_dir = f"{os.environ['CPDATA_DIR']}/SATS/RA/DEMS/grn_awi_2013_dem"
             self.src_url = ""
             self.src_url_filled = ""
             self.dem_version = "1.0"
@@ -426,7 +429,7 @@ class Dem:
 
             filename = "arcticdem_mosaic_1km_v3.0.tif"
             filled_filename = ""
-            default_dir = f'{os.environ["CPDATA_DIR"]}/SATS/RA/DEMS/arctic_dem_1km'
+            default_dir = f"{os.environ['CPDATA_DIR']}/SATS/RA/DEMS/arctic_dem_1km"
             self.src_url = (
                 "http://data.pgc.umn.edu/elev/dem/setsm/ArcticDEM/mosaic/"
                 "v3.0/1km/arcticdem_mosaic_1km_v3.0.tif"
@@ -447,7 +450,7 @@ class Dem:
 
             filename = "arcticdem_mosaic_1km_v3.0.zarr"
             filled_filename = ""
-            default_dir = f'{os.environ["CPDATA_DIR"]}/SATS/RA/DEMS/arctic_dem_1km'
+            default_dir = f"{os.environ['CPDATA_DIR']}/SATS/RA/DEMS/arctic_dem_1km"
             self.src_url = (
                 "http://data.pgc.umn.edu/elev/dem/setsm/ArcticDEM/mosaic/"
                 "v3.0/1km/arcticdem_mosaic_1km_v3.0.tif"
@@ -469,7 +472,7 @@ class Dem:
 
             filename = "arcticdem_mosaic_1km_v4.1_dem.tif"
             filled_filename = "arcticdem_mosaic_1km_v4.1_dem.tif"
-            default_dir = f'{os.environ["CPDATA_DIR"]}/SATS/RA/DEMS/arctic_dem_1km_v4.1'
+            default_dir = f"{os.environ['CPDATA_DIR']}/SATS/RA/DEMS/arctic_dem_1km_v4.1"
             self.src_url = (
                 "https://data.pgc.umn.edu/elev/dem/setsm/ArcticDEM/mosaic"
                 "/latest/1km/arcticdem_mosaic_1km_v4.1_dem.tif"
@@ -491,7 +494,7 @@ class Dem:
 
             filename = "REMA_1km_dem.tif"
             filled_filename = "REMA_1km_dem_filled.tif"
-            default_dir = f'{os.environ["CPDATA_DIR"]}/SATS/RA/DEMS/rema_1km_dem'
+            default_dir = f"{os.environ['CPDATA_DIR']}/SATS/RA/DEMS/rema_1km_dem"
             self.src_url = (
                 "http://data.pgc.umn.edu/elev/dem/setsm/REMA/mosaic/v1.1/1km/REMA_1km_dem.tif"
             )
@@ -515,7 +518,7 @@ class Dem:
 
             filename = "REMA_1km_dem.zarr"
             filled_filename = "REMA_1km_dem_filled.zarr"
-            default_dir = f'{os.environ["CPDATA_DIR"]}/SATS/RA/DEMS/rema_1km_dem'
+            default_dir = f"{os.environ['CPDATA_DIR']}/SATS/RA/DEMS/rema_1km_dem"
             self.src_url = (
                 "http://data.pgc.umn.edu/elev/dem/setsm/REMA/mosaic/v1.1/1km/REMA_1km_dem.tif"
             )
@@ -542,7 +545,7 @@ class Dem:
             #
             filename = "rema_mosaic_1km_v2.0_dem.tif"
             filled_filename = "rema_mosaic_1km_v2.0_filled_cop30_dem.tif"
-            default_dir = f'{os.environ["CPDATA_DIR"]}/SATS/RA/DEMS/rema_1km_dem_v2'
+            default_dir = f"{os.environ['CPDATA_DIR']}/SATS/RA/DEMS/rema_1km_dem_v2"
             self.src_url = (
                 "https://data.pgc.umn.edu/elev/dem/setsm/REMA/mosaic/v2.0/1km"
                 "rema_mosaic_1km_v2.0_dem.tif"
@@ -569,7 +572,7 @@ class Dem:
             #
             filename = "rema_mosaic_1km_v2.0_dem.zarr"
             filled_filename = "rema_mosaic_1km_v2.0_filled_cop30_dem.zarr"
-            default_dir = f'{os.environ["CPDATA_DIR"]}/SATS/RA/DEMS/rema_1km_dem_v2'
+            default_dir = f"{os.environ['CPDATA_DIR']}/SATS/RA/DEMS/rema_1km_dem_v2"
             self.src_url = (
                 "https://data.pgc.umn.edu/elev/dem/setsm/REMA/mosaic/v2.0/1km"
                 "rema_mosaic_1km_v2.0_dem.tif"
@@ -594,7 +597,7 @@ class Dem:
 
             filename = "REMA_200m_dem.tif"
             filled_filename = "REMA_200m_dem_filled.tif"
-            default_dir = f'{os.environ["CPDATA_DIR"]}/SATS/RA/DEMS/ant_rema_200m_dem'
+            default_dir = f"{os.environ['CPDATA_DIR']}/SATS/RA/DEMS/ant_rema_200m_dem"
             self.src_url = (
                 "https://data.pgc.umn.edu/elev/dem/setsm/REMA/mosaic/v1.1/200m/REMA_200m_dem.tif"
             )
@@ -619,7 +622,7 @@ class Dem:
 
             filename = "REMA_200m_dem.zarr"
             filled_filename = "REMA_200m_dem_filled.zarr"
-            default_dir = f'{os.environ["CPDATA_DIR"]}/SATS/RA/DEMS/ant_rema_200m_dem'
+            default_dir = f"{os.environ['CPDATA_DIR']}/SATS/RA/DEMS/ant_rema_200m_dem"
             self.src_url = (
                 "https://data.pgc.umn.edu/elev/dem/setsm/REMA/mosaic/v1.1/200m/REMA_200m_dem.tif"
             )
@@ -644,7 +647,7 @@ class Dem:
 
             filename = "GaplessREMA100.tif"
             filled_filename = "GaplessREMA100.tif"
-            default_dir = f'{os.environ["CPDATA_DIR"]}/SATS/RA/DEMS/rema_gapless_100m'
+            default_dir = f"{os.environ['CPDATA_DIR']}/SATS/RA/DEMS/rema_gapless_100m"
             self.src_url = "https://figshare.com/articles/dataset/Gapless-REMA100/19122212"
             self.src_url_filled = "https://figshare.com/articles/dataset/Gapless-REMA100/19122212"
             self.dem_version = "1.1(REMA)/2.0(Gapless)"
@@ -663,7 +666,7 @@ class Dem:
 
             filename = "GaplessREMA100.zarr"
             filled_filename = "GaplessREMA100.zarr"
-            default_dir = f'{os.environ["CPDATA_DIR"]}/SATS/RA/DEMS/rema_gapless_100m'
+            default_dir = f"{os.environ['CPDATA_DIR']}/SATS/RA/DEMS/rema_gapless_100m"
             self.src_url = "https://figshare.com/articles/dataset/Gapless-REMA100/19122212"
             self.src_url_filled = "https://figshare.com/articles/dataset/Gapless-REMA100/19122212"
             self.dem_version = "1.1(REMA)/2.0(Gapless)"
@@ -682,7 +685,7 @@ class Dem:
 
             filename = "GaplessREMA1km.tif"
             filled_filename = "GaplessREMA1km.tif"
-            default_dir = f'{os.environ["CPDATA_DIR"]}/SATS/RA/DEMS/rema_gapless_1km'
+            default_dir = f"{os.environ['CPDATA_DIR']}/SATS/RA/DEMS/rema_gapless_1km"
             self.src_url = "https://figshare.com/articles/dataset/Gapless-REMA100/19122212"
             self.src_url_filled = "https://figshare.com/articles/dataset/Gapless-REMA100/19122212"
             self.dem_version = "1.1(REMA)/2.0(Gapless)"
@@ -699,7 +702,7 @@ class Dem:
 
             filename = "GaplessREMA1km.zarr"
             filled_filename = "GaplessREMA1km.zarr"
-            default_dir = f'{os.environ["CPDATA_DIR"]}/SATS/RA/DEMS/rema_gapless_1km'
+            default_dir = f"{os.environ['CPDATA_DIR']}/SATS/RA/DEMS/rema_gapless_1km"
 
             self.src_url = "https://figshare.com/articles/dataset/Gapless-REMA100/19122212"
             self.src_url_filled = "https://figshare.com/articles/dataset/Gapless-REMA100/19122212"
@@ -719,7 +722,7 @@ class Dem:
             # The void areas will contain null values (-9999) in lieu of the terrain elevations.
             filename = "arcticdem_mosaic_100m_v3.0_subarea_greenland.tif"
             filled_filename = ""  # No filled version available
-            default_dir = f'{os.environ["CPDATA_DIR"]}/SATS/RA/DEMS/arctic_dem_100m'
+            default_dir = f"{os.environ['CPDATA_DIR']}/SATS/RA/DEMS/arctic_dem_100m"
             self.src_url = (
                 "https://data.pgc.umn.edu/elev/dem/setsm/ArcticDEM/mosaic/v3.0/100m/"
                 "arcticdem_mosaic_100m_v3.0.tif"
@@ -739,7 +742,7 @@ class Dem:
             # The void areas will contain null values (-9999) in lieu of the terrain elevations.
             filename = "arcticdem_mosaic_1km_v4.1_subarea_greenland.tif"
             filled_filename = ""  # No filled version available
-            default_dir = f'{os.environ["CPDATA_DIR"]}/SATS/RA/DEMS/arctic_dem_1km_v4.1'
+            default_dir = f"{os.environ['CPDATA_DIR']}/SATS/RA/DEMS/arctic_dem_1km_v4.1"
             self.src_url = (
                 "https://data.pgc.umn.edu/elev/dem/setsm/ArcticDEM/mosaic"
                 "/latest/1km/arcticdem_mosaic_1km_v4.1_dem.tif"
@@ -753,6 +756,53 @@ class Dem:
             self.southern_hemisphere = False
             self.void_value = -9999
             self.dtype = np.float32
+
+        elif self.name == "atl14_ant_100m_004_004_zarr":
+            # ATL-14 Antarctic A1-A4 100m DEM
+            # zarr version created with
+            # python src/cpom/dems/atl14_ant_4quadrant_nc_to_zarr.py \
+            # --nc_files \
+            # /cpdata/SATS/RA/DEMS/ATL14/ATL14_A1_0324_100m_004_04.nc \
+            # /cpdata/SATS/RA/DEMS/ATL14/ATL14_A2_0324_100m_004_04.nc \
+            # /cpdata/SATS/RA/DEMS/ATL14/ATL14_A3_0324_100m_004_04.nc \
+            # /cpdata/SATS/RA/DEMS/ATL14/ATL14_A4_0324_100m_004_04.nc \
+            # -o /cpdata/SATS/RA/DEMS/ATL14
+
+            filename = "ATL14_0324_100m_004_04.zarr"
+            filled_filename = filename
+            default_dir = f"{os.environ['CPDATA_DIR']}/SATS/RA/DEMS/ATL14"
+            self.src_url = ""
+            self.src_url_filled = ""
+            self.dem_version = "ATL14 A4 100m"
+            self.src_institute = "NASA"
+            self.long_name = "ATL14 Antarctic 100m DEM"
+            self.crs_bng = CRS("epsg:3031")  # Polar Stereo - South -71S
+            self.southern_hemisphere = True
+            self.void_value = 3.402823e38
+            self.dtype = np.float32
+            self.reference_year = 2019  # YYYY, the year the DEM's elevations are referenced to
+            self.zarr_type = True
+
+        elif self.name == "atl14_grn_100m_004_003_zarr":
+            # 100m DEM (subarea of Greenland) from ATL14_GL_0324_100m_004_03.nc
+            # The void areas will contain null values (-9999) in lieu of the terrain elevations.
+            filename = "ATL14_GL_0324_100m_004_03.zarr"
+            filled_filename = "ATL14_GL_0324_100m_004_03.zarr"  # No filled version available
+            default_dir = f"{os.environ['CPDATA_DIR']}/SATS/RA/DEMS/ATL14"
+            self.src_url = (
+                "https://data.pgc.umn.edu/elev/dem/setsm/ArcticDEM/mosaic"
+                "/latest/100m/arcticdem_mosaic_100m_v4.1_dem.tif"
+            )
+            self.reference_year = 2010  # YYYY, the year the DEM's elevations are referenced to
+            self.src_url_filled = ""
+            self.dem_version = "4.1"
+            self.src_institute = "PGC"
+            self.long_name = "ATL14 Dem 100m, Greenland"
+            self.crs_bng = CRS("epsg:3413")  # Polar Stereo - North -latitude of origin 70N, 45
+            self.southern_hemisphere = False
+            self.void_value = -9999
+            self.dtype = np.float32
+            self.zarr_type = True
         # --------------------------------------------------------------------------------
         elif self.name == "arcticdem_1km_greenland_v4.1_zarr":
             # 1km DEM (subarea of Greenland) extracted from ArcticDem v4.1
@@ -761,7 +811,7 @@ class Dem:
             filled_filename = (
                 "arcticdem_mosaic_1km_v4.1_subarea_greenland.zarr"  # No filled version available
             )
-            default_dir = f'{os.environ["CPDATA_DIR"]}/SATS/RA/DEMS/arctic_dem_1km_v4.1'
+            default_dir = f"{os.environ['CPDATA_DIR']}/SATS/RA/DEMS/arctic_dem_1km_v4.1"
             self.src_url = (
                 "https://data.pgc.umn.edu/elev/dem/setsm/ArcticDEM/mosaic"
                 "/latest/1km/arcticdem_mosaic_1km_v4.1_dem.tif"
@@ -782,7 +832,7 @@ class Dem:
             # The void areas will contain null values (-9999) in lieu of the terrain elevations.
             filename = "arcticdem_mosaic_100m_v4.1_subarea_greenland.tif"
             filled_filename = ""  # No filled version available
-            default_dir = f'{os.environ["CPDATA_DIR"]}/SATS/RA/DEMS/arctic_dem_100m_v4.1'
+            default_dir = f"{os.environ['CPDATA_DIR']}/SATS/RA/DEMS/arctic_dem_100m_v4.1"
             self.src_url = (
                 "https://data.pgc.umn.edu/elev/dem/setsm/ArcticDEM/mosaic"
                 "/latest/100m/arcticdem_mosaic_100m_v4.1_dem.tif"
@@ -805,7 +855,7 @@ class Dem:
             filled_filename = (
                 "arcticdem_mosaic_100m_v4.1_subarea_greenland.zarr"  # No filled version available
             )
-            default_dir = f'{os.environ["CPDATA_DIR"]}/SATS/RA/DEMS/arctic_dem_100m_v4.1'
+            default_dir = f"{os.environ['CPDATA_DIR']}/SATS/RA/DEMS/arctic_dem_100m_v4.1"
             self.src_url = (
                 "https://data.pgc.umn.edu/elev/dem/setsm/ArcticDEM/mosaic"
                 "/latest/100m/arcticdem_mosaic_100m_v4.1_dem.tif"
