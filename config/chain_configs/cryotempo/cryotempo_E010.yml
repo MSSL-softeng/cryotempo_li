@@ -4,8 +4,8 @@
 
 project: cryotempo
 theme: landice  # CryoTEMPO theme: landice, seaice, polaroceans, coastaloceans,inlandwaters
-baseline: D  # CryoTEMPO product baseline to produce: A..Z
-version: 1   # CryoTEMPO product version to produce: 1..100
+baseline: E  # CryoTEMPO product baseline to produce: A..Z
+version: 10   # CryoTEMPO product version to produce: 1..100
 #l1b_base_dir: ${CPDATA_DIR}/SATS/RA/CRY/L1B 
 l1b_base_dir: ${L1B_BASE_DIR} # should contain LRM,SIN/<YYYY>/<MM>/
 
