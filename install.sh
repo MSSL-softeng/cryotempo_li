@@ -21,7 +21,6 @@ echo "fi" >> $setup_and_run_file
 
 echo "# Combined setup and run script for CryoTEMPO LI" >> $setup_and_run_file
 echo 'old_opts=$(set +o | grep errexit)' >> $setup_and_run_file
-echo "set -e" >> $setup_and_run_file
 echo "" >> $setup_and_run_file
 echo "# Activate Poetry virtual environment" >> $setup_and_run_file
 echo "VENV_PATH=\$(poetry env info --path)" >> $setup_and_run_file
