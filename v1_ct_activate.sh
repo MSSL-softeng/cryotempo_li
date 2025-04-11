@@ -7,7 +7,6 @@ if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
     exit 1
 fi
 # Combined setup and run script for CryoTEMPO LI
-old_opts=$(set +o | grep errexit)
 # set -e
 
 # Activate Poetry virtual environment
@@ -18,16 +17,23 @@ if [ -z "$VENV_PATH" ]; then
 fi
 source "$VENV_PATH/bin/activate"
 
-export CLEV2ER_BASE_DIR=/home/boxallk/luna/CPOM/boxallk/cryotempo_li
-export PYTHONPATH=/home/boxallk/luna/CPOM/boxallk/cryotempo_li/src
-export PATH=/home/boxallk/luna/CPOM/boxallk/cryotempo_li/src/clev2er/tools:${PATH}
-export CT_PRODUCT_BASEDIR=/home/boxallk/luna/CPOM/boxallk/cryoTEMPO/products
-export CT_LOG_DIR=/home/boxallk/luna/CPOM/boxallk/cryoTEMPO/products/logs
-export CPDATA_DIR=/home/boxallk/luna/CPOM/archive
+export CLEV2ER_BASE_DIR=/media/luna/boxallk/cryotempo_li
+export PYTHONPATH=/media/luna/boxallk/cryotempo_li/src
+export PATH=/media/luna/boxallk/cryotempo_li/src/clev2er/tools:${PATH}
+export CT_PRODUCT_BASEDIR=/raid6/cryo-tempo/product_baselines
+export CT_LOG_DIR=/media/luna/boxallk/cryoTEMPO/products/logs
+export CPDATA_DIR=/cpdata
 export L1B_BASE_DIR=${CPDATA_DIR}/SATS/RA/CRY/L1B
-export FES2014B_BASE_DIR=${CPDATA_DIR}/SATS/RA/CRY/L1B/FES2014
-export CATS2008A_BASE_DIR=${CPDATA_DIR}/SATS/RA/CRY/L1B/CATS2008/SIN
-export CS2_UNCERTAINTY_BASE_DIR=${CPDATA_DIR}/RESOURCES/ct_uncertainty
+export FES2014B_BASE_DIR=/cpdata/SATS/RA/CRY/L1B/FES2014
+export CATS2008A_BASE_DIR=/cpdata/SATS/RA/CRY/L1B/CATS2008/SIN
+export CS2_UNCERTAINTY_BASE_DIR=/raid6/cryo-tempo/land_ice/uncertainty
+export CT_PRODUCT_BASEDIR=/media/luna/boxallk/cryoTEMPO/products
+export CPDATA_DIR=/media/luna/archive
+export L1B_BASE_DIR=${CPDATA_DIR}/SATS/RA/CRY/L1B
+export FES2014B_BASE_DIR=/media/luna/archive/SATS/RA/CRY/L1B/FES2014
+export CATS2008A_BASE_DIR=/media/luna/archive/SATS/RA/CRY/L1B/CATS2008/SIN
+export CS2_UNCERTAINTY_BASE_DIR=/media/luna/archive/RESOURCES/ct_uncertainty
+export CPOM_SOFTWARE_DIR=/media/luna/shared/software/cpom_software
 
 # Check if specified paths exist
 declare -A path_env_map=(
@@ -56,5 +62,4 @@ fi
 
 ulimit -n 8192
 
-eval ""
 echo "Environment setup complete. You are now in the CryoTEMPO Land Ice Poetry virtual environment."
