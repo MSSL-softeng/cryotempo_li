@@ -48,11 +48,9 @@ latitudes, longitudes = greenland_meshgrid(spacing)
 
 
 # Directory containing your downloaded DEM tiles.
-dem_directory = "/cpdata/SATS/RA/DEMS/COP90"
-# For 90 m DEMs, use dem_product "30" (resulting in filenames like "Copernicus_DSM_30_...").
-dem_product = "30"
 
-thisdem = Dem("cop_dem_90m_grn_zarr")
+# thisdem = Dem("cop_dem_90m_grn_zarr")
+thisdem = Dem("arcticdem_100m_greenland_v4.1_zarr")
 arctic_dem_elevs = thisdem.interp_dem(latitudes, longitudes, method="linear", xy_is_latlon=True)
 
 

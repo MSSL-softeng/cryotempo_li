@@ -73,7 +73,7 @@ class DemDownloader:
         r = requests.post(
             "https://identity.dataspace.copernicus.eu/auth/realms/CDSE/protocol/openid-connect/token",
             data=data,
-            timeout=(30.0, 30.0),
+            timeout=(60.0, 60.0),
         )
         r.raise_for_status()
         token = r.json()["access_token"]
@@ -109,7 +109,7 @@ class DemDownloader:
         dem_ids = []
         while url:
             logger.info("Querying DEM catalogue: %s", url)
-            response = requests.get(url, timeout=(30.0, 30.0))
+            response = requests.get(url, timeout=(60.0, 60.0))
             response.raise_for_status()
             data = response.json()
             if "value" in data and data["value"]:
@@ -142,7 +142,7 @@ class DemDownloader:
             headers = {"Authorization": f"Bearer {self.access_token}"}
             logger.info("Downloading DEM with ID %s (attempt %s)...", dem_id, attempt + 1)
             response = requests.get(
-                download_url, headers=headers, stream=True, timeout=(30.0, 30.0)
+                download_url, headers=headers, stream=True, timeout=(60.0, 60.0)
             )
             if response.status_code == 401:
                 logger.warning(
@@ -206,7 +206,12 @@ class DemDownloader:
 def main():
     # Define a polygon around Greenland.
     # Coordinates: (-73,83), (-12,83), (-12,59), (-73,59), (-73,83)
-    greenland_polygon = "-73 83, -12 83, -12 59, -73 59, -73 83"
+    max_lat = 63  # normally 83
+    min_lat = 56
+    min_lon = -50  # normally -73
+    max_lon = -43  # normally -11
+
+    greenland_polygon = f"{min_lon} {max_lat}, {max_lon} {max_lat}, {max_lon} {min_lat}, {min_lon} {min_lat}, {min_lon} {max_lat}"
 
     # To download 90 m DEMs (GLO-90; the files will be named like Copernicus_DSM_30_...),
     # set dem_resolution to "90".
