@@ -1,4 +1,4 @@
-""" clev2er.algorithms.templates.alg_basin_ids
+"""clev2er.algorithms.templates.alg_basin_ids
 
 # New in Baseline-D
 
@@ -214,7 +214,7 @@ class Algorithm(BaseAlgorithm):
 
             shared_dict["basin_mask_values_rignot"] = mask_values_rignot.astype(np.uint)
             shared_dict["basin_mask_values_zwally"] = mask_values_zwally.astype(np.uint)
-            shared_dict["basin_mask_values_mouginot"] = None
+            shared_dict["basin_mask_values_mouginot"] = np.zeros(len(mask_values_zwally))
 
         else:
             # "Unclassified [0]",
@@ -238,7 +238,7 @@ class Algorithm(BaseAlgorithm):
                     mask_values_rignot[i] = 0
 
             shared_dict["basin_mask_values_rignot"] = mask_values_rignot.astype(np.uint)
-            shared_dict["basin_mask_values_zwally"] = None
+            shared_dict["basin_mask_values_zwally"] = np.zeros(len(mask_values_rignot))
             shared_dict["basin_mask_values_mouginot"] = mask_values_mouginot.astype(np.uint)
 
         # Return success (True,'')
