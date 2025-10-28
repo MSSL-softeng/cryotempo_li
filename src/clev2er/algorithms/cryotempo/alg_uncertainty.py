@@ -24,55 +24,105 @@ from clev2er.utils.uncertainty.calc_uncertainty import calc_uncertainty
 def get_binned_values(
     slope_values: np.ndarray,
     roughness_values: np.ndarray,
+    power_values: np.ndarray,
+    coherence_values: np.ndarray,
     binned_table: pd.DataFrame,
     slope_bins: np.ndarray,
     roughness_bins: np.ndarray,
-) -> np.ndarray:
-    """Retrieve the median absolute elevation difference for arrays of slope and roughness values.
+    power_bins: np.ndarray,
+    coherence_bins: np.ndarray,
+) -> list:
+
+    """
+    Retrieve the calculated metric of elevation difference for given variable values (ie for given
+    slope, roughness and power values).
 
     Args:
-        slope_values (np.ndarray): Array of slope values for which to retrieve median differences.
-        roughness_values (np.ndarray): Array of roughness values for which to retrieve
-                                       median differences.
+        slope_values (np.ndarray): Array of slope values for which to retrieve calculated differences.
+        roughness_values (np.ndarray): Array of roughness values for which to retrieve calculated differences.
+        power_values (np.ndarray): Array of power values for which to retrieve calculated differences.
+        coherence_values (np.ndarray): Array of coherence values for which to retrieve calculated differences.
         binned_table (pd.DataFrame): A pivot table of binned median absolute elevation differences.
         slope_bins (np.ndarray): Bins to categorize slope values.
         roughness_bins (np.ndarray): Bins to categorize roughness values.
+        power_bins (np.ndarray): Bins to categorise power values.
+        coherence_bins (np.ndarray): Bins to categorise coherence values.
 
     Returns:
-        np.ndarray: An array of median absolute elevation differences corresponding to the
-                    input slope and roughness pairs.
+        list: An array of median absolute elevation differences corresponding to the
+                    input values.
     """
-    # Convert slope_values and roughness_values to numpy arrays
-    slope_values = np.asarray(slope_values)
-    roughness_values = np.asarray(roughness_values)
+    ingested_variables = []
 
-    # Find the slope bin indices for the array of slope_values
-    slope_bin_indices = np.digitize(slope_values, slope_bins) - 1
-    slope_bin_indices = np.clip(
-        slope_bin_indices, 0, len(slope_bins) - 2
-    )  # Ensure indices are within range
+    if slope_values is not None:
+        slope_values = np.asarray(slope_values)
+        # Find the slope bin indices for the array of slope_values
+        slope_bin_indices = np.digitize(slope_values, slope_bins) - 1
+        slope_bin_indices = np.clip(
+            slope_bin_indices, 0, len(slope_bins) - 2
+        )  # Ensure indices are within range
+        # Convert bin labels to row and column labels in the DataFrame
+        slope_indices = [slope_bins[idx] for idx in slope_bin_indices]
+        ingested_variables.append(slope_indices)
 
-    # Find the roughness bin indices for the array of roughness_values
-    roughness_bin_indices = np.digitize(roughness_values, roughness_bins) - 1
-    roughness_bin_indices = np.clip(
-        roughness_bin_indices, 0, len(roughness_bins) - 2
-    )  # Ensure indices are within range
+    if roughness_values is not None:
+        roughness_values = np.asarray(roughness_values)
+        # Find the roughness bin indices for the array of roughness_values
+        roughness_bin_indices = np.digitize(roughness_values, roughness_bins) - 1
+        roughness_bin_indices = np.clip(
+            roughness_bin_indices, 0, len(roughness_bins) - 2
+        )  # Ensure indices are within range
+        # Convert bin labels to row and column labels in the DataFrame
+        roughness_indices = [roughness_bins[idx] for idx in roughness_bin_indices]
+        ingested_variables.append(roughness_indices)
 
-    # Convert bin labels to row and column indices in the DataFrame
-    row_indices = [binned_table.index.get_loc(slope_bins[idx]) for idx in slope_bin_indices]
-    col_indices = [
-        binned_table.columns.get_loc(roughness_bins[idx]) for idx in roughness_bin_indices
-    ]
+    if power_values is not None:
+        power_values = np.asarray(power_values)
+        # Find the power bin indices for the array of power
+        power_bin_indices = np.digitize(power_values, power_bins) - 1
+        power_bin_indices = np.clip(
+            power_bin_indices, 0, len(power_bins) - 2
+        )  # Ensure indices are within range
+        # Convert bin labels to row and column labels in the DataFrame
+        power_indices = [power_bins[idx] for idx in power_bin_indices]
+        ingested_variables.append(power_indices)
 
+    if coherence_values is not None:
+        coherence_values = np.asarray(coherence_values)
+        # Find the coherence bin indices for the array of coherence
+        coherence_bin_indices = np.digitize(coherence_values, coherence_bins) - 1
+        coherence_bin_indices = np.clip(
+            coherence_bin_indices, 0, len(coherence_bins) - 2
+        )  # Ensure indices are within range
+        # Convert bin labels to row and column labels in the DataFrame
+        coherence_indices = [coherence_bins[idx] for idx in coherence_bin_indices]
+        ingested_variables.append(coherence_indices)
+
+    binned_table_df = binned_table.stack(future_stack=True)
+    # print(binned_table_df)
+
+    if len(ingested_variables) == 1:
+        values = [binned_table_df.loc[
+            ingested_variables[0][i]][0] for i in range(len(ingested_variables[0]))]
+    if len(ingested_variables) == 2:
+        values = [binned_table_df.loc[
+            ingested_variables[0][i]][ingested_variables[1][i]] for i in range(len(ingested_variables[0]))]
+    if len(ingested_variables) == 3:
+        values = [binned_table_df.loc[
+            ingested_variables[0][i]][ingested_variables[1][i]][ingested_variables[2][i]] for i in range(len(ingested_variables[0]))]
+    if len(ingested_variables) == 4:
+        values = [binned_table_df.loc[
+            ingested_variables[0][i]][ingested_variables[1][i]][ingested_variables[2][i]][ingested_variables[3][i]] for i in range(len(ingested_variables[0]))]
+    
     # Retrieve the values using numpy indexing on the DataFrame values
-    values = binned_table.values[row_indices, col_indices]
+    # values = [binned_table_df.loc[row_indices[i]][col1_indices[i]][col2_indices[i]][col3_indices[i]][col4_indices[i]] for i in range(len(row_indices))]
 
     return values
 
 
 class Algorithm(BaseAlgorithm):
     """**Algorithm to retrieve elevation uncertainty from (CS2-IS2) derived uncertainty table and
-    surface slope at each measurement**
+    covariate value(s) at each measurement**
 
     **Contribution to shared_dict**
         -shared_dict["uncertainty"] : (np.ndarray) uncertainty at each track location
@@ -111,16 +161,14 @@ class Algorithm(BaseAlgorithm):
 
         # Add initialization steps here
 
-        self.uncertainty_table_antarctica = ""
-        self.uncertainty_table_greenland = ""
-        self.ut_table_grn = None
-        self.ut_min_slope_grn = 0.0
-        self.ut_max_slope_grn = 10.0
-        self.ut_number_of_bins_grn = None
-        self.ut_table_ant = None
-        self.ut_min_slope_ant = 0.0
-        self.ut_max_slope_ant = 10.0
-        self.ut_number_of_bins_ant = None
+        self.uncertainty_table_antarctica_sin = ""
+        self.uncertainty_table_antarctica_lrm = ""
+        self.uncertainty_table_greenland_sin = ""
+        self.uncertainty_table_greenland_lrm = ""
+        self.ut_table_grn_sin = None
+        self.ut_table_grn_lrm = None
+        self.ut_table_ant_sin = None
+        self.ut_table_ant_lrm = None
 
         # -------------------------------------------------------------------------
         # Load uncertainty tables
@@ -132,56 +180,165 @@ class Algorithm(BaseAlgorithm):
         if "base_dir" not in self.config["uncertainty_tables"]:
             raise KeyError("uncertainty_tables.base_dir not in config")
 
-        self.uncertainty_table_antarctica = (
+        self.uncertainty_table_antarctica_sin = (
             f"{self.config['uncertainty_tables']['base_dir']}/"
-            "ant_2d_uncertainty_table_bilinear_median.pickle"
+            "antarctica_icesheets_median_metric_pivot_filled_SIN.pickle"
         )
-        self.uncertainty_table_greenland = (
+        self.uncertainty_table_greenland_sin = (
             f"{str(self.config['uncertainty_tables']['base_dir'])}/"
-            "greenland_1d_uncertainty_from_is2_d001.npz"
+            "greenland_is_median_metric_pivot_filled_SIN.pickle"
         )
 
-        if not os.path.isfile(self.uncertainty_table_antarctica):
+        self.uncertainty_table_antarctica_lrm = (
+            f"{self.config['uncertainty_tables']['base_dir']}/"
+            "antarctica_icesheets_median_metric_pivot_filled_LRM.pickle"
+        )
+        self.uncertainty_table_greenland_lrm = (
+            f"{str(self.config['uncertainty_tables']['base_dir'])}/"
+            "greenland_is_median_metric_pivot_filled_LRM.pickle"
+        )
+
+        if not os.path.isfile(self.uncertainty_table_antarctica_sin):
             raise FileNotFoundError(
-                f"Antarctic uncertainty table {self.uncertainty_table_antarctica}" " not found"
+                f"Antarctic SIN uncertainty table {self.uncertainty_table_antarctica_sin}" " not found"
             )
-        if not os.path.isfile(self.uncertainty_table_greenland):
+        if not os.path.isfile(self.uncertainty_table_greenland_sin):
             raise FileNotFoundError(
-                f"Greenland uncertainty table {self.uncertainty_table_greenland}" " not found"
+                f"Greenland SIN uncertainty table {self.uncertainty_table_greenland_sin}" " not found"
+            )
+        if not os.path.isfile(self.uncertainty_table_antarctica_lrm):
+            raise FileNotFoundError(
+                f"Antarctic LRM uncertainty table {self.uncertainty_table_antarctica_lrm}" " not found"
+            )
+        if not os.path.isfile(self.uncertainty_table_greenland_lrm):
+            raise FileNotFoundError(
+                f"Greenland LRM uncertainty table {self.uncertainty_table_greenland_lrm}" " not found"
             )
 
-        ut_grn_data = np.load(self.uncertainty_table_greenland, allow_pickle=True)
+        # Read in SIN lookup tables, and bin distribution
+        self.ut_table_grn_sin = pd.read_pickle(self.uncertainty_table_greenland_sin)
 
-        keys = ["uncertainty_table", "min_slope", "max_slope", "number_of_bins"]
-        for key in keys:
-            if key not in ut_grn_data:
-                raise KeyError(
-                    f"{key} key not in Greenland uncertainty table"
-                    f" {self.uncertainty_table_greenland}"
-                )
+        # Define slope bins in degrees 
+        self.grn_slope_bins_sin = (
+            f"{str(self.config['uncertainty_tables']['base_dir'])}/"
+            "the_slope_bins_greenland_is_SIN.npz"
+        )
+        self.grn_slope_bins_sin = np.load(self.grn_slope_bins_sin)['the_slope_bins']
 
-        self.ut_table_grn = ut_grn_data.get("uncertainty_table")
-        self.ut_min_slope_grn = ut_grn_data.get("min_slope")
-        self.ut_max_slope_grn = ut_grn_data.get("max_slope")
-        self.ut_number_of_bins_grn = ut_grn_data.get("number_of_bins")
+        # Define roughness bins in meters 
+        self.grn_roughness_bins_sin = (
+            f"{str(self.config['uncertainty_tables']['base_dir'])}/"
+            "the_roughness_bins_greenland_is_SIN.npz"
+        )
+        self.grn_roughness_bins_sin = np.load(self.grn_roughness_bins_sin)['the_roughness_bins']
 
-        self.ut_table_ant = pd.read_pickle(self.uncertainty_table_antarctica)
+        # Define power bins 
+        self.grn_power_bins_sin = (
+            f"{str(self.config['uncertainty_tables']['base_dir'])}/"
+            "the_power_bins_greenland_is_SIN.npz"
+        )
+        self.grn_power_bins_sin = np.load(self.grn_power_bins_sin)['the_power_bins']
 
-        # Define slope bins in degrees (0.1 degree steps from 0 to 2 degrees)
-        self.ant_slope_bins = np.arange(0, 2.1, 0.1)
+        # Define coherence bins 
+        self.grn_coherence_bins_sin = (
+            f"{str(self.config['uncertainty_tables']['base_dir'])}/"
+            "the_coherence_bins_greenland_is_SIN.npz"
+        )
+        self.grn_coherence_bins_sin = np.load(self.grn_coherence_bins_sin)['the_coherence_bins']
 
-        # Define roughness bins in meters (0.1 m steps from 0 to 2 meters)
-        self.ant_roughness_bins = np.arange(0, 2.1, 0.1)
+        self.ut_table_ant_sin = pd.read_pickle(self.uncertainty_table_antarctica_sin)
+
+        # Define slope bins in degrees 
+        self.ant_slope_bins_sin = (
+            f"{str(self.config['uncertainty_tables']['base_dir'])}/"
+            "the_slope_bins_antarctica_icesheets_SIN.npz"
+        )
+        self.ant_slope_bins_sin = np.load(self.ant_slope_bins_sin)['the_slope_bins']
+
+        # Define roughness bins in meters 
+        self.ant_roughness_bins_sin = (
+            f"{str(self.config['uncertainty_tables']['base_dir'])}/"
+            "the_roughness_bins_antarctica_icesheets_SIN.npz"
+        )
+        self.ant_roughness_bins_sin = np.load(self.ant_roughness_bins_sin)['the_roughness_bins']
+
+        # Define power bins 
+        self.ant_power_bins_sin = (
+            f"{str(self.config['uncertainty_tables']['base_dir'])}/"
+            "the_power_bins_antarctica_icesheets_SIN.npz"
+        )
+        self.ant_power_bins_sin = np.load(self.ant_power_bins_sin)['the_power_bins']
+
+        # Define coherence bins 
+        self.ant_coherence_bins_sin = (
+            f"{str(self.config['uncertainty_tables']['base_dir'])}/"
+            "the_coherence_bins_antarctica_icesheets_SIN.npz"
+        )
+        self.ant_coherence_bins_sin = np.load(self.ant_coherence_bins_sin)['the_coherence_bins']
+
+        # Read in LRM lookup tables, and bin distribution
+        self.ut_table_grn_lrm = pd.read_pickle(self.uncertainty_table_greenland_lrm)
+
+        # Define slope bins in degrees 
+        self.grn_slope_bins_lrm = (
+            f"{str(self.config['uncertainty_tables']['base_dir'])}/"
+            "the_slope_bins_greenland_is_LRM.npz"
+        )
+        self.grn_slope_bins_lrm = np.load(self.grn_slope_bins_lrm)['the_slope_bins']
+
+        # Define roughness bins in meters 
+        self.grn_roughness_bins_lrm = (
+            f"{str(self.config['uncertainty_tables']['base_dir'])}/"
+            "the_roughness_bins_greenland_is_LRM.npz"
+        )
+        self.grn_roughness_bins_lrm = np.load(self.grn_roughness_bins_lrm)['the_roughness_bins']
+
+        # Define power bins 
+        self.grn_power_bins_lrm = (
+            f"{str(self.config['uncertainty_tables']['base_dir'])}/"
+            "the_power_bins_greenland_is_LRM.npz"
+        )
+        self.grn_power_bins_lrm = np.load(self.grn_power_bins_lrm)['the_power_bins']
+
+        self.ut_table_ant_lrm = pd.read_pickle(self.uncertainty_table_antarctica_lrm)
+
+        # Define slope bins in degrees 
+        self.ant_slope_bins_lrm = (
+            f"{str(self.config['uncertainty_tables']['base_dir'])}/"
+            "the_slope_bins_antarctica_icesheets_LRM.npz"
+        )
+        self.ant_slope_bins_lrm = np.load(self.ant_slope_bins_lrm)['the_slope_bins']
+
+        # Define roughness bins in meters 
+        self.ant_roughness_bins_lrm = (
+            f"{str(self.config['uncertainty_tables']['base_dir'])}/"
+            "the_roughness_bins_antarctica_icesheets_LRM.npz"
+        )
+        self.ant_roughness_bins_lrm = np.load(self.ant_roughness_bins_lrm)['the_roughness_bins']
+
+        # Define power bins 
+        self.ant_power_bins_lrm = (
+            f"{str(self.config['uncertainty_tables']['base_dir'])}/"
+            "the_power_bins_antarctica_icesheets_LRM.npz"
+        )
+        self.ant_power_bins_lrm = np.load(self.ant_power_bins_lrm)['the_power_bins']
 
         # Test the data
-        if not isinstance(self.ut_table_grn, np.ndarray):
-            raise ValueError(f"ut_table_grn is not of type np.ndarray: {type(self.ut_table_grn)}")
-        if not isinstance(self.ut_table_ant, pd.core.frame.DataFrame):
+        if not isinstance(self.ut_table_grn_sin, pd.core.frame.DataFrame):
+            raise ValueError(f"ut_table_grn is not of type pd.core.frame.DataFrame: {type(self.ut_table_grn_sin)}")
+        if not isinstance(self.ut_table_ant_sin, pd.core.frame.DataFrame):
             raise ValueError(
-                f"ut_table_ant is not of type pd.core.frame.DataFrame: {type(self.ut_table_ant)}"
+                f"ut_table_ant is not of type pd.core.frame.DataFrame: {type(self.ut_table_ant_sin)}"
+            )
+        if not isinstance(self.ut_table_grn_lrm, pd.core.frame.DataFrame):
+            raise ValueError(f"ut_table_grn is not of type pd.core.frame.DataFrame: {type(self.ut_table_grn_lrm)}")
+        if not isinstance(self.ut_table_ant_lrm, pd.core.frame.DataFrame):
+            raise ValueError(
+                f"ut_table_ant is not of type pd.core.frame.DataFrame: {type(self.ut_table_ant_lrm)}"
             )
 
-        self.slope_grn = Slopes("awi_grn_2013_1km_slopes")
+        self.slope_grn = Slopes("arcticdem_100m_900ws_slopes_zarr")
+        self.roughness_grn = Roughness("rema_100m_900ws_roughness_zarr")
         if "grn_only" in self.config and self.config["grn_only"]:
             self.slope_ant = None
             self.roughness_ant = None
@@ -232,33 +389,76 @@ class Algorithm(BaseAlgorithm):
                     xy_is_latlon=True,
                 )
                 roughness_values = self.roughness_ant.interp_roughness(
-                    shared_dict["latitudes"],
-                    shared_dict["longitudes"],
-                    xy_is_latlon=True,
+                        shared_dict["latitudes"],
+                        shared_dict["longitudes"],
+                        xy_is_latlon=True,
                 )
-
-                uncertainty = get_binned_values(
-                    slope_values,
-                    roughness_values,
-                    self.ut_table_ant,
-                    self.ant_slope_bins,
-                    self.ant_roughness_bins,
-                )
+                power_values = shared_dict["sig0_20_ku"]
+                if shared_dict["instr_mode"] == "SIN":
+                    coherence_values = shared_dict["coh_at_rtrk_point"]
+                    uncertainty = get_binned_values(
+                            slope_values,
+                            roughness_values,
+                            power_values,
+                            coherence_values,
+                            self.ut_table_ant_sin,
+                            self.ant_slope_bins_sin,
+                            self.ant_roughness_bins_sin,
+                            self.ant_power_bins_sin,
+                            self.ant_coherence_bins_sin
+                        )
+                else:
+                    uncertainty = get_binned_values(
+                            slope_values,
+                            roughness_values,
+                            power_values,
+                            None,
+                            self.ut_table_ant_lrm,
+                            self.ant_slope_bins_lrm,
+                            self.ant_roughness_bins_lrm,
+                            self.ant_power_bins_lrm,
+                            None
+                        )
 
             else:
                 uncertainty = None
         else:
-            slopes = self.slope_grn.interp_slopes(
+            slope_values = self.slope_grn.interp_slopes(
                 shared_dict["latitudes"],
                 shared_dict["longitudes"],
                 xy_is_latlon=True,
             )
-            uncertainty = calc_uncertainty(
-                slopes,
-                self.ut_table_grn,  # type: ignore # already checked type in init
-                self.ut_min_slope_grn,
-                self.ut_max_slope_grn,
-            )
+            roughness_values = self.roughness_grn.interp_roughness(
+                    shared_dict["latitudes"],
+                    shared_dict["longitudes"],
+                    xy_is_latlon=True,
+                )
+            power_values = shared_dict["sig0_20_ku"]
+            if shared_dict["instr_mode"] == "SIN":
+                coherence_values = shared_dict["coh_at_rtrk_point"]
+                uncertainty = get_binned_values(
+                        slope_values,
+                        roughness_values,
+                        power_values,
+                        coherence_values,
+                        self.ut_table_grn_sin,
+                        self.grn_slope_bins_sin,
+                        self.grn_roughness_bins_sin,
+                        self.grn_power_bins_sin,
+                        self.grn_coherence_bins_sin
+                    )
+            else:
+                uncertainty = get_binned_values(
+                        slope_values,
+                        roughness_values,
+                        power_values,
+                        None,
+                        self.ut_table_grn_lrm,
+                        self.grn_slope_bins_lrm,
+                        self.grn_roughness_bins_lrm,
+                        self.grn_power_bins_lrm,
+                        None
+                    )
 
         shared_dict["uncertainty"] = uncertainty
 
