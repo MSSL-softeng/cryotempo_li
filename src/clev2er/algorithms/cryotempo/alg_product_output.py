@@ -467,6 +467,20 @@ class Algorithm(BaseAlgorithm):
         )
         nc_var[:] = shared_dict["sig0_20_ku"]
 
+        # Coherence (from coherence_waveform_20_ku)
+        nc_var = dset.createVariable("coherence", "double", ("time",))
+        nc_var.units = "count"
+        nc_var.coordinates = "longitude latitude"
+        nc_var.long_name = "l1b coherence"
+        nc_var.standard_name = "coherence_20_ku"
+        nc_var.comment = (
+            "The coherence of the SARIn echoes at the retracking point. This is sampled "
+            "from the coherence waveforms in the L1b product. The coherence waveform is "
+            "a fully-calibrated, high resolution, multilooked coherence computed from the "
+            "complex echoes on the two receiving channels. Unused in LRM and SAR modes."
+        )
+        nc_var[:] = shared_dict["coh_at_rtrk_point"]
+
         # surface_type
         nc_var = dset.createVariable("surface_type", np.byte, ("time",), fill_value=-128)
         nc_var.coordinates = "longitude latitude"

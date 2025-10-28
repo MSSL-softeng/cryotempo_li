@@ -128,6 +128,7 @@ class Algorithm(BaseAlgorithm):
                 leading_edge_start,
                 leading_edge_stop,
                 pwr_at_rtrk_point,
+                coh_at_rtrk_point,
                 n_retrack_failed,
                 _,  # retracker_flags
             ) = retrack_cs2_sin_max_coherence(
@@ -241,6 +242,10 @@ class Algorithm(BaseAlgorithm):
         window_del_20_ku = l1b.variables["window_del_20_ku"][:].data
 
         shared_dict["pwr_at_rtrk_point"] = pwr_at_rtrk_point
+        if shared_dict["instr_mode"] == "SIN":
+            shared_dict["coh_at_rtrk_point"] = coh_at_rtrk_point
+        else:  
+            shared_dict["coh_at_rtrk_point"] = None
 
         shared_dict["leading_edge_start"] = leading_edge_start
         shared_dict["leading_edge_stop"] = leading_edge_stop

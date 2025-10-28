@@ -250,7 +250,7 @@ def retrack_cs2_sin_max_coherence(
     # preallocate output arrays (list for each waveform)
     leading_edge_start = [[np.nan for _ in range(2)] for _ in range(n_waveforms)]
     leading_edge_stop = [[np.nan for _ in range(2)] for _ in range(n_waveforms)]
-    retrack_point_mc = [[np.nan for _ in range(3)] for _ in range(n_waveforms)]
+    retrack_point_mc = [[np.nan for _ in range(4)] for _ in range(n_waveforms)]
     retrack_flag = [[0 for _ in range(6)] for _ in range(n_waveforms)]
 
     # Process each waveform
@@ -486,15 +486,20 @@ def retrack_cs2_sin_max_coherence(
                         retrack_point_mc[i][2] = (
                             wfi_sm[index_of_max_coherence * wf_oversampling_factor] * wf_max
                         )
+                        retrack_point_mc[i][3] = (
+                            coherence_sm[index_of_max_coherence]
+                        )
                     else:
                         retrack_point_mc[i][0] = index_of_max_coherence
                         retrack_point_mc[i][1] = waveform[index_of_max_coherence] / wf_max
                         retrack_point_mc[i][2] = waveform[index_of_max_coherence]
+                        retrack_point_mc[i][3] = coherence_sm[index_of_max_coherence]
 
                     if retrack_point_mc[i][2] == 0:
                         retrack_point_mc[i][0] = np.nan
                         retrack_point_mc[i][1] = np.nan
                         retrack_point_mc[i][2] = np.nan
+                        retrack_point_mc[i][3] = np.nan
                         log.debug("zero power found at retracking point")
                         retrack_flag[i][5] = 1
 
@@ -641,6 +646,10 @@ def retrack_cs2_sin_max_coherence(
 
     pwr_at_rtrk_point_mc = np.array(retrack_point_mc)[:, 2]
 
+    # Store coherence in counts at retracking point (used for uncertainty calculation)
+
+    coh_at_rtrk_point_mc = np.array(retrack_point_mc)[:, 3]
+
     n_retrack_mc_failed = 0
 
     for i in range(n_waveforms):
@@ -668,6 +677,7 @@ def retrack_cs2_sin_max_coherence(
         leading_edge_start,
         leading_edge_stop,
         pwr_at_rtrk_point_mc,
+        coh_at_rtrk_point_mc,
         n_retrack_mc_failed,
         retrack_flag,
     )
