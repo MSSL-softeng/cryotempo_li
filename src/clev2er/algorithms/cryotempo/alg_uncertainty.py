@@ -7,6 +7,7 @@ import numpy as np
 import pandas as pd
 from codetiming import Timer  # used to time the Algorithm.process() function
 from netCDF4 import Dataset  # pylint:disable=E0611
+from scipy.interpolate import interpn
 
 from clev2er.algorithms.base.base_alg import BaseAlgorithm
 from clev2er.utils.roughness.roughness import Roughness
@@ -31,6 +32,7 @@ def get_binned_values(
     roughness_bins: np.ndarray,
     power_bins: np.ndarray,
     coherence_bins: np.ndarray,
+    interpolation: bool
 ) -> list:
 
     """
@@ -47,6 +49,7 @@ def get_binned_values(
         roughness_bins (np.ndarray): Bins to categorize roughness values.
         power_bins (np.ndarray): Bins to categorise power values.
         coherence_bins (np.ndarray): Bins to categorise coherence values.
+        interpolation: interpolate between lookup table bins
 
     Returns:
         list: An array of median absolute elevation differences corresponding to the
@@ -98,24 +101,83 @@ def get_binned_values(
         coherence_indices = [coherence_bins[idx] for idx in coherence_bin_indices]
         ingested_variables.append(coherence_indices)
 
-    binned_table_df = binned_table.stack(future_stack=True)
-    # print(binned_table_df)
+    if interpolation is False:
 
-    if len(ingested_variables) == 1:
-        values = [binned_table_df.loc[
-            ingested_variables[0][i]][0] for i in range(len(ingested_variables[0]))]
-    if len(ingested_variables) == 2:
-        values = [binned_table_df.loc[
-            ingested_variables[0][i]][ingested_variables[1][i]] for i in range(len(ingested_variables[0]))]
-    if len(ingested_variables) == 3:
-        values = [binned_table_df.loc[
-            ingested_variables[0][i]][ingested_variables[1][i]][ingested_variables[2][i]] for i in range(len(ingested_variables[0]))]
-    if len(ingested_variables) == 4:
-        values = [binned_table_df.loc[
-            ingested_variables[0][i]][ingested_variables[1][i]][ingested_variables[2][i]][ingested_variables[3][i]] for i in range(len(ingested_variables[0]))]
+        binned_table_df = binned_table.stack(future_stack=True)
+        # print(binned_table_df)
+
+        if len(ingested_variables) == 1:
+            values = [binned_table_df.loc[
+                ingested_variables[0][i]][0] for i in range(len(ingested_variables[0]))]
+        if len(ingested_variables) == 2:
+            values = [binned_table_df.loc[
+                ingested_variables[0][i]][ingested_variables[1][i]] for i in range(len(ingested_variables[0]))]
+        if len(ingested_variables) == 3:
+            values = [binned_table_df.loc[
+                ingested_variables[0][i]][ingested_variables[1][i]][ingested_variables[2][i]] for i in range(len(ingested_variables[0]))]
+        if len(ingested_variables) == 4:
+            values = [binned_table_df.loc[
+                ingested_variables[0][i]][ingested_variables[1][i]][ingested_variables[2][i]][ingested_variables[3][i]] for i in range(len(ingested_variables[0]))]
     
-    # Retrieve the values using numpy indexing on the DataFrame values
-    # values = [binned_table_df.loc[row_indices[i]][col1_indices[i]][col2_indices[i]][col3_indices[i]][col4_indices[i]] for i in range(len(row_indices))]
+        # Retrieve the values using numpy indexing on the DataFrame values
+        # values = [binned_table_df.loc[row_indices[i]][col1_indices[i]][col2_indices[i]][col3_indices[i]][col4_indices[i]] for i in range(len(row_indices))]
+
+    elif interpolation is True:
+
+        # get LUT values
+        var1 = binned_table.index.values
+        var2 = binned_table.columns.get_level_values(0).unique().values
+
+        if len(ingested_variables) == 2:
+            lut = binned_table.values.reshape(
+                len(var1),
+                len(var2)
+            )
+            covariate_values = np.vstack([slope_values, roughness_values]) 
+            sampling_points = covariate_values.T 
+            sampling_points_clipped = np.clip(
+                sampling_points,
+                a_min=[slope_bins[0], roughness_bins[0]],
+                a_max=[slope_bins[-2], roughness_bins[-2]]
+            )
+
+            values = [interpn((slope_bins[:-1],roughness_bins[:-1]), lut, n, method='linear', bounds_error=False, fill_value=None) for n in [sampling_points_clipped]]
+
+        if len(ingested_variables) == 3:
+            var3 = binned_table.columns.get_level_values(1).unique().values
+            lut = binned_table.values.reshape(
+                len(var1),
+                len(var2),
+                len(var3)
+            )
+            covariate_values = np.vstack([slope_values, roughness_values, power_values]) 
+            sampling_points = covariate_values.T 
+            sampling_points_clipped = np.clip(
+                sampling_points,
+                a_min=[slope_bins[0], roughness_bins[0], power_bins[0]],
+                a_max=[slope_bins[-2], roughness_bins[-2], power_bins[-2]]
+            )
+
+            values = [interpn((slope_bins[:-1],roughness_bins[:-1],power_bins[:-1]), lut, n, method='linear', bounds_error=False, fill_value=None) for n in [sampling_points_clipped]]
+
+        if len(ingested_variables) == 4:
+            var3 = binned_table.columns.get_level_values(1).unique().values
+            var4 = binned_table.columns.get_level_values(2).unique().values
+            lut = binned_table.values.reshape(
+                len(var1),
+                len(var2),
+                len(var3),
+                len(var4)
+            )
+            covariate_values = np.vstack([slope_values, roughness_values, power_values, coherence_values]) 
+            sampling_points = covariate_values.T 
+            sampling_points_clipped = np.clip(
+                sampling_points,
+                a_min=[slope_bins[0], roughness_bins[0], power_bins[0], coherence_bins[0]],
+                a_max=[slope_bins[-2], roughness_bins[-2], power_bins[-2], coherence_bins[-2]]
+            )
+
+            values = [interpn((slope_bins[:-1],roughness_bins[:-1],power_bins[:-1],coherence_bins[:-1]), lut, n, method='linear', bounds_error=False, fill_value=None) for n in [sampling_points_clipped]]
 
     return values
 
@@ -233,18 +295,30 @@ class Algorithm(BaseAlgorithm):
         self.grn_roughness_bins_sin = np.load(self.grn_roughness_bins_sin)['the_roughness_bins']
 
         # Define power bins 
-        self.grn_power_bins_sin = (
+        if os.path.exists(
             f"{str(self.config['uncertainty_tables']['base_dir'])}/"
             "the_power_bins_greenland_is_SIN.npz"
-        )
-        self.grn_power_bins_sin = np.load(self.grn_power_bins_sin)['the_power_bins']
+        ):
+            self.grn_power_bins_sin = (
+                f"{str(self.config['uncertainty_tables']['base_dir'])}/"
+                "the_power_bins_greenland_is_SIN.npz"
+            )
+            self.grn_power_bins_sin = np.load(self.grn_power_bins_sin)['the_power_bins']
+        else:
+            self.grn_power_bins_sin = None
 
         # Define coherence bins 
-        self.grn_coherence_bins_sin = (
+        if os.path.exists(
             f"{str(self.config['uncertainty_tables']['base_dir'])}/"
             "the_coherence_bins_greenland_is_SIN.npz"
-        )
-        self.grn_coherence_bins_sin = np.load(self.grn_coherence_bins_sin)['the_coherence_bins']
+        ):
+            self.grn_coherence_bins_sin = (
+                f"{str(self.config['uncertainty_tables']['base_dir'])}/"
+                "the_coherence_bins_greenland_is_SIN.npz"
+            )
+            self.grn_coherence_bins_sin = np.load(self.grn_coherence_bins_sin)['the_coherence_bins']
+        else:
+            self.grn_coherence_bins_sin = None
 
         self.ut_table_ant_sin = pd.read_pickle(self.uncertainty_table_antarctica_sin)
 
@@ -263,18 +337,30 @@ class Algorithm(BaseAlgorithm):
         self.ant_roughness_bins_sin = np.load(self.ant_roughness_bins_sin)['the_roughness_bins']
 
         # Define power bins 
-        self.ant_power_bins_sin = (
+        if os.path.exists(
             f"{str(self.config['uncertainty_tables']['base_dir'])}/"
             "the_power_bins_antarctica_icesheets_SIN.npz"
-        )
-        self.ant_power_bins_sin = np.load(self.ant_power_bins_sin)['the_power_bins']
+        ):
+            self.ant_power_bins_sin = (
+                f"{str(self.config['uncertainty_tables']['base_dir'])}/"
+                "the_power_bins_antarctica_icesheets_SIN.npz"
+            )
+            self.ant_power_bins_sin = np.load(self.ant_power_bins_sin)['the_power_bins']
+        else:
+            self.ant_power_bins_sin = None
 
         # Define coherence bins 
-        self.ant_coherence_bins_sin = (
+        if os.path.exists(
             f"{str(self.config['uncertainty_tables']['base_dir'])}/"
             "the_coherence_bins_antarctica_icesheets_SIN.npz"
-        )
-        self.ant_coherence_bins_sin = np.load(self.ant_coherence_bins_sin)['the_coherence_bins']
+        ):
+            self.ant_coherence_bins_sin = (
+                f"{str(self.config['uncertainty_tables']['base_dir'])}/"
+                "the_coherence_bins_antarctica_icesheets_SIN.npz"
+            )
+            self.ant_coherence_bins_sin = np.load(self.ant_coherence_bins_sin)['the_coherence_bins']
+        else:
+            self.ant_coherence_bins_sin = None
 
         # Read in LRM lookup tables, and bin distribution
         self.ut_table_grn_lrm = pd.read_pickle(self.uncertainty_table_greenland_lrm)
@@ -294,11 +380,17 @@ class Algorithm(BaseAlgorithm):
         self.grn_roughness_bins_lrm = np.load(self.grn_roughness_bins_lrm)['the_roughness_bins']
 
         # Define power bins 
-        self.grn_power_bins_lrm = (
+        if os.path.exists(
             f"{str(self.config['uncertainty_tables']['base_dir'])}/"
             "the_power_bins_greenland_is_LRM.npz"
-        )
-        self.grn_power_bins_lrm = np.load(self.grn_power_bins_lrm)['the_power_bins']
+        ):
+            self.grn_power_bins_lrm = (
+                f"{str(self.config['uncertainty_tables']['base_dir'])}/"
+                "the_power_bins_greenland_is_LRM.npz"
+            )
+            self.grn_power_bins_lrm = np.load(self.grn_power_bins_lrm)['the_power_bins']
+        else:
+            self.grn_power_bins_lrm = None
 
         self.ut_table_ant_lrm = pd.read_pickle(self.uncertainty_table_antarctica_lrm)
 
@@ -317,11 +409,17 @@ class Algorithm(BaseAlgorithm):
         self.ant_roughness_bins_lrm = np.load(self.ant_roughness_bins_lrm)['the_roughness_bins']
 
         # Define power bins 
-        self.ant_power_bins_lrm = (
+        if os.path.exists(
             f"{str(self.config['uncertainty_tables']['base_dir'])}/"
             "the_power_bins_antarctica_icesheets_LRM.npz"
-        )
-        self.ant_power_bins_lrm = np.load(self.ant_power_bins_lrm)['the_power_bins']
+        ):
+            self.ant_power_bins_lrm = (
+                f"{str(self.config['uncertainty_tables']['base_dir'])}/"
+                "the_power_bins_antarctica_icesheets_LRM.npz"
+            )
+            self.ant_power_bins_lrm = np.load(self.ant_power_bins_lrm)['the_power_bins']
+        else:
+            self.ant_power_bins_lrm = None
 
         # Test the data
         if not isinstance(self.ut_table_grn_sin, pd.core.frame.DataFrame):
@@ -338,7 +436,7 @@ class Algorithm(BaseAlgorithm):
             )
 
         self.slope_grn = Slopes("arcticdem_100m_900ws_slopes_zarr")
-        self.roughness_grn = Roughness("rema_100m_900ws_roughness_zarr")
+        self.roughness_grn = Roughness("arcticdem_100m_900ws_roughness_zarr")
         if "grn_only" in self.config and self.config["grn_only"]:
             self.slope_ant = None
             self.roughness_ant = None
@@ -393,9 +491,15 @@ class Algorithm(BaseAlgorithm):
                         shared_dict["longitudes"],
                         xy_is_latlon=True,
                 )
-                power_values = shared_dict["sig0_20_ku"]
+                if self.ant_power_bins_sin is not None:
+                    power_values = shared_dict["sig0_20_ku"]
+                else: 
+                    power_values = None
                 if shared_dict["instr_mode"] == "SIN":
-                    coherence_values = shared_dict["coh_at_rtrk_point"]
+                    if self.ant_coherence_bins_sin is not None:
+                        coherence_values = shared_dict["coh_at_rtrk_point"]
+                    else:
+                        coherence_values = None
                     uncertainty = get_binned_values(
                             slope_values,
                             roughness_values,
@@ -405,7 +509,8 @@ class Algorithm(BaseAlgorithm):
                             self.ant_slope_bins_sin,
                             self.ant_roughness_bins_sin,
                             self.ant_power_bins_sin,
-                            self.ant_coherence_bins_sin
+                            self.ant_coherence_bins_sin,
+                            self.config['uncertainty_tables']['interpolation']
                         )
                 else:
                     uncertainty = get_binned_values(
@@ -417,7 +522,8 @@ class Algorithm(BaseAlgorithm):
                             self.ant_slope_bins_lrm,
                             self.ant_roughness_bins_lrm,
                             self.ant_power_bins_lrm,
-                            None
+                            None,
+                            self.config['uncertainty_tables']['interpolation']
                         )
 
             else:
@@ -433,9 +539,14 @@ class Algorithm(BaseAlgorithm):
                     shared_dict["longitudes"],
                     xy_is_latlon=True,
                 )
-            power_values = shared_dict["sig0_20_ku"]
+            if self.grn_power_bins_sin is not None:
+                power_values = shared_dict["sig0_20_ku"]
+            else: power_values = None
             if shared_dict["instr_mode"] == "SIN":
-                coherence_values = shared_dict["coh_at_rtrk_point"]
+                if self.grn_coherence_bins_sin is not None:
+                    coherence_values = shared_dict["coh_at_rtrk_point"]
+                else:
+                    coherence_values = None
                 uncertainty = get_binned_values(
                         slope_values,
                         roughness_values,
@@ -445,7 +556,8 @@ class Algorithm(BaseAlgorithm):
                         self.grn_slope_bins_sin,
                         self.grn_roughness_bins_sin,
                         self.grn_power_bins_sin,
-                        self.grn_coherence_bins_sin
+                        self.grn_coherence_bins_sin,
+                        self.config['uncertainty_tables']['interpolation']
                     )
             else:
                 uncertainty = get_binned_values(
@@ -457,7 +569,8 @@ class Algorithm(BaseAlgorithm):
                         self.grn_slope_bins_lrm,
                         self.grn_roughness_bins_lrm,
                         self.grn_power_bins_lrm,
-                        None
+                        None,
+                        self.config['uncertainty_tables']['interpolation']
                     )
 
         shared_dict["uncertainty"] = uncertainty

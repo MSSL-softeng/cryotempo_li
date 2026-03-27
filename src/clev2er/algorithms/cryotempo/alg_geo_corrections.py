@@ -110,6 +110,9 @@ class Algorithm(BaseAlgorithm):
                 "fes2014b_corrections.load_tide_20 missing from shared_dict",
             )
             return (False, "fes2014b_corrections.load_tide_20 missing from shared_dict")
+        # load_tide_20 = l1b.variables["load_tide_01"][:].data[ind_meas_1hz_20_ku]
+        # ocean_tide_20 = l1b.variables["ocean_tide_01"][:].data[ind_meas_1hz_20_ku]
+        # ocean_tide_eq_20 = l1b.variables["ocean_tide_eq_01"][:].data[ind_meas_1hz_20_ku]
 
         # Retrieve CATS2008a tide corrections for SIN mode files in southern hemi
         if shared_dict["cats_tide_required"]:
