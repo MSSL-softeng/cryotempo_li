@@ -467,6 +467,22 @@ class Algorithm(BaseAlgorithm):
         )
         nc_var[:] = shared_dict["sig0_20_ku"]
 
+        # Coherence at the retracking point (SARIn mode only, not available in LRM)
+        if shared_dict["instr_mode"] == "SIN":
+            nc_var = dset.createVariable("coherence", "double", ("time",))
+            nc_var.units = "1"
+            nc_var.coordinates = "longitude latitude"
+            nc_var.long_name = "waveform coherence at the retracking point"
+            nc_var.valid_min = 0
+            nc_var.valid_max = 1
+            nc_var.comment = (
+                "Un-smoothed (raw) interferometric coherence of the waveform at the "
+                "retracking point, in the range [0,1]. Only available in SARIn mode, "
+                "so this parameter is not included in LRM mode products. "
+                "Where the retracking point can not be calculated, the value is set to Nan."
+            )
+            nc_var[:] = shared_dict["coherence_at_rtrk_point"]
+
         # surface_type
         nc_var = dset.createVariable("surface_type", np.byte, ("time",), fill_value=-128)
         nc_var.coordinates = "longitude latitude"

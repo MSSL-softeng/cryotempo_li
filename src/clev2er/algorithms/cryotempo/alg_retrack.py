@@ -43,6 +43,8 @@ class Algorithm(BaseAlgorithm):
 
     - shared_dict["ind_wfm_retrack_20_ku"]: (np.ndarray) closest bin number to retracking point(s)
     - shared_dict["pwr_at_rtrk_point"] : (np.ndarray) waveform power at the retracking point
+    - shared_dict["coherence_at_rtrk_point"] : (np.ndarray) raw (un-smoothed) coherence at the
+      retracking point, NaN where retracking failed. SIN mode only (not set for LRM)
     - shared_dict["range_cor_20_ku"] : (np.ndarray) corrected range (retracked and geo-corrected)
     - shared_dict["num_retracker_failures"] (int) : number of retracker failures
     - shared_dict["percent_retracker_failure"]  (float) : percentage of retracker failures
@@ -128,6 +130,7 @@ class Algorithm(BaseAlgorithm):
                 leading_edge_start,
                 leading_edge_stop,
                 pwr_at_rtrk_point,
+                coherence_at_rtrk_point,
                 n_retrack_failed,
                 _,  # retracker_flags
             ) = retrack_cs2_sin_max_coherence(
@@ -167,6 +170,9 @@ class Algorithm(BaseAlgorithm):
             # calculate the closest  bin number to the retracking point : units count
 
             ind_wfm_retrack_20_ku = 512.0 + np.array(dr_bin)
+
+            # coherence at the retracking point is only available in SIN mode
+            shared_dict["coherence_at_rtrk_point"] = coherence_at_rtrk_point
 
         else:
             self.log.info("Retracking LRM waveform using TCOG Retracker..")

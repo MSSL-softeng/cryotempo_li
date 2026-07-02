@@ -17,7 +17,7 @@ measurement_index=None, include_measurements_array=None)
 Used as:
 
     dr_bin_mc,dr_meters_mc,leading_edge_start,leading_edge_stop, pwr_at_rtrk_point_mc,
-    n_retrack_mc_failed=\
+    coherence_at_rtrk_point_mc, n_retrack_mc_failed=\
     retrack_cs2_sin_max_coherence(l1b_file=
     '/path/to/CS_OFFL_SIR_LRM_1B_20190504T122726_20190504T123244_D001.nc')
 
@@ -107,6 +107,7 @@ def retrack_cs2_sin_max_coherence(
     List[List[float]],
     List[List[float]],
     np.ndarray,
+    np.ndarray,
     int,
     List[List[int]],
 ]:
@@ -155,7 +156,7 @@ def retrack_cs2_sin_max_coherence(
 
     Returns:
         Tuple: (dr_bin_mc, dr_meters_mc, leading_edge_start, leading_edge_stop,pwr_at_rtrk_point_mc,
-                n_retrack_mc_failed, retrack_flag)
+                coherence_at_rtrk_point_mc, n_retrack_mc_failed, retrack_flag)
                 dr_bin_mc (List[float]) : max coherence epoch relative to nominal tracking point
                                           in bins
                 dr_meters_mc (List[float]) : max coherence epoch relative to nominal tracking point
@@ -165,6 +166,8 @@ def retrack_cs2_sin_max_coherence(
                 leading_edge_stop (List[List[float]]): leading edge stop coordinates
                                                     column 1 = bin  |  column 2 = normalised power
                 pwr_at_rtrk_point_mc (List[float]): power in counts at retracking point
+                coherence_at_rtrk_point_mc (np.ndarray): raw (un-smoothed) coherence value at the
+                            retracking point bin. NaN where retracking failed
                 n_retrack_mc_failed (int): number of waveforms were retracking failed
                 retrack_flag (List[List[int]]): returned retracker flags for each waveform indicate
                             how retracking failed | 6 x t |
@@ -251,6 +254,7 @@ def retrack_cs2_sin_max_coherence(
     leading_edge_start = [[np.nan for _ in range(2)] for _ in range(n_waveforms)]
     leading_edge_stop = [[np.nan for _ in range(2)] for _ in range(n_waveforms)]
     retrack_point_mc = [[np.nan for _ in range(3)] for _ in range(n_waveforms)]
+    coherence_at_rtrk_point_mc = np.full(n_waveforms, np.nan)
     retrack_flag = [[0 for _ in range(6)] for _ in range(n_waveforms)]
 
     # Process each waveform
@@ -491,10 +495,15 @@ def retrack_cs2_sin_max_coherence(
                         retrack_point_mc[i][1] = waveform[index_of_max_coherence] / wf_max
                         retrack_point_mc[i][2] = waveform[index_of_max_coherence]
 
+                    # store the raw (un-smoothed) coherence at the retracking point bin;
+                    # smoothed coherence is only used to locate index_of_max_coherence
+                    coherence_at_rtrk_point_mc[i] = coherence[i][index_of_max_coherence]
+
                     if retrack_point_mc[i][2] == 0:
                         retrack_point_mc[i][0] = np.nan
                         retrack_point_mc[i][1] = np.nan
                         retrack_point_mc[i][2] = np.nan
+                        coherence_at_rtrk_point_mc[i] = np.nan
                         log.debug("zero power found at retracking point")
                         retrack_flag[i][5] = 1
 
@@ -668,6 +677,7 @@ def retrack_cs2_sin_max_coherence(
         leading_edge_start,
         leading_edge_stop,
         pwr_at_rtrk_point_mc,
+        coherence_at_rtrk_point_mc,
         n_retrack_mc_failed,
         retrack_flag,
     )

@@ -69,6 +69,7 @@ def test_retrack_cs2_sin_max_coherence(sin_file):  # pylint: disable=W0621
         _,  # leading_edge_start,
         _,  # leading_edge_stop,
         _,  # pwr_at_rtrk_point,
+        coherence_at_rtrk_point,
         n_retracker_failures,
         _,  # retrack_flags,
     ) = retrack_cs2_sin_max_coherence(
@@ -77,6 +78,11 @@ def test_retrack_cs2_sin_max_coherence(sin_file):  # pylint: disable=W0621
     )
 
     assert n_retracker_failures == 0
+
+    # Check coherence at retracking point is valid for all successfully retracked waveforms
+    valid_coherence = coherence_at_rtrk_point[np.isfinite(coherence_at_rtrk_point)]
+    assert valid_coherence.size > 0
+    assert np.all(valid_coherence >= 0.0)
 
 
 # Test the MC retracker runs without error with a sample LRM file on all waveforms
@@ -95,6 +101,7 @@ def test_retrack_cs2_sin_max_coherence_with_lrm(lrm_file):  # pylint: disable=W0
         _,  # leading_edge_start,
         _,  # leading_edge_stop,
         _,  # pwr_at_rtrk_point,
+        _,  # coherence_at_rtrk_point,
         _,  # n_retracker_failures,
         _,  # retrack_flags,
     ) = retrack_cs2_sin_max_coherence(
@@ -142,6 +149,7 @@ def test_retrack_cs2_sin_max_coherence_at_index(
         leading_edge_start,
         leading_edge_stop,
         _,  # pwr_at_rtrk_point,
+        _,  # coherence_at_rtrk_point,
         n_retracker_failures,
         retrack_flags,
     ) = retrack_cs2_sin_max_coherence(
