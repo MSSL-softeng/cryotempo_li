@@ -197,7 +197,7 @@ uncertainty_tables:
   # elevation differences by create_cryotempo_luts_from_is2_diffs (CLEV2ER repository).
   # SIN uses a 4D LUT (slope, roughness, power, coherence); LRM a 3D LUT (no coherence).
   # 'covariates' selects which LUT axes are used; unused axes are marginalised at load.
-  base_dir: ${CS2_UNCERTAINTY_BASE_DIR}/data/uncertainty_tables/D001_3d4d
+  base_dir: ${CS2_UNCERTAINTY_BASE_DIR}/data/uncertainty_tables/E001
   antarctica:
     sin:
       filename: ant_uncertainty_4d_sin_v01.nc
