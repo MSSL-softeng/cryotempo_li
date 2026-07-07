@@ -220,10 +220,10 @@ uncertainty_tables:
 surface_slopes:
   antarctica:
     raster_map_name: rema_filled_100m_slope_svd_9x9_zarr
-    directory: ${CPDATA_DIR}/SATS/RA/DEMS/slope_and_roughness
+    directory: /home/clopr/software/clevops/testdata_external/adf/landice/slope_data/antarctica
   greenland:
     raster_map_name: arcticdem_cropped_100m_slope_svd_9x9
-    directory: ${CPDATA_DIR}/SATS/RA/DEMS/slope_and_roughness
+    directory: /home/clopr/software/clevops/testdata_external/adf/landice/slope_data/greenland
 
 surface_roughness:
   antarctica:
