@@ -468,7 +468,7 @@ class Algorithm(BaseAlgorithm):
         nc_var[:] = shared_dict["sig0_20_ku"]
 
         # Coherence at the retracking point (SARIn mode only, not available in LRM)
-        if shared_dict["instr_mode"] == "SIN":
+        if 0:  # if shared_dict["instr_mode"] == "SIN" pylint:disable=using-constant-test
             nc_var = dset.createVariable("coherence", "double", ("time",))
             nc_var.units = "1"
             nc_var.coordinates = "longitude latitude"
