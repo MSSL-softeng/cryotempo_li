@@ -228,10 +228,10 @@ surface_slopes:
 surface_roughness:
   antarctica:
     raster_map_name: rema_filled_100m_roughness_range_svd_9x9_zarr
-    directory: ${CPDATA_DIR}/SATS/RA/DEMS/slope_and_roughness
+    directory: /home/clopr/software/clevops/testdata_external/adf/landice/roughness_data/antarctica
   greenland:
     raster_map_name: arcticdem_cropped_100m_roughness_range_svd_9x9_zarr
-    directory: ${CPDATA_DIR}/SATS/RA/DEMS/slope_and_roughness
+    directory: /home/clopr/software/clevops/testdata_external/adf/landice/roughness_data/greenland
 
 leap_seconds: ${CPOM_SOFTWARE_DIR}/cpom/resources/leap_seconds/leap-seconds.list
 
