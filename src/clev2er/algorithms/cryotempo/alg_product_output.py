@@ -574,23 +574,24 @@ class Algorithm(BaseAlgorithm):
         nc_var.coordinates = "longitude latitude"
         nc_var.long_name = "uncertainty of elevation parameter"
         nc_var.standard_name = "elevation_uncertainty"
-        if shared_dict["hemisphere"] == "south":
+        if shared_dict["instr_mode"] == "SIN":
             nc_var.comment = (
                 "Uncertainty estimate is derived from an empirical parameterisation based on the "
-                "ice sheet surface topographic characteristics of slope and roughness at each "
-                "measurement location. 1 year of CryoTEMPO Baseline-D elevation differences to "
-                "IceSAT-2 ATL-06 v5 were calculated and the mean difference calculated per bands of"
-                " slope and roughness using a bi-linear fit. The resulting uncertainty was then "
-                "calculated at each point using a 2d LUT."
+                "ice sheet surface topographic characteristics (slope, roughness) and radar echo "
+                "characteristics (backscatter, waveform coherence at the retracking point) at "
+                "each measurement location. 1 year of CryoTEMPO Baseline-D elevation differences "
+                "to ICESat-2 ATL-06 were calculated and the median absolute difference binned per "
+                "(slope, roughness, backscatter, coherence) cell. The resulting uncertainty is "
+                "calculated at each point using a 4d LUT."
             )
         else:
             nc_var.comment = (
                 "Uncertainty estimate is derived from an empirical parameterisation based on the "
-                "ice sheet surface topographic characteristics of slope each "
-                "measurement location. 1 year of CryoTEMPO Baseline-D elevation differences to "
-                "IceSAT-2 ATL-06 v5 were calculated and the mean difference calculated per 0.1 deg "
-                "band of slope. The resulting uncertainty was then "
-                "calculated at each point using a LUT."
+                "ice sheet surface topographic characteristics (slope, roughness) and radar echo "
+                "characteristics (backscatter) at each measurement location. 1 year of CryoTEMPO "
+                "Baseline-D elevation differences to ICESat-2 ATL-06 were calculated and the "
+                "median absolute difference binned per (slope, roughness, backscatter) cell. The "
+                "resulting uncertainty is calculated at each point using a 3d LUT."
             )
         nc_var[:] = shared_dict["uncertainty"]
 

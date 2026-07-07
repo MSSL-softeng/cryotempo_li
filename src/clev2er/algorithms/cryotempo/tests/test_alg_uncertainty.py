@@ -7,7 +7,9 @@ import os
 from typing import Any, Dict
 
 import numpy as np
+import pyproj
 import pytest
+import zarr
 from netCDF4 import Dataset  # pylint: disable=E0611
 
 from clev2er.algorithms.cryotempo.alg_backscatter import Algorithm as Backscatter
@@ -36,6 +38,7 @@ from clev2er.algorithms.cryotempo.alg_waveform_quality import (
     Algorithm as WaveformQuality,
 )
 from clev2er.utils.config.load_config_settings import load_config_files
+from clev2er.utils.uncertainty.tests.test_luts import write_test_lut
 
 # Similar lines in 2 files, pylint: disable=R0801
 # pylint: disable=too-many-locals
@@ -43,6 +46,229 @@ from clev2er.utils.config.load_config_settings import load_config_files
 # pylint: disable=too-many-statements
 
 log = logging.getLogger(__name__)
+
+
+# ---------------------------------------------------------------------------
+# Unit test with synthetic LUTs and rastermaps (no external data needed)
+# ---------------------------------------------------------------------------
+
+
+def _write_zarr_pair(directory, stem, values, binsize=100.0):
+    """Write <stem>.zarr (+ _flipped companion) with the extent attrs RasterMap expects.
+
+    ``values`` row 0 is the top row of the map (maximum y); grid origin is (0, 0).
+    """
+    nrows, ncols = values.shape
+    top_y = (nrows - 1) * binsize
+    right_x = (ncols - 1) * binsize
+    main = zarr.open_array(str(directory / f"{stem}.zarr"), mode="w", shape=values.shape)
+    main[:] = values
+    main.attrs.update(
+        {
+            "ncols": ncols,
+            "nrows": nrows,
+            "top_l": (0.0, top_y),
+            "top_r": (right_x, top_y),
+            "bottom_l": (0.0, 0.0),
+            "binsize": binsize,
+        }
+    )
+    flipped = zarr.open_array(str(directory / f"{stem}_flipped.zarr"), mode="w", shape=values.shape)
+    flipped[:] = np.flip(values, 0)
+
+
+def _make_synthetic_config(tmp_path) -> Dict[str, Any]:
+    """Build a minimal chain config with synthetic LUTs and slope/roughness rastermaps.
+
+    LUT tables are constant per (region, mode) so the expected uncertainty values are
+    unambiguous: antarctica sin=1.5, lrm=0.7; greenland sin=2.5, lrm=1.2. The synthetic
+    slope (0.5 deg) and roughness (0.2 m) maps are constant and within the LUT axis
+    ranges. Map grids cover x,y = 0..700 m (8x8 at 100 m) at the projection origin.
+    """
+    lut_dir = tmp_path / "luts"
+    lut_dir.mkdir()
+    map_dir = tmp_path / "maps"
+    map_dir.mkdir()
+
+    axes_4d = {
+        "slope": np.array([0.2, 0.6, 1.0]),
+        "roughness": np.array([0.1, 0.3]),
+        "power": np.array([5.0, 15.0]),
+        "coherence": np.array([0.6, 0.9]),
+    }
+    axes_3d = {k: v for k, v in axes_4d.items() if k != "coherence"}
+    shape_4d = tuple(v.size for v in axes_4d.values())
+    shape_3d = tuple(v.size for v in axes_3d.values())
+
+    lut_values = {
+        ("ant", "sin"): 1.5,
+        ("ant", "lrm"): 0.7,
+        ("grn", "sin"): 2.5,
+        ("grn", "lrm"): 1.2,
+    }
+    for (prefix, mode), value in lut_values.items():
+        if mode == "sin":
+            write_test_lut(
+                lut_dir / f"{prefix}_uncertainty_4d_sin_v01.nc",
+                axes_4d,
+                np.full(shape_4d, value),
+            )
+        else:
+            write_test_lut(
+                lut_dir / f"{prefix}_uncertainty_3d_lrm_v01.nc",
+                axes_3d,
+                np.full(shape_3d, value),
+            )
+
+    slope_values = np.full((8, 8), 0.5)
+    roughness_values = np.full((8, 8), 0.2)
+    _write_zarr_pair(map_dir, "rema_filled_100m_slope_svd_9x9", slope_values)
+    _write_zarr_pair(map_dir, "rema_filled_100m_roughness_range_svd_9x9", roughness_values)
+    _write_zarr_pair(map_dir, "arcticdem_cropped_100m_slope_svd_9x9", slope_values)
+    _write_zarr_pair(map_dir, "arcticdem_cropped_100m_roughness_range_svd_9x9", roughness_values)
+
+    return {
+        "chain": {"use_multi_processing": False},
+        "uncertainty_tables": {
+            "base_dir": str(lut_dir),
+            "antarctica": {
+                "sin": {
+                    "filename": "ant_uncertainty_4d_sin_v01.nc",
+                    "covariates": "slope,roughness,power,coherence",
+                },
+                "lrm": {
+                    "filename": "ant_uncertainty_3d_lrm_v01.nc",
+                    "covariates": "slope,roughness,power",
+                },
+            },
+            "greenland": {
+                "sin": {
+                    "filename": "grn_uncertainty_4d_sin_v01.nc",
+                    "covariates": "slope,roughness,power,coherence",
+                },
+                "lrm": {
+                    "filename": "grn_uncertainty_3d_lrm_v01.nc",
+                    "covariates": "slope,roughness,power",
+                },
+            },
+        },
+        "surface_slopes": {
+            "antarctica": {
+                "raster_map_name": "rema_filled_100m_slope_svd_9x9_zarr",
+                "directory": str(map_dir),
+            },
+            "greenland": {
+                "raster_map_name": "arcticdem_cropped_100m_slope_svd_9x9",
+                "directory": str(map_dir),
+            },
+        },
+        "surface_roughness": {
+            "antarctica": {
+                "raster_map_name": "rema_filled_100m_roughness_range_svd_9x9_zarr",
+                "directory": str(map_dir),
+            },
+            "greenland": {
+                "raster_map_name": "arcticdem_cropped_100m_roughness_range_svd_9x9_zarr",
+                "directory": str(map_dir),
+            },
+        },
+    }
+
+
+def _latlon_on_synthetic_map(xs, ys, epsg=3031):
+    """Convert map-projection x/y to (lats, lons) for the synthetic map grids."""
+    transformer = pyproj.Transformer.from_crs(
+        pyproj.CRS.from_epsg(epsg), pyproj.CRS.from_epsg(4326), always_xy=True
+    )
+    lons, lats = transformer.transform(np.asarray(xs, float), np.asarray(ys, float))
+    return np.asarray(lats), np.asarray(lons)
+
+
+@pytest.fixture(name="dummy_l1b")
+def dummy_l1b_fixture(tmp_path):
+    """A minimal netCDF4 Dataset (process_setup only checks the type)."""
+    with Dataset(tmp_path / "dummy_l1b.nc", "w") as nc:
+        nc.createDimension("time", 1)
+    with Dataset(tmp_path / "dummy_l1b.nc") as nc:
+        yield nc
+
+
+def test_alg_uncertainty_synthetic(tmp_path, dummy_l1b) -> None:
+    """SIN uses the 4D LUT, LRM the 3D LUT; NaN covariates/off-map points give NaN"""
+    config = _make_synthetic_config(tmp_path)
+    thisalg = Algorithm(config, log)
+
+    # two on-map points + one off-map point (x=5000 is outside the 0..700 m grid)
+    lats, lons = _latlon_on_synthetic_map([350.0, 150.0, 5000.0], [350.0, 250.0, 5000.0])
+
+    shared_dict: Dict[str, Any] = {
+        "hemisphere": "south",
+        "instr_mode": "SIN",
+        "latitudes": lats,
+        "longitudes": lons,
+        "sig0_20_ku": np.array([10.0, np.nan, 10.0]),
+        "coherence_at_rtrk_point": np.array([0.7, 0.8, 0.7]),
+    }
+    success, _ = thisalg.process(dummy_l1b, shared_dict)
+    assert success
+    unc = shared_dict["uncertainty"]
+    assert np.isclose(unc[0], 1.5)  # antarctica SIN LUT value
+    assert np.isnan(unc[1])  # NaN sig0 -> NaN uncertainty
+    assert np.isnan(unc[2])  # off-map -> NaN slope/roughness -> NaN uncertainty
+
+    # LRM mode needs no coherence and uses the 3D LUT
+    shared_dict_lrm: Dict[str, Any] = {
+        "hemisphere": "south",
+        "instr_mode": "LRM",
+        "latitudes": lats[:2],
+        "longitudes": lons[:2],
+        "sig0_20_ku": np.array([10.0, 10.0]),
+    }
+    success, _ = thisalg.process(dummy_l1b, shared_dict_lrm)
+    assert success
+    assert np.allclose(shared_dict_lrm["uncertainty"], 0.7)
+
+    # unsupported mode fails with a clear error
+    shared_dict_sar = dict(shared_dict_lrm, instr_mode="SAR")
+    success, error_str = thisalg.process(dummy_l1b, shared_dict_sar)
+    assert not success and "SAR" in error_str
+
+
+def test_alg_uncertainty_synthetic_greenland(tmp_path, dummy_l1b) -> None:
+    """northern hemisphere selects the greenland LUT set"""
+    config = _make_synthetic_config(tmp_path)
+    thisalg = Algorithm(config, log)
+
+    lats, lons = _latlon_on_synthetic_map([350.0], [350.0], epsg=3413)
+    shared_dict: Dict[str, Any] = {
+        "hemisphere": "north",
+        "instr_mode": "LRM",
+        "latitudes": lats,
+        "longitudes": lons,
+        "sig0_20_ku": np.array([10.0]),
+    }
+    success, _ = thisalg.process(dummy_l1b, shared_dict)
+    assert success
+    assert np.isclose(shared_dict["uncertainty"][0], 1.2)
+
+
+def test_alg_uncertainty_grn_only(tmp_path, dummy_l1b) -> None:
+    """grn_only runs skip Antarctic resources; southern files get uncertainty None"""
+    config = _make_synthetic_config(tmp_path)
+    config["grn_only"] = True
+    thisalg = Algorithm(config, log)
+    assert "antarctica" not in thisalg.uncertainty_luts
+
+    shared_dict: Dict[str, Any] = {"hemisphere": "south", "instr_mode": "SIN"}
+    success, _ = thisalg.process(dummy_l1b, shared_dict)
+    assert success
+    assert shared_dict["uncertainty"] is None
+
+
+# ---------------------------------------------------------------------------
+# Integration test with real L1b files and the chain config (requires the
+# generated LUTs, slope/roughness rastermaps and CryoSat test data)
+# ---------------------------------------------------------------------------
 
 
 @pytest.mark.parametrize(
@@ -65,6 +291,16 @@ def test_alg_uncertainty(l1b_file) -> None:
 
     # Set to Sequential Processing
     config["chain"]["use_multi_processing"] = False
+
+    # Skip (rather than fail) while the generated 3D/4D LUT files are not yet in
+    # place: they are produced from CryoTEMPO-minus-IS2 differences by
+    # create_cryotempo_luts_from_is2_diffs in the CLEV2ER repository.
+    first_lut = (
+        f"{config['uncertainty_tables']['base_dir']}/"
+        f"{config['uncertainty_tables']['antarctica']['sin']['filename']}"
+    )
+    if not os.path.isfile(first_lut):
+        pytest.skip(f"3D/4D uncertainty LUTs not found ({first_lut})")
 
     # Initialise any other Algorithms required by test
 
@@ -150,7 +386,7 @@ def test_alg_uncertainty(l1b_file) -> None:
 
     # Initialise the Algorithm being tested
     try:
-        thisalg = Algorithm(config, log)  # no config used for this alg
+        thisalg = Algorithm(config, log)
     except (KeyError, FileNotFoundError) as exc:
         assert False, f"Could not initialize algorithm {exc}"
 
@@ -234,8 +470,9 @@ def test_alg_uncertainty(l1b_file) -> None:
     min_uncertainty = np.nanmin(shared_dict["uncertainty"])
     max_uncertainty = np.nanmax(shared_dict["uncertainty"])
 
-    assert 0.0 < min_uncertainty < 0.3
-    assert max_uncertainty < 2.5
+    # LUT values are median |dh| screened at |dh| <= 15 m, so all finite
+    # uncertainties must lie in (0, 15)
+    assert 0.0 < min_uncertainty <= max_uncertainty < 15.0
 
     log.info("min_uncertainty %f", min_uncertainty)
     log.info("max_uncertainty %f", max_uncertainty)

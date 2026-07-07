@@ -1,17 +1,15 @@
-"""clev2er.algorithms.templates.alg_uncertainty"""
+"""clev2er.algorithms.cryotempo.alg_uncertainty"""
 
-import os
+from pathlib import Path
 from typing import Tuple
 
 import numpy as np
-import pandas as pd
 from codetiming import Timer  # used to time the Algorithm.process() function
 from netCDF4 import Dataset  # pylint:disable=E0611
 
 from clev2er.algorithms.base.base_alg import BaseAlgorithm
-from clev2er.utils.roughness.roughness import Roughness
-from clev2er.utils.slopes.slopes import Slopes
-from clev2er.utils.uncertainty.calc_uncertainty import calc_uncertainty
+from clev2er.utils.raster_maps.raster_map_definitions import raster_map_from_name
+from clev2er.utils.uncertainty.luts import MultiDimUncLut
 
 # -------------------------------------------------
 
@@ -20,62 +18,40 @@ from clev2er.utils.uncertainty.calc_uncertainty import calc_uncertainty
 # Too many return statements, pylint: disable=R0911
 # pylint: disable=too-many-instance-attributes
 
-
-def get_binned_values(
-    slope_values: np.ndarray,
-    roughness_values: np.ndarray,
-    binned_table: pd.DataFrame,
-    slope_bins: np.ndarray,
-    roughness_bins: np.ndarray,
-) -> np.ndarray:
-    """Retrieve the median absolute elevation difference for arrays of slope and roughness values.
-
-    Args:
-        slope_values (np.ndarray): Array of slope values for which to retrieve median differences.
-        roughness_values (np.ndarray): Array of roughness values for which to retrieve
-                                       median differences.
-        binned_table (pd.DataFrame): A pivot table of binned median absolute elevation differences.
-        slope_bins (np.ndarray): Bins to categorize slope values.
-        roughness_bins (np.ndarray): Bins to categorize roughness values.
-
-    Returns:
-        np.ndarray: An array of median absolute elevation differences corresponding to the
-                    input slope and roughness pairs.
-    """
-    # Convert slope_values and roughness_values to numpy arrays
-    slope_values = np.asarray(slope_values)
-    roughness_values = np.asarray(roughness_values)
-
-    # Find the slope bin indices for the array of slope_values
-    slope_bin_indices = np.digitize(slope_values, slope_bins) - 1
-    slope_bin_indices = np.clip(
-        slope_bin_indices, 0, len(slope_bins) - 2
-    )  # Ensure indices are within range
-
-    # Find the roughness bin indices for the array of roughness_values
-    roughness_bin_indices = np.digitize(roughness_values, roughness_bins) - 1
-    roughness_bin_indices = np.clip(
-        roughness_bin_indices, 0, len(roughness_bins) - 2
-    )  # Ensure indices are within range
-
-    # Convert bin labels to row and column indices in the DataFrame
-    row_indices = [binned_table.index.get_loc(slope_bins[idx]) for idx in slope_bin_indices]
-    col_indices = [
-        binned_table.columns.get_loc(roughness_bins[idx]) for idx in roughness_bin_indices
-    ]
-
-    # Retrieve the values using numpy indexing on the DataFrame values
-    values = binned_table.values[row_indices, col_indices]
-
-    return values
+REGIONS = ("antarctica", "greenland")
+MODES = ("sin", "lrm")
 
 
 class Algorithm(BaseAlgorithm):
-    """**Algorithm to retrieve elevation uncertainty from (CS2-IS2) derived uncertainty table and
-    surface slope at each measurement**
+    """**Algorithm to retrieve elevation uncertainty from empirical 3D/4D uncertainty LUTs**
+
+    Replaces the previous 2D (Antarctica: slope, roughness) and 1D (Greenland: slope)
+    uncertainty tables with N-D LUTs of median absolute CryoTEMPO-minus-ICESat-2
+    elevation difference, binned by surface slope, surface roughness, power
+    (backscatter) and, in SARIn mode, waveform coherence at the retracking point:
+
+    - SIN measurements -> 4D LUT (slope, roughness, power, coherence)
+    - LRM measurements -> 3D LUT (slope, roughness, power) : LRM products carry
+      no coherence
+
+    Slope and roughness are interpolated at each measurement location from the same
+    rastermaps used to train the LUTs (REMA v2 / ArcticDEM v4.1, 100 m, SVD 9x9 -
+    as used by the CLEV2ER land-ice chain), so LUT training and runtime lookup
+    covariates are consistent by construction. Power is the calibrated backscatter
+    (sig0) at each measurement; coherence is the raw (un-smoothed) coherence at the
+    retracking point.
+
+    **Required from shared_dict**
+        - shared_dict["latitudes"], shared_dict["longitudes"] : measurement locations
+          (POCA, or nadir if no POCA available)
+        - shared_dict["hemisphere"] : "south" or "north" (selects the region LUT set)
+        - shared_dict["instr_mode"] : "SIN" or "LRM" (selects the mode LUT)
+        - shared_dict["sig0_20_ku"] : backscatter, the `power` covariate
+        - shared_dict["coherence_at_rtrk_point"] : the `coherence` covariate (SIN only)
 
     **Contribution to shared_dict**
-        -shared_dict["uncertainty"] : (np.ndarray) uncertainty at each track location
+        - shared_dict["uncertainty"] : (np.ndarray) uncertainty at each track location
+          (NaN where any covariate is NaN, e.g. off the slope/roughness rastermaps)
 
     CLEV2ER Algorithm: inherits from BaseAlgorithm
 
@@ -93,101 +69,112 @@ class Algorithm(BaseAlgorithm):
     def init(self) -> Tuple[bool, str]:
         """Algorithm initialization
 
-        Add steps in this function that are run once at the beginning of the chain
-        (for example loading a DEM or Mask)
+        Loads, per region (antarctica, greenland):
+            - the SIN (4D) and LRM (3D) uncertainty LUT NetCDF files, from
+              config["uncertainty_tables"]: base_dir + per region/mode
+              filename + covariates
+            - the slope and roughness rastermaps, from config["surface_slopes"] and
+              config["surface_roughness"]: per region raster_map_name + directory
+
+        If config["grn_only"] is set, Antarctic resources are not loaded (as in the
+        previous version of this algorithm).
 
         Returns:
             (bool,str) : success or failure, error string
 
         Raises:
             KeyError : keys not in config
-            FileNotFoundError :
-            OSError :
+            OSError : LUT or rastermap file not found
 
-        Note: raise and Exception rather than just returning False
+        Note: raise an Exception rather than just returning False
         """
         self.alg_name = __name__
         self.log.info("Algorithm %s initializing", self.alg_name)
 
-        # Add initialization steps here
-
-        self.uncertainty_table_antarctica = ""
-        self.uncertainty_table_greenland = ""
-        self.ut_table_grn = None
-        self.ut_min_slope_grn = 0.0
-        self.ut_max_slope_grn = 10.0
-        self.ut_number_of_bins_grn = None
-        self.ut_table_ant = None
-        self.ut_min_slope_ant = 0.0
-        self.ut_max_slope_ant = 10.0
-        self.ut_number_of_bins_ant = None
+        regions = list(REGIONS)
+        if "grn_only" in self.config and self.config["grn_only"]:
+            regions.remove("antarctica")
 
         # -------------------------------------------------------------------------
-        # Load uncertainty tables
+        # Load uncertainty LUTs : config["uncertainty_tables"]
+        #   base_dir: directory containing the LUT NetCDF files
+        #   <region>: <mode>: {filename, covariates} per region/mode
         # -------------------------------------------------------------------------
 
-        # Get uncertainty table files
         if "uncertainty_tables" not in self.config:
             raise KeyError("uncertainty_tables not in config")
-        if "base_dir" not in self.config["uncertainty_tables"]:
+        unc_config = self.config["uncertainty_tables"]
+        if "base_dir" not in unc_config:
             raise KeyError("uncertainty_tables.base_dir not in config")
+        base_dir = Path(unc_config["base_dir"])
 
-        self.uncertainty_table_antarctica = (
-            f"{self.config['uncertainty_tables']['base_dir']}/"
-            "ant_2d_uncertainty_table_bilinear_median.pickle"
-        )
-        self.uncertainty_table_greenland = (
-            f"{str(self.config['uncertainty_tables']['base_dir'])}/"
-            "greenland_1d_uncertainty_from_is2_d001.npz"
-        )
-
-        if not os.path.isfile(self.uncertainty_table_antarctica):
-            raise FileNotFoundError(
-                f"Antarctic uncertainty table {self.uncertainty_table_antarctica}" " not found"
-            )
-        if not os.path.isfile(self.uncertainty_table_greenland):
-            raise FileNotFoundError(
-                f"Greenland uncertainty table {self.uncertainty_table_greenland}" " not found"
-            )
-
-        ut_grn_data = np.load(self.uncertainty_table_greenland, allow_pickle=True)
-
-        keys = ["uncertainty_table", "min_slope", "max_slope", "number_of_bins"]
-        for key in keys:
-            if key not in ut_grn_data:
-                raise KeyError(
-                    f"{key} key not in Greenland uncertainty table"
-                    f" {self.uncertainty_table_greenland}"
+        self.uncertainty_luts: dict = {}
+        for region in regions:
+            if region not in unc_config:
+                raise KeyError(f"uncertainty_tables.{region} not in config")
+            self.uncertainty_luts[region] = {}
+            for mode in MODES:
+                try:
+                    mode_config = unc_config[region][mode]
+                    lut_path = base_dir / mode_config["filename"]
+                    covariates_str = mode_config["covariates"]
+                except KeyError as exc:
+                    raise KeyError(
+                        f"uncertainty_tables.{region}.{mode} missing filename or "
+                        f"covariates: {exc}"
+                    ) from exc
+                covariates = [c.strip() for c in str(covariates_str).split(",") if c.strip()]
+                self.log.info(
+                    "loading %s %s uncertainty LUT from %s (covariates=%s)",
+                    region,
+                    mode,
+                    lut_path,
+                    covariates,
                 )
+                try:
+                    self.uncertainty_luts[region][mode] = MultiDimUncLut(
+                        str(lut_path), covariates=covariates, thislog=self.log
+                    )
+                except (KeyError, OSError, ValueError) as exc:
+                    self.log.error("failed to load %s %s uncertainty LUT: %s", region, mode, exc)
+                    raise OSError(f"{region} {mode} uncertainty LUT load failed") from exc
 
-        self.ut_table_grn = ut_grn_data.get("uncertainty_table")
-        self.ut_min_slope_grn = ut_grn_data.get("min_slope")
-        self.ut_max_slope_grn = ut_grn_data.get("max_slope")
-        self.ut_number_of_bins_grn = ut_grn_data.get("number_of_bins")
+        # -------------------------------------------------------------------------
+        # Load slope and roughness rastermaps : config["surface_slopes"],
+        # config["surface_roughness"] : per region {raster_map_name, directory}
+        # -------------------------------------------------------------------------
 
-        self.ut_table_ant = pd.read_pickle(self.uncertainty_table_antarctica)
-
-        # Define slope bins in degrees (0.1 degree steps from 0 to 2 degrees)
-        self.ant_slope_bins = np.arange(0, 2.1, 0.1)
-
-        # Define roughness bins in meters (0.1 m steps from 0 to 2 meters)
-        self.ant_roughness_bins = np.arange(0, 2.1, 0.1)
-
-        # Test the data
-        if not isinstance(self.ut_table_grn, np.ndarray):
-            raise ValueError(f"ut_table_grn is not of type np.ndarray: {type(self.ut_table_grn)}")
-        if not isinstance(self.ut_table_ant, pd.core.frame.DataFrame):
-            raise ValueError(
-                f"ut_table_ant is not of type pd.core.frame.DataFrame: {type(self.ut_table_ant)}"
-            )
-
-        self.slope_grn = Slopes("awi_grn_2013_1km_slopes")
-        if "grn_only" in self.config and self.config["grn_only"]:
-            self.slope_ant = None
-            self.roughness_ant = None
-        else:
-            self.slope_ant = Slopes("rema_100m_900ws_slopes_zarr")
-            self.roughness_ant = Roughness("rema_100m_900ws_roughness_zarr")
+        self.slopes: dict = {}
+        self.roughness: dict = {}
+        for resource_key, target, map_type in (
+            ("surface_slopes", self.slopes, "slope"),
+            ("surface_roughness", self.roughness, "roughness"),
+        ):
+            if resource_key not in self.config:
+                raise KeyError(f"{resource_key} not in config")
+            for region in regions:
+                try:
+                    region_config = self.config[resource_key][region]
+                    map_name = region_config["raster_map_name"]
+                    directory = Path(region_config["directory"])
+                except KeyError as exc:
+                    raise KeyError(
+                        f"{resource_key}.{region} missing raster_map_name or directory: {exc}"
+                    ) from exc
+                self.log.info(
+                    "loading %s %s rastermap '%s' from %s", region, map_type, map_name, directory
+                )
+                try:
+                    target[region] = raster_map_from_name(
+                        map_name,
+                        directory=directory,
+                        map_type=map_type,  # type: ignore[arg-type]
+                    )
+                except (KeyError, OSError, ValueError) as exc:
+                    self.log.error(
+                        "failed to load %s rastermap for region '%s': %s", map_type, region, exc
+                    )
+                    raise OSError(f"{map_type} rastermap load failed for '{region}'") from exc
 
         return (True, "")
 
@@ -221,44 +208,70 @@ class Algorithm(BaseAlgorithm):
         # \/    down the chain in the 'shared_dict' dict     \/
         # -------------------------------------------------------------------
 
-        # Calculate uncertainty from POCA (or nadir if POCA failed) parameters:
-        # shared_dict["latitudes"], shared_dict["longitudes"]
+        # Calculate uncertainty from measurement locations (POCA, or nadir if POCA
+        # failed): shared_dict["latitudes"], shared_dict["longitudes"]
 
-        if shared_dict["hemisphere"] == "south":
-            if self.slope_ant is not None and self.roughness_ant is not None:
-                slope_values = self.slope_ant.interp_slopes(
-                    shared_dict["latitudes"],
-                    shared_dict["longitudes"],
-                    xy_is_latlon=True,
-                )
-                roughness_values = self.roughness_ant.interp_roughness(
-                    shared_dict["latitudes"],
-                    shared_dict["longitudes"],
-                    xy_is_latlon=True,
-                )
+        region = "antarctica" if shared_dict["hemisphere"] == "south" else "greenland"
+        if region not in self.uncertainty_luts:
+            # region resources not loaded (e.g. grn_only run): same behaviour as the
+            # previous version of this algorithm
+            shared_dict["uncertainty"] = None
+            return (True, "")
 
-                uncertainty = get_binned_values(
-                    slope_values,
-                    roughness_values,
-                    self.ut_table_ant,
-                    self.ant_slope_bins,
-                    self.ant_roughness_bins,
-                )
-
-            else:
-                uncertainty = None
+        instr_mode = shared_dict["instr_mode"]
+        if instr_mode == "SIN":
+            mode = "sin"
+        elif instr_mode == "LRM":
+            mode = "lrm"
         else:
-            slopes = self.slope_grn.interp_slopes(
-                shared_dict["latitudes"],
-                shared_dict["longitudes"],
-                xy_is_latlon=True,
+            return (False, f"instrument mode {instr_mode} must be LRM or SIN")
+
+        lats = np.asarray(shared_dict["latitudes"], dtype=np.float64)
+        lons = np.asarray(shared_dict["longitudes"], dtype=np.float64)
+        power = np.asarray(shared_dict["sig0_20_ku"], dtype=np.float64)
+        if not lats.size == lons.size == power.size:
+            return (
+                False,
+                f"length mismatch: latitudes {lats.size}, longitudes {lons.size}, "
+                f"sig0_20_ku {power.size}",
             )
-            uncertainty = calc_uncertainty(
-                slopes,
-                self.ut_table_grn,  # type: ignore # already checked type in init
-                self.ut_min_slope_grn,
-                self.ut_max_slope_grn,
+
+        covariate_values = {
+            "slope": self.slopes[region].interpolate(lats, lons, xy_is_latlon=True),
+            "roughness": self.roughness[region].interpolate(lats, lons, xy_is_latlon=True),
+            "power": power,
+        }
+        if mode == "sin":
+            coherence = np.asarray(shared_dict["coherence_at_rtrk_point"], dtype=np.float64)
+            if coherence.size != lats.size:
+                return (
+                    False,
+                    f"length mismatch: coherence_at_rtrk_point {coherence.size}, "
+                    f"latitudes {lats.size}",
+                )
+            covariate_values["coherence"] = coherence
+
+        lut = self.uncertainty_luts[region][mode]
+        try:
+            lut_inputs = {name: covariate_values[name] for name in lut.active_covariates}
+        except KeyError as exc:
+            return (
+                False,
+                f"uncertainty LUT for {region}/{mode} requires covariate {exc} which is "
+                "not available in this mode (check uncertainty_tables config)",
             )
+
+        uncertainty = lut.get_uncertainty(**lut_inputs)
+
+        n_finite = int(np.count_nonzero(np.isfinite(uncertainty)))
+        self.log.info(
+            "uncertainty (%s, %s): %d of %d finite, median=%.3f m",
+            region,
+            mode,
+            n_finite,
+            uncertainty.size,
+            float(np.nanmedian(uncertainty)) if n_finite else float("nan"),
+        )
 
         shared_dict["uncertainty"] = uncertainty
 
