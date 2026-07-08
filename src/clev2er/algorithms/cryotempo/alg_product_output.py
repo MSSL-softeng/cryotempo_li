@@ -176,8 +176,21 @@ class Algorithm(BaseAlgorithm):
         ]
         time_utc_secs = time_20_ku + np.asarray(diff_in_seconds)
 
-        start_month = time_utc_dt[0].month
-        start_year = time_utc_dt[0].year
+        # Round measurement start/end times to the nearest second using datetime
+        # arithmetic so that a time such as 23:59:59.7 rolls over to T000000 on
+        # the next day (or month/year), instead of producing an invalid T240000
+        start_time_rounded = time_utc_dt[0].replace(microsecond=0)
+        if time_utc_dt[0].microsecond > 500000:
+            start_time_rounded += timedelta(seconds=1)
+
+        end_time_rounded = time_utc_dt[-1].replace(microsecond=0)
+        if time_utc_dt[-1].microsecond > 500000:
+            end_time_rounded += timedelta(seconds=1)
+
+        # use the rounded start time for the <YYYY>/<MM> product sub-directory so
+        # it always matches the <STARTTIME> in the product filename
+        start_month = start_time_rounded.month
+        start_year = start_time_rounded.year
 
         self.log.info("start month %d %d", start_month, start_year)
 
@@ -220,43 +233,9 @@ class Algorithm(BaseAlgorithm):
         abs_orbit_number = l1b.abs_orbit_number
         rel_orbit_number = l1b.rel_orbit_number
 
-        # Form <STARTTIME> string
-        start_seconds = time_utc_dt[0].second
-        start_minutes = time_utc_dt[0].minute
-        start_hours = time_utc_dt[0].hour
-        start_microsecs = time_utc_dt[0].microsecond
-        if start_microsecs > 500000:
-            start_seconds += 1
-            if start_seconds == 60:
-                start_seconds = 0
-                start_minutes += 1
-                if start_minutes == 60:
-                    start_minutes = 0
-                    start_hours += 1
-
-        start_time_str = (
-            f"{time_utc_dt[0].year:4d}{time_utc_dt[0].month:02d}{time_utc_dt[0].day:02d}"
-            f"T{start_hours:02d}{(start_minutes):02d}{start_seconds:02d}"
-        )
-
-        # Form <ENDTIME> string
-        end_seconds = time_utc_dt[-1].second
-        end_minutes = time_utc_dt[-1].minute
-        end_hours = time_utc_dt[-1].hour
-        end_microsecs = time_utc_dt[-1].microsecond
-        if end_microsecs > 500000:
-            end_seconds += 1
-            if end_seconds == 60:
-                end_seconds = 0
-                end_minutes += 1
-                if end_minutes == 60:
-                    end_minutes = 0
-                    end_hours += 1
-
-        end_time_str = (
-            f"{time_utc_dt[-1].year:4d}{time_utc_dt[-1].month:02d}{time_utc_dt[-1].day:02d}"
-            f"T{end_hours:02d}{(end_minutes):02d}{end_seconds:02d}"
-        )
+        # Form <STARTTIME> and <ENDTIME> strings from the rounded times
+        start_time_str = start_time_rounded.strftime("%Y%m%dT%H%M%S")
+        end_time_str = end_time_rounded.strftime("%Y%m%dT%H%M%S")
 
         product_filename = (
             f"{product_dir}/CS_OFFL_SIR_TDP_LI_{zone_str}_{start_time_str}_{end_time_str}_"
