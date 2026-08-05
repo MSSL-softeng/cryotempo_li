@@ -2,14 +2,15 @@
 # ----------------------------------------------------------------
 # CryoTEMPO Land Ice user activation script
 #     source this to setup the environment prior to use of the chain
-#     source ./ct_activate.sh
+#     source ./activate.sh
 #
 # Portable across Linux (bash 4/5) and macOS (bash 3.2 or zsh).
 # Avoids bash-4-only features (associative arrays, ${VAR,,} etc).
 #
-# Data directories default to the CPOM production server layout but any
-# of them may be overridden by exporting the variable before sourcing,
-# eg:  export CPDATA_DIR=/Volumes/cpdata ; source ./ct_activate.sh
+# Data directories default to the CPOM production server layout (with
+# per-host overrides in section 3) but any of them may be overridden by
+# exporting the variable before sourcing, eg:
+#     export CPDATA_DIR=/Volumes/cpdata ; source ./activate.sh
 # ----------------------------------------------------------------
 
 # --- 1. SOURCED VS EXECUTED CHECK, AND LOCATE THIS SCRIPT --------
@@ -21,14 +22,14 @@ if [ -n "${ZSH_VERSION:-}" ]; then
     case "${ZSH_EVAL_CONTEXT:-}" in
         *:file*) : ;;
         *) echo "ERROR: This script must be sourced, not executed!"
-           echo "Please run: source ./ct_activate.sh"
+           echo "Please run: source ./activate.sh"
            exit 1 ;;
     esac
 elif [ -n "${BASH_VERSION:-}" ]; then
     _ct_script="${BASH_SOURCE[0]}"
     if [ "${BASH_SOURCE[0]}" = "${0}" ]; then
         echo "ERROR: This script must be sourced, not executed!"
-        echo "Please run: source ./ct_activate.sh"
+        echo "Please run: source ./activate.sh"
         exit 1
     fi
 else
@@ -63,7 +64,27 @@ fi
 export PYTHONPATH="$CLEV2ER_BASE_DIR/src"
 export PATH="$CLEV2ER_BASE_DIR/src/clev2er/tools:${PATH}"
 
-# Data locations: pre-set values win, otherwise use the defaults below
+# Data locations. Precedence, highest first:
+#   1. values already exported in your environment before sourcing
+#   2. the per-host block below, for machines with a non-standard layout
+#   3. the generic CPOM production server defaults
+# Host-specific settings only need to name the paths that differ; the
+# rest are derived from CPDATA_DIR by the generic defaults.
+_ct_host=$(hostname -s 2>/dev/null || hostname)
+case "$_ct_host" in
+    lec-cpom)
+        export CT_PRODUCT_BASEDIR="${CT_PRODUCT_BASEDIR:-$HOME/cryotempo/products}"
+        export CPDATA_DIR="${CPDATA_DIR:-/media/luna/archive}"
+        export CS2_UNCERTAINTY_BASE_DIR="${CS2_UNCERTAINTY_BASE_DIR:-/media/luna/archive/RESOURCES/ct_uncertainty}"
+        export CPOM_SOFTWARE_DIR="${CPOM_SOFTWARE_DIR:-/media/luna/shared/software/cpom_software}"
+        ;;
+    Macbook-Pro*)
+        # macOS: slope/roughness data live under the local clevops checkout
+        export TESTDATA_EXTERNAL_DIR="${TESTDATA_EXTERNAL_DIR:-$HOME/software/clevops/testdata_external}"
+        ;;
+esac
+unset _ct_host
+
 export CT_PRODUCT_BASEDIR="${CT_PRODUCT_BASEDIR:-/raid6/cryo-tempo/product_baselines}"
 export CT_LOG_DIR="${CT_LOG_DIR:-/tmp}"
 export CPDATA_DIR="${CPDATA_DIR:-/cpdata}"
@@ -71,17 +92,20 @@ export L1B_BASE_DIR="${L1B_BASE_DIR:-${CPDATA_DIR}/SATS/RA/CRY/L1B}"
 export FES2014B_BASE_DIR="${FES2014B_BASE_DIR:-${CPDATA_DIR}/SATS/RA/CRY/L1B/FES2014}"
 export CATS2008A_BASE_DIR="${CATS2008A_BASE_DIR:-${CPDATA_DIR}/SATS/RA/CRY/L1B/CATS2008/SIN}"
 export CS2_UNCERTAINTY_BASE_DIR="${CS2_UNCERTAINTY_BASE_DIR:-/raid6/cryo-tempo/land_ice/uncertainty}"
+export TESTDATA_EXTERNAL_DIR="${TESTDATA_EXTERNAL_DIR:-/home/clopr/software/clevops/testdata_external}"
 
 echo "env vars setup"
 
 # --- 4. CHECK THE DATA PATHS EXIST -------------------------------
 # Plain loop over variable *names* with indirect expansion via eval,
-# so no bash-4 associative array is needed.
+# so no bash-4 associative array is needed. Variables that are unset
+# (eg CPOM_SOFTWARE_DIR off lec-cpom) are skipped rather than reported.
 missing_paths=""
 for _var in CT_PRODUCT_BASEDIR CT_LOG_DIR CPDATA_DIR L1B_BASE_DIR \
-            FES2014B_BASE_DIR CATS2008A_BASE_DIR CS2_UNCERTAINTY_BASE_DIR; do
+            FES2014B_BASE_DIR CATS2008A_BASE_DIR CS2_UNCERTAINTY_BASE_DIR \
+            TESTDATA_EXTERNAL_DIR CPOM_SOFTWARE_DIR; do
     eval "_path=\$$_var"
-    if [ ! -d "$_path" ]; then
+    if [ -n "$_path" ] && [ ! -d "$_path" ]; then
         missing_paths="${missing_paths}  - ${_var}: ${_path}
 "
     fi

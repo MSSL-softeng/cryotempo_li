@@ -4,95 +4,17 @@
 
 set -e  # Exit on any error
 
-setup_and_run_file=./ct_activate.sh
+# The activation script is now version controlled as ./activate.sh - it is
+# no longer generated here. It resolves CLEV2ER_BASE_DIR from its own
+# location and holds the per-host data path defaults (see its section 3).
+setup_and_run_file=./activate.sh
 
 export CLEV2ER_BASE_DIR=$PWD
 
-# Generate the setup_and_run.sh script
-echo "#!/usr/bin/env bash" > $setup_and_run_file
-echo "" >> $setup_and_run_file
-
-echo "# Check if the script is being sourced or executed" >> $setup_and_run_file
-echo 'if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then' >> $setup_and_run_file
-echo '    echo "ERROR: This script must be sourced, not executed!"' >> $setup_and_run_file
-echo '    echo "Please run: source ./ct_activate.sh"' >> $setup_and_run_file
-echo '    exit 1' >> $setup_and_run_file
-echo "fi" >> $setup_and_run_file
-
-echo "# Combined setup and run script for CryoTEMPO LI" >> $setup_and_run_file
-echo "set -e" >> $setup_and_run_file
-echo "" >> $setup_and_run_file
-echo "# Activate Poetry virtual environment" >> $setup_and_run_file
-echo "VENV_PATH=\$(poetry env info --path)" >> $setup_and_run_file
-echo "if [ -z \"\$VENV_PATH\" ]; then" >> $setup_and_run_file
-echo "    echo \"Poetry virtual environment not found. Did you set it up?\"" >> $setup_and_run_file
-echo "    exit 1" >> $setup_and_run_file
-echo "fi" >> $setup_and_run_file
-echo "source \"\$VENV_PATH/bin/activate\"" >> $setup_and_run_file
-echo "" >> $setup_and_run_file
-
-# Export environment variables to the script
-echo "export CLEV2ER_BASE_DIR=$PWD" >> $setup_and_run_file
-echo "export PYTHONPATH=$CLEV2ER_BASE_DIR/src" >> $setup_and_run_file
-echo "export PATH=${CLEV2ER_BASE_DIR}/src/clev2er/tools:\${PATH}" >> $setup_and_run_file
-
-echo "export CT_PRODUCT_BASEDIR=/raid6/cryo-tempo/product_baselines" >> $setup_and_run_file
-echo "export CT_LOG_DIR=/tmp" >> $setup_and_run_file
-echo "export CPDATA_DIR=/cpdata" >> $setup_and_run_file
-echo "export L1B_BASE_DIR=\${CPDATA_DIR}/SATS/RA/CRY/L1B" >> $setup_and_run_file
-echo "export FES2014B_BASE_DIR=/cpdata/SATS/RA/CRY/L1B/FES2014" >> $setup_and_run_file
-echo "export CATS2008A_BASE_DIR=/cpdata/SATS/RA/CRY/L1B/CATS2008/SIN" >> $setup_and_run_file
-echo "export CS2_UNCERTAINTY_BASE_DIR=/raid6/cryo-tempo/land_ice/uncertainty" >> $setup_and_run_file
-
-# Special handling for hostname "lec-cpom"
-current_hostname=$(hostname)
-if [[ "$current_hostname" == "lec-cpom" ]]; then
-    echo "export CT_PRODUCT_BASEDIR=~/cryotempo/products" >> $setup_and_run_file
-    echo "export CPDATA_DIR=/media/luna/archive" >> $setup_and_run_file
-    echo "export L1B_BASE_DIR=\${CPDATA_DIR}/SATS/RA/CRY/L1B" >> $setup_and_run_file
-    echo "export FES2014B_BASE_DIR=/media/luna/archive/SATS/RA/CRY/L1B/FES2014" >> $setup_and_run_file
-    echo "export CATS2008A_BASE_DIR=/media/luna/archive/SATS/RA/CRY/L1B/CATS2008/SIN" >> $setup_and_run_file
-    echo "export CS2_UNCERTAINTY_BASE_DIR=/media/luna/archive/RESOURCES/ct_uncertainty" >> $setup_and_run_file
-    echo "export CPOM_SOFTWARE_DIR=/media/luna/shared/software/cpom_software" >> $setup_and_run_file
+if [ ! -f "$setup_and_run_file" ]; then
+    echo "ERROR: $setup_and_run_file is missing from the checkout." >&2
+    exit 1
 fi
-
-# Add path existence checks
-# Add path and environment variable existence checks
-echo "" >> $setup_and_run_file
-echo "# Check if specified paths exist" >> $setup_and_run_file
-echo "declare -A path_env_map=(" >> $setup_and_run_file
-echo "    [\$CT_PRODUCT_BASEDIR]=CT_PRODUCT_BASEDIR" >> $setup_and_run_file
-echo "    [\$CT_LOG_DIR]=CT_LOG_DIR" >> $setup_and_run_file
-echo "    [\$CPDATA_DIR]=CPDATA_DIR" >> $setup_and_run_file
-echo "    [\$L1B_BASE_DIR]=L1B_BASE_DIR" >> $setup_and_run_file
-echo "    [\$FES2014B_BASE_DIR]=FES2014B_BASE_DIR" >> $setup_and_run_file
-echo "    [\$CATS2008A_BASE_DIR]=CATS2008A_BASE_DIR" >> $setup_and_run_file
-echo "    [\$CS2_UNCERTAINTY_BASE_DIR]=CS2_UNCERTAINTY_BASE_DIR" >> $setup_and_run_file
-echo ")" >> $setup_and_run_file
-echo "" >> $setup_and_run_file
-echo "missing_paths=()" >> $setup_and_run_file
-echo "for path in \"\${!path_env_map[@]}\"; do" >> $setup_and_run_file
-echo "    if [ ! -d \"\$path\" ]; then" >> $setup_and_run_file
-echo "        missing_paths+=(\"\${path_env_map[\$path]}: \$path\")" >> $setup_and_run_file
-echo "    fi" >> $setup_and_run_file
-echo "done" >> $setup_and_run_file
-echo "" >> $setup_and_run_file
-echo "if [ \${#missing_paths[@]} -gt 0 ]; then" >> $setup_and_run_file
-echo "    echo \"WARNING: The following environment variables have paths that do not exist:\" >&2" >> $setup_and_run_file
-echo "    for missing_path in \"\${missing_paths[@]}\"; do" >> $setup_and_run_file
-echo "        echo \"  - \$missing_path\" >&2" >> $setup_and_run_file
-echo "    done" >> $setup_and_run_file
-echo "fi" >> $setup_and_run_file
-
-# Set ulimit
-echo "" >> $setup_and_run_file
-echo "ulimit -n 8192" >> $setup_and_run_file
-
-# Notify user the environment is ready
-echo "" >> $setup_and_run_file
-echo "echo \"Environment setup complete. You are now in the CryoTEMPO Land Ice Poetry virtual environment.\"" >> $setup_and_run_file
-
-# Ensure the output script is executable
 chmod +x $setup_and_run_file
 
 # Install Python and dependencies

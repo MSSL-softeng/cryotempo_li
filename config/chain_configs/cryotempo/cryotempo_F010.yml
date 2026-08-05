@@ -220,18 +220,18 @@ uncertainty_tables:
 surface_slopes:
   antarctica:
     raster_map_name: rema_filled_100m_slope_svd_9x9_zarr
-    directory: /home/clopr/software/clevops/testdata_external/adf/landice/slope_data/antarctica
+    directory: ${TESTDATA_EXTERNAL_DIR}/adf/landice/slope_data/antarctica
   greenland:
     raster_map_name: arcticdem_cropped_100m_slope_svd_9x9
-    directory: /home/clopr/software/clevops/testdata_external/adf/landice/slope_data/greenland
+    directory: ${TESTDATA_EXTERNAL_DIR}/adf/landice/slope_data/greenland
 
 surface_roughness:
   antarctica:
     raster_map_name: rema_filled_100m_roughness_range_svd_9x9_zarr
-    directory: /home/clopr/software/clevops/testdata_external/adf/landice/roughness_data/antarctica
+    directory: ${TESTDATA_EXTERNAL_DIR}/adf/landice/roughness_data/antarctica
   greenland:
     raster_map_name: arcticdem_cropped_100m_roughness_range_svd_9x9_zarr
-    directory: /home/clopr/software/clevops/testdata_external/adf/landice/roughness_data/greenland
+    directory: ${TESTDATA_EXTERNAL_DIR}/adf/landice/roughness_data/greenland
 
 leap_seconds: ${CPOM_SOFTWARE_DIR}/cpom/resources/leap_seconds/leap-seconds.list
 
