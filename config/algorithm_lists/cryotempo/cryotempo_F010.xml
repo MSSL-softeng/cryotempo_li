@@ -11,7 +11,7 @@
         <alg_skip_on_area_bounds>Enable</alg_skip_on_area_bounds> <!--fast area check, skip files outside Ant and Grn-->
         <alg_surface_type>Enable</alg_surface_type>          <!--get surface type from Bedmachine, skip file if no grounded or floating ice-->
         <alg_dilated_coastal_mask>Enable</alg_dilated_coastal_mask> <!-- mask records > 10km from Ant/Grn coast, skip if no records in mask -->
-        <alg_fes2014b_tide_correction>Enable</alg_fes2014b_tide_correction>  <!-- get FES2014b tide corrections -->
+        <alg_fes2022_tide_correction>Enable</alg_fes2022_tide_correction>  <!-- get FES2022 tide corrections (baseline-F evolution, replaces FES2014b) -->
         <alg_cats2023_tide_correction>Enable</alg_cats2023_tide_correction> <!-- compute CATS2023 tide corrections (baseline-F evolution, replaces CATS2008a) -->
         <alg_geo_corrections>Enable</alg_geo_corrections>    <!--calculate sum of geo-corrections-->
         <alg_waveform_quality>Enable</alg_waveform_quality>  <!--waveform quality checks for LRM & SIN-->      

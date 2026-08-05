@@ -188,6 +188,14 @@ tides:
   fes2014b_base_dir: ${FES2014B_BASE_DIR} # set to base dir of FES2014 (containing LRM,SIN/<YYYY>/<MM>/CS*.fes2014b.nc)
   cats2008a_base_dir: ${CATS2008A_BASE_DIR} # set to base dir of CATS2008a (containing <YYYY>/<MM>/CS*_cats2008a_tides.nc)
   # ------------------------------------------------------------------------------------
+  # FES2022 (baseline-F onwards), used by alg_fes2022_tide_correction. Replaces the
+  # FES2014b files (fes2014b_base_dir, above) used in baselines B-E.
+  # Still pre-computed, by clev2er.tools.compute_fes2022_tides: reading the FES2022
+  # model costs ~110s, which cannot be amortised in the chain because run_chain.py
+  # spawns one process per L1b file. The pre-processor reads it once per run.
+  # ------------------------------------------------------------------------------------
+  fes2022_base_dir: ${FES2022_BASE_DIR} # base dir containing LRM,SIN/<YYYY>/<MM>/CS*.fes2022.nc
+  # ------------------------------------------------------------------------------------
   # CATS2023 (baseline-F onwards), used by alg_cats2023_tide_correction.
   # Replaces the pre-computed CATS2008a files (cats2008a_base_dir, above) used in
   # baselines B-E: the tide is now computed on the fly from the pyTMD tide model.

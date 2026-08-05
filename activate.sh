@@ -97,8 +97,10 @@ export FES2014B_BASE_DIR="${FES2014B_BASE_DIR:-${CPDATA_DIR}/SATS/RA/CRY/L1B/FES
 export CATS2008A_BASE_DIR="${CATS2008A_BASE_DIR:-${CPDATA_DIR}/SATS/RA/CRY/L1B/CATS2008/SIN}"
 export CS2_UNCERTAINTY_BASE_DIR="${CS2_UNCERTAINTY_BASE_DIR:-/raid6/cryo-tempo/land_ice/uncertainty}"
 export TESTDATA_EXTERNAL_DIR="${TESTDATA_EXTERNAL_DIR:-/home/clopr/software/clevops/testdata_external}"
-# pyTMD tide model directory, holding CATS2008_v2023/ (baseline-F onwards)
+# pyTMD tide model directory, holding CATS2008_v2023/ and fes2022b/ (baseline-F onwards)
 export PYTMD_TIDE_MODELS_DIR="${PYTMD_TIDE_MODELS_DIR:-${CPDATA_DIR}/MODELS/tides}"
+# pre-computed FES2022 tide files (baseline-F onwards), containing LRM,SIN/<YYYY>/<MM>/
+export FES2022_BASE_DIR="${FES2022_BASE_DIR:-${CPDATA_DIR}/SATS/RA/CRY/L1B/FES2022}"
 
 echo "env vars setup"
 
@@ -109,7 +111,8 @@ echo "env vars setup"
 missing_paths=""
 for _var in CT_PRODUCT_BASEDIR CT_LOG_DIR CPDATA_DIR L1B_BASE_DIR \
             FES2014B_BASE_DIR CATS2008A_BASE_DIR CS2_UNCERTAINTY_BASE_DIR \
-            TESTDATA_EXTERNAL_DIR PYTMD_TIDE_MODELS_DIR CPOM_SOFTWARE_DIR; do
+            TESTDATA_EXTERNAL_DIR PYTMD_TIDE_MODELS_DIR FES2022_BASE_DIR \
+            CPOM_SOFTWARE_DIR; do
     eval "_path=\$$_var"
     if [ -n "$_path" ] && [ ! -d "$_path" ]; then
         missing_paths="${missing_paths}  - ${_var}: ${_path}

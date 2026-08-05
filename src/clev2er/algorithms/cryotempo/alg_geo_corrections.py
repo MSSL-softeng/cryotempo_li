@@ -100,16 +100,20 @@ class Algorithm(BaseAlgorithm):
         # Index of the 1Hz measurement for each 20Hz measurement
         ind_meas_1hz_20_ku = l1b.variables["ind_meas_1hz_20_ku"][:].data
 
-        # Retrieve FES2014b corrections
+        # Retrieve the FES tide corrections. Baseline-F onwards uses FES2022 and
+        # the version neutral key "fes_corrections"; baselines B-E use FES2014b
+        # and "fes2014b_corrections". Accept either so that both work unchanged.
+        fes_key = "fes_corrections" if "fes_corrections" in shared_dict else "fes2014b_corrections"
         try:
-            load_tide_20 = shared_dict["fes2014b_corrections"]["load_tide_20"]
-            ocean_tide_20 = shared_dict["fes2014b_corrections"]["ocean_tide_20"]
-            ocean_tide_eq_20 = shared_dict["fes2014b_corrections"]["ocean_tide_eq_20"]
+            load_tide_20 = shared_dict[fes_key]["load_tide_20"]
+            ocean_tide_20 = shared_dict[fes_key]["ocean_tide_20"]
+            ocean_tide_eq_20 = shared_dict[fes_key]["ocean_tide_eq_20"]
         except KeyError:
             self.log.error(
-                "fes2014b_corrections.load_tide_20 missing from shared_dict",
+                "%s.load_tide_20 missing from shared_dict",
+                fes_key,
             )
-            return (False, "fes2014b_corrections.load_tide_20 missing from shared_dict")
+            return (False, f"{fes_key}.load_tide_20 missing from shared_dict")
 
         # Retrieve CATS2008a tide corrections for SIN mode files in southern hemi
         if shared_dict["cats_tide_required"]:
