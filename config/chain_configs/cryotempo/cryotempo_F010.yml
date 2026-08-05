@@ -187,6 +187,22 @@ basin_masks:
 tides:
   fes2014b_base_dir: ${FES2014B_BASE_DIR} # set to base dir of FES2014 (containing LRM,SIN/<YYYY>/<MM>/CS*.fes2014b.nc)
   cats2008a_base_dir: ${CATS2008A_BASE_DIR} # set to base dir of CATS2008a (containing <YYYY>/<MM>/CS*_cats2008a_tides.nc)
+  # ------------------------------------------------------------------------------------
+  # CATS2023 (baseline-F onwards), used by alg_cats2023_tide_correction.
+  # Replaces the pre-computed CATS2008a files (cats2008a_base_dir, above) used in
+  # baselines B-E: the tide is now computed on the fly from the pyTMD tide model.
+  # ------------------------------------------------------------------------------------
+  pytmd_tide_models_dir: ${PYTMD_TIDE_MODELS_DIR} # dir containing CATS2008_v2023/CATS2008_v2023.nc
+  cats2023_model_name: CATS2008-v2023 # pyTMD model name
+  # spline|linear|nearest. The B-E pre-processor used pyTMD's 'spline', but pyTMD calls
+  # RectBivariateSpline with kx=ky=1, ie degree-1 == linear. Measured over 11142 points
+  # across the Antarctic margin, 'linear' is bit-identical to 'spline' (same values, same
+  # validity mask) and 3.6x faster (7.5s vs 27s per file), so 'linear' is used here.
+  # 'bilinear' is not usable: it hits a NaN-to-int error in pyTMD 2.2.9 OTIS.
+  cats2023_interp_method: linear
+  cats2023_extrapolate: false # nearest-neighbour extrapolation beyond the model grid
+  cats2023_cutoff_km: 10.0 # extrapolation cutoff (km), only used if extrapolate is true
+  cats2023_apply_flexure: true # apply the CATS2023 ice shelf flexure scaling
 
 dem_dirs:
   rema_ant_1km: ${CPDATA_DIR}/SATS/RA/DEMS/rema_1km_dem

@@ -12,7 +12,7 @@
         <alg_surface_type>Enable</alg_surface_type>          <!--get surface type from Bedmachine, skip file if no grounded or floating ice-->
         <alg_dilated_coastal_mask>Enable</alg_dilated_coastal_mask> <!-- mask records > 10km from Ant/Grn coast, skip if no records in mask -->
         <alg_fes2014b_tide_correction>Enable</alg_fes2014b_tide_correction>  <!-- get FES2014b tide corrections -->
-        <alg_cats2008a_tide_correction>Enable</alg_cats2008a_tide_correction> <!-- get CATS2008a tide corrections -->
+        <alg_cats2023_tide_correction>Enable</alg_cats2023_tide_correction> <!-- compute CATS2023 tide corrections (baseline-F evolution, replaces CATS2008a) -->
         <alg_geo_corrections>Enable</alg_geo_corrections>    <!--calculate sum of geo-corrections-->
         <alg_waveform_quality>Enable</alg_waveform_quality>  <!--waveform quality checks for LRM & SIN-->      
         <alg_retrack>Enable</alg_retrack>                    <!--calls LRM (TCOG) or SIN (MC) retrackers-->

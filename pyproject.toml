@@ -25,6 +25,10 @@ scikit-learn = "^1.6.0"
 zarr = "^2.18.3"
 pandas = "^2.2.2"
 seaborn = "^0.13.2"
+# Tide model computation (CATS2008-v2023 over Antarctica, baseline-F onwards).
+# Replaces the separate 'cats' conda env previously needed to pre-compute the
+# CATS2008a tide files.
+pytmd = "^2.2.6"
 
 
 [tool.poetry.group.dev.dependencies]
