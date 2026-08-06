@@ -393,6 +393,12 @@ def auto_lon_sectors(num_files: int) -> int:
     PER_FILE / READ), which is ~5 for a month of ~1800 files in one hemisphere,
     and 1 for a handful of files.
 
+    Validated against a full month of SARIn (January 2020, 3244 files: 1828
+    north in 5 sectors, 1416 south in 4). Predicted 9610s, actual **9532s** -
+    within 1%. The same model puts the ungrouped cost at ~22500s, so the
+    grouping is worth ~2.4x. The curve is flat near the optimum: for the
+    northern group, 4, 5 and 6 sectors are within 3% of each other.
+
     Args:
         num_files (int): number of files in the hemisphere
 
