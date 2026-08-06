@@ -108,7 +108,7 @@ export TESTDATA_EXTERNAL_DIR="${TESTDATA_EXTERNAL_DIR:-/home/clopr/software/clev
 # pyTMD tide model directory, holding CATS2008_v2023/ and fes2022b/ (baseline-F onwards)
 export PYTMD_TIDE_MODELS_DIR="${PYTMD_TIDE_MODELS_DIR:-${CPDATA_DIR}/MODELS/tides}"
 # pre-computed FES2022 tide files (baseline-F onwards), containing LRM,SIN/<YYYY>/<MM>/
-export FES2022_BASE_DIR="${FES2022_BASE_DIR:-${CPDATA_DIR}/SATS/RA/CRY/L1B/FES2022}"
+export FES2022_BASE_DIR="${FES2022_BASE_DIR:-${CPDATA_DIR}/SATS/RA/CRY/L1B/FES2022b}"
 
 echo "env vars setup"
 
