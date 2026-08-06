@@ -71,7 +71,7 @@ import sys
 import threading
 import time
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 
 import numpy as np
 import pyTMD.compute
@@ -408,7 +408,8 @@ def process_group(
             wanted = [c for c in wanted if c not in LONG_PERIOD_CONSTITUENTS]
 
         log.info(
-            "Reading %s cropped to lon %.1f..%.1f lat %.1f..%.1f (%d constituents%s)",
+            "Reading %s cropped to lon %.1f..%.1f lat %.1f..%.1f (%d constituents%s). "
+            "This is one file per constituent and takes several minutes",
             model_name,
             *bounds,
             len(wanted),
@@ -429,11 +430,13 @@ def process_group(
             peak_memory_gb(),
         )
         out = {}
-        for l1b_file in l1b_files:
+        report = progress_logger(len(l1b_files), f"{model_name} tides computed")
+        for filenum, l1b_file in enumerate(l1b_files, start=1):
             lats, lons, delta_time = nadir[l1b_file]
             out[l1b_file] = tide_from_constants(
                 model, constants, lons, lats, delta_time, extrapolate, cutoff_km
             )
+            report(filenum)
         # release before the next model is read
         del constants, model
         gc.collect()
@@ -444,7 +447,8 @@ def process_group(
 
     num_written = 0
     num_errors = 0
-    for l1b_file in l1b_files:
+    report = progress_logger(len(l1b_files), "tide files written")
+    for filenum, l1b_file in enumerate(l1b_files, start=1):
         lats, lons, delta_time = nadir[l1b_file]
         out_file = os.path.join(out_dir, f"{Path(l1b_file).name[:-3]}.fes2022.nc")
         try:
@@ -461,16 +465,65 @@ def process_group(
             continue
 
         num_written += 1
-        log.info(
-            "[%d/%d] %s : %d of %d records with an ocean tide",
-            num_written,
-            len(l1b_files),
+        report(filenum)
+        # per-file detail at debug level: for a month this is thousands of lines
+        log.debug(
+            "%s : %d of %d records with an ocean tide",
             Path(out_file).name,
             int(np.count_nonzero(np.isfinite(ocean_tide) & (ocean_tide != 0.0))),
             ocean_tide.size,
         )
 
     return num_written, num_errors
+
+
+def format_duration(seconds: float) -> str:
+    """a short human readable duration, eg '2m30s' or '1h05m'"""
+    if seconds < 60:
+        return f"{seconds:.0f}s"
+    if seconds < 3600:
+        return f"{int(seconds // 60)}m{int(seconds % 60):02d}s"
+    return f"{int(seconds // 3600)}h{int((seconds % 3600) // 60):02d}m"
+
+
+def progress_logger(total: int, what: str, interval: float = 15.0) -> Callable[[int], None]:
+    """make a callable that reports progress through a long loop
+
+    Reports at most every `interval` seconds, and always on the final item, so
+    that slow stages (reading thousands of L1b files over a network filesystem,
+    or computing tides for a whole month) show that they are making progress
+    rather than appearing to hang.
+
+    Args:
+        total (int): number of items in the loop
+        what (str): short description of the work, used in the message
+        interval (float): minimum seconds between reports
+
+    Returns:
+        a function to call with the number of items completed so far
+    """
+    start = time.time()
+    last = [start]
+
+    def report(done: int) -> None:
+        now = time.time()
+        if done < total and now - last[0] < interval:
+            return
+        last[0] = now
+        elapsed = now - start
+        rate = done / elapsed if elapsed > 0 else 0.0
+        remaining = (total - done) / rate if rate > 0 else 0.0
+        log.info(
+            "  %s: %d/%d (%.0f%%), %.1f/s, ~%s remaining",
+            what,
+            done,
+            total,
+            100.0 * done / total if total else 100.0,
+            rate,
+            format_duration(remaining),
+        )
+
+    return report
 
 
 def directories_valid(models_dir: str, l1b_dir: str) -> bool:
@@ -667,14 +720,22 @@ def main() -> int:
             log.info("Nothing to do")
             return 0
 
-    # Read the nadir tracks up front. This is cheap, and lets the model be
-    # cropped to the area actually covered, which is what makes the batch fast.
+    # Read the nadir tracks up front, so the models can be cropped to the area
+    # actually covered. Only the coordinate variables are read, but over a
+    # network filesystem this is still several minutes for a month of files.
+    log.info(
+        "Reading nadir tracks from %d L1b files, to find the area to crop the models to",
+        len(l1b_files),
+    )
+    tic = time.time()
+    report = progress_logger(len(l1b_files), "scanned")
     nadir = {}
     north_files: list[str] = []
     south_files: list[str] = []
     north_bounds: list[tuple[float, float, float, float]] = []
     south_bounds: list[tuple[float, float, float, float]] = []
-    for l1b_file in l1b_files:
+    for filenum, l1b_file in enumerate(l1b_files, start=1):
+        report(filenum)
         try:
             lats, lons, delta_time = read_l1b_nadir(l1b_file)
         except (OSError, KeyError) as exc:
@@ -689,6 +750,7 @@ def main() -> int:
         else:
             south_files.append(l1b_file)
             south_bounds.append(this_bounds)
+    log.info("Scanned %d L1b files in %s", len(l1b_files), format_duration(time.time() - tic))
 
     log.info(
         "%d northern hemisphere, %d southern hemisphere files to process",
