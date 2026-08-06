@@ -8,6 +8,8 @@ algorithm are tested against each other. This needs no FES2022 model files.
 
 import logging
 import os
+import subprocess
+import sys
 from pathlib import Path
 
 import numpy as np
@@ -109,3 +111,25 @@ def test_alg_fes2022_missing_file(fes2022_base_dir: str) -> None:
     success, error_str = thisalg.process(l1b, shared_dict)
     assert not success, "should fail when the FES2022 file is missing"
     assert "FES2022" in error_str, "error string should name the missing FES2022 file"
+
+
+def test_compute_fes2022_tides_help() -> None:
+    """`compute_fes2022_tides.py --help` must work.
+
+    argparse's ArgumentDefaultsHelpFormatter runs help strings through
+    %-formatting, so a literal '%' in any help text raises a TypeError only
+    when --help is actually requested - which unit tests of the functions
+    would never catch.
+    """
+    base_dir = os.environ["CLEV2ER_BASE_DIR"]
+    tool = f"{base_dir}/src/clev2er/tools/compute_fes2022_tides.py"
+
+    result = subprocess.run(
+        [sys.executable, tool, "--help"],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert result.returncode == 0, f"--help failed:\n{result.stderr}"
+    assert "--max_memory_gb" in result.stdout, "help should list the memory guard option"
+    assert "--constituents" in result.stdout, "help should list the constituents option"

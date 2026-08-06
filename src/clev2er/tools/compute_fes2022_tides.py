@@ -465,8 +465,10 @@ def main() -> int:
         type=float,
         default=0.0,
         help=(
-            "abort if peak memory exceeds this. Default is "
-            f"{DEFAULT_MEMORY_FRACTION:.0%} of physical RAM. Reading the FES2022 "
+            # NB the %% is required: ArgumentDefaultsHelpFormatter runs help
+            # strings through %-formatting, so a literal % raises a TypeError
+            "abort if peak memory exceeds this. 0 means auto, ie "
+            f"{DEFAULT_MEMORY_FRACTION * 100:.0f}%% of physical RAM. Reading the FES2022 "
             "constituents is memory hungry and cropping does not bound it, so this "
             "guard stops a run taking a workstation down. On a large server it "
             "will never trigger"
