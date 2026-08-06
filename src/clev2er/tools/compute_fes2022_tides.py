@@ -12,19 +12,18 @@ environment, as pyTMD is now a project dependency.
 
 Three components are computed at each L1b 20Hz nadir location:
 
-    ocean_tide_20     FES2022 ocean tide, SHORT-PERIOD constituents only
+    ocean_tide_20     FES2022 ocean tide, all 34 constituents
     load_tide_20      FES2022 ocean tide loading (a separate pyTMD model)
     ocean_tide_eq_20  long-period equilibrium tide (analytic, no model files)
 
-This split matches baselines B-E, which used pyfes:
+The ocean tide uses the extrapolated FES2022 product and includes the
+long-period constituents, both to match baselines B-E, which used pyfes with
+ocean_tide_extrapolated.ini. Verified on a Greenland granule against the B-E
+FES2014b file: ocean tide rms 0.53cm, load tide rms 0.06cm.
 
-    ocean_tide_20, ocean_tide_eq_20, _ = short_tide.calculate(...)
-
-where pyfes returns (short period tide, long period equilibrium tide, n). The 7
-long-period constituents FES2022 provides are therefore excluded from
-ocean_tide_20 - alg_geo_corrections adds ocean_tide_20 + ocean_tide_eq_20 over
-northern floating ice and ocean, so including them in both would double count
-the long-period tide. See LONG_PERIOD_CONSTITUENTS.
+See LONG_PERIOD_CONSTITUENTS for an open question about whether the resulting
+ocean_tide_20 + ocean_tide_eq_20 sum double counts the long-period tide. That
+behaviour is inherited from B-E and is reproduced here deliberately.
 
 **Why this is a pre-processor and not an on-the-fly chain algorithm**
 
@@ -97,19 +96,25 @@ BBOX_BUFFER_DEG = 1.0
 # fraction of physical RAM used as the default memory budget
 DEFAULT_MEMORY_FRACTION = 0.6
 
-# FES2022's 34 constituents include these 7 long-period ones. They are excluded
-# from ocean_tide_20, which must hold the SHORT-PERIOD tide only, because the
-# long-period tide is supplied separately as ocean_tide_eq_20.
+# The 7 long-period constituents that both FES2014 and FES2022 provide.
 #
-# This matches baselines B-E, which used pyfes:
+# These are INCLUDED in ocean_tide_20 by default, because that is what
+# baselines B-E did. B-E used pyfes:
 #     ocean_tide_20, ocean_tide_eq_20, _ = short_tide.calculate(...)
-# where pyfes returns (short period tide, long period equilibrium tide, n).
+# and although pyfes documents the first return as the tide and the second as
+# the long-period tide, the stored ocean_tide_20 demonstrably contains the
+# dynamic long-period signal: on a Greenland granule, FES2022 including these
+# constituents agrees with FES2014b to rms 0.53cm, and excluding them degrades
+# that to rms 3.37cm - a shift the size of the long-period tide itself.
 #
-# Including them in both would double count: measured over Greenland, the
-# FES2022 dynamic long-period tide (rms 2.7cm) and the analytic equilibrium
-# tide (rms 2.9cm) are 0.95 correlated, so alg_geo_corrections - which adds
-# ocean_tide_20 + ocean_tide_eq_20 over northern floating ice and ocean - would
-# apply ~3cm rms of spurious correction.
+# NOTE (open question, inherited from B-E): alg_geo_corrections adds
+# ocean_tide_20 + ocean_tide_eq_20 over northern floating ice and ocean. Since
+# ocean_tide_20 already carries a dynamic long-period tide (rms 2.7cm) and
+# ocean_tide_eq_20 is an equilibrium long-period tide (rms 2.9cm) which is 0.95
+# correlated with it, that sum appears to count the long-period tide twice.
+# This behaviour is reproduced here deliberately, to keep baseline-F comparable
+# with B-E, but it is worth a science review. --exclude_long_period exists so
+# the alternative can be generated and assessed without editing code.
 LONG_PERIOD_CONSTITUENTS = ("mf", "mm", "msf", "msqm", "mtm", "sa", "ssa")
 
 # Ocean tide model. Baselines B-E used FES2014's *extrapolated* ocean tide
@@ -358,6 +363,7 @@ def process_group(
     cutoff_km: float = 10.0,
     constituents: list[str] | None = None,
     ocean_model: str = DEFAULT_OCEAN_MODEL,
+    exclude_long_period: bool = False,
 ) -> tuple[int, int]:
     """compute and write tide files for one group of L1b files
 
@@ -382,6 +388,8 @@ def process_group(
         cutoff_km: extrapolation cutoff, only used if extrapolate
         constituents: subset of constituents to use, or None for all 34
         ocean_model: pyTMD ocean tide model name
+        exclude_long_period: drop the long-period constituents (not the B-E
+            behaviour; for assessing the possible double count only)
 
     Returns:
         (num_written, num_errors)
@@ -391,19 +399,20 @@ def process_group(
         """read one model, apply it to every file in the group, then release it"""
         model = pyTMD.io.model(models_dir).elevation(model_name)
 
-        # Short-period constituents only: the long-period tide is supplied
-        # separately as ocean_tide_eq_20. See LONG_PERIOD_CONSTITUENTS.
+        # All constituents by default, long-period included, as per baselines
+        # B-E. See LONG_PERIOD_CONSTITUENTS.
         wanted = list(constituents) if constituents else list(model.constituents)
-        short_period = [c for c in wanted if c not in LONG_PERIOD_CONSTITUENTS]
-        dropped = [c for c in wanted if c in LONG_PERIOD_CONSTITUENTS]
+        dropped: list[str] = []
+        if exclude_long_period:
+            dropped = [c for c in wanted if c in LONG_PERIOD_CONSTITUENTS]
+            wanted = [c for c in wanted if c not in LONG_PERIOD_CONSTITUENTS]
 
         log.info(
-            "Reading %s cropped to lon %.1f..%.1f lat %.1f..%.1f "
-            "(%d short-period constituents, excluding long-period %s)",
+            "Reading %s cropped to lon %.1f..%.1f lat %.1f..%.1f (%d constituents%s)",
             model_name,
             *bounds,
-            len(short_period),
-            ",".join(dropped) if dropped else "none",
+            len(wanted),
+            f", excluding long-period {','.join(dropped)}" if dropped else "",
         )
         tic = time.time()
         constants = model.read_constants(
@@ -411,7 +420,7 @@ def process_group(
             crop=True,
             bounds=bounds,
             method="linear",
-            constituents=short_period,
+            constituents=wanted,
         )
         log.info(
             "%s read in %.1fs (peak memory so far %.1f GB)",
@@ -592,6 +601,16 @@ def main() -> int:
             "roughly half the valid records near the Greenland coast"
         ),
     )
+    parser.add_argument(
+        "--exclude_long_period",
+        action="store_true",
+        help=(
+            "drop the long-period constituents from the ocean and load tides. NOT the "
+            "baselines B-E behaviour - B-E included them, and excluding them shifts the "
+            "ocean tide by ~3cm rms. Provided so the possible long-period double count "
+            "(see LONG_PERIOD_CONSTITUENTS) can be assessed"
+        ),
+    )
     parser.add_argument("--overwrite", action="store_true", help="re-create existing outputs")
     parser.add_argument("--debug", action="store_true", help="debug level logging")
     args = parser.parse_args()
@@ -698,6 +717,7 @@ def main() -> int:
             args.cutoff_km,
             args.constituents,
             args.ocean_model,
+            args.exclude_long_period,
         )
         total_written += written
         total_errors += errors
