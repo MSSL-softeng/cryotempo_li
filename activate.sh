@@ -79,6 +79,9 @@ _ct_host=$(scutil --get LocalHostName 2>/dev/null || true)
 if [ -z "$_ct_host" ] || [ "$_ct_host" = "UNKNOWN" ]; then
     _ct_host=$(hostname -s 2>/dev/null || hostname)
 fi
+
+unset CS2_UNCERTAINTY_BASE_DIR
+
 case "$_ct_host" in
     lec-cpom)
         export CT_PRODUCT_BASEDIR="${CT_PRODUCT_BASEDIR:-$HOME/cryotempo/products}"
