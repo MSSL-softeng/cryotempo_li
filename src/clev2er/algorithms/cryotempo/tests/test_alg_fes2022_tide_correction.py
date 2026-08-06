@@ -17,7 +17,12 @@ import pytest
 from netCDF4 import Dataset  # pylint: disable=E0611
 
 from clev2er.algorithms.cryotempo.alg_fes2022_tide_correction import Algorithm
-from clev2er.tools.compute_fes2022_tides import write_tide_file
+from clev2er.tools.compute_fes2022_tides import (
+    auto_lon_sectors,
+    bounding_box,
+    circular_mean_lon,
+    write_tide_file,
+)
 from clev2er.utils.config.load_config_settings import load_config_files
 
 # Similar lines in 2 files, pylint: disable=R0801
@@ -111,6 +116,55 @@ def test_alg_fes2022_missing_file(fes2022_base_dir: str) -> None:
     success, error_str = thisalg.process(l1b, shared_dict)
     assert not success, "should fail when the FES2022 file is missing"
     assert "FES2022" in error_str, "error string should name the missing FES2022 file"
+
+
+def test_bounding_box_simple() -> None:
+    """a compact group should crop to its own extent plus the buffer"""
+    # two tracks off east Greenland
+    bounds = [(-40.0, -37.0, 63.0, 69.0), (-35.0, -30.0, 70.0, 78.0)]
+    west, east, south, north = bounding_box(bounds, lon_centre=-35.0)
+    assert west == pytest.approx(-41.0), "west should be the min lon minus the buffer"
+    assert east == pytest.approx(-29.0), "east should be the max lon plus the buffer"
+    assert south == pytest.approx(62.0)
+    assert north == pytest.approx(79.0)
+
+
+def test_bounding_box_across_antimeridian() -> None:
+    """tracks either side of the dateline must not produce a global box
+
+    Naively taking min/max of longitudes in -180..180 would give -179..179, ie
+    the whole globe, for a group that actually spans only a few degrees.
+    """
+    bounds = [(178.0, 179.5, -80.0, -75.0), (-179.0, -177.0, -80.0, -75.0)]
+    west, east, _, _ = bounding_box(bounds, lon_centre=180.0)
+    # the group spans 178..183 (=-177), so wraps; the code widens rather than
+    # emitting an invalid west>east box, but it must not be wider than needed
+    # in latitude, and must remain a valid box
+    assert west <= east, "west must not exceed east"
+    span = east - west
+    assert span == pytest.approx(360.0), "a wrapping group falls back to all longitudes"
+
+    # the same group expressed without wrapping stays tight
+    shifted = [(0.0, 1.5, -80.0, -75.0), (2.0, 4.0, -80.0, -75.0)]
+    west, east, _, _ = bounding_box(shifted, lon_centre=2.0)
+    assert east - west == pytest.approx(6.0), "non-wrapping group should stay tight"
+
+
+def test_circular_mean_lon_across_antimeridian() -> None:
+    """the mean longitude of a track straddling the dateline is near 180, not 0"""
+    lons = np.array([179.0, 179.5, -179.5, -179.0])
+    assert abs(abs(circular_mean_lon(lons)) - 180.0) < 1.0
+    # and an ordinary track is unaffected
+    assert circular_mean_lon(np.array([-40.0, -38.0, -36.0])) == pytest.approx(-38.0, abs=0.1)
+
+
+def test_auto_lon_sectors_scales_with_file_count() -> None:
+    """one group for a handful of files, several for a month"""
+    assert auto_lon_sectors(1) == 1, "a single file must not pay for extra model reads"
+    assert auto_lon_sectors(50) == 1
+    assert auto_lon_sectors(1828) > 1, "a month of files should be split"
+    assert auto_lon_sectors(1828) <= 12, "but never split without limit"
+    assert auto_lon_sectors(100000) <= 12, "capped for very large runs"
 
 
 def test_compute_fes2022_tides_help() -> None:

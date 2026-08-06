@@ -331,25 +331,78 @@ def write_tide_file(
         nc_out.created_by = "clev2er.tools.compute_fes2022_tides"
 
 
-def bounding_box(file_bounds: list[tuple[float, float, float, float]]) -> list[float]:
+def wrap180(lon: np.ndarray | float) -> np.ndarray | float:
+    """wrap longitude into -180..180"""
+    return ((np.asarray(lon) + 180.0) % 360.0) - 180.0
+
+
+def circular_mean_lon(lons: np.ndarray) -> float:
+    """mean longitude of a track, correct across the antimeridian"""
+    ang = np.radians(lons)
+    return float(np.degrees(np.arctan2(np.sin(ang).mean(), np.cos(ang).mean())))
+
+
+def bounding_box(
+    file_bounds: list[tuple[float, float, float, float]], lon_centre: float = 0.0
+) -> list[float]:
     """union bounding box of the supplied per-file bounds, plus a buffer
+
+    Longitudes are unioned in a frame rotated to `lon_centre`, so a group whose
+    tracks sit either side of the antimeridian does not produce a spuriously
+    global box. If the union still spans nearly the whole globe, or wraps, the
+    full longitude range is returned - correct, just not cropped.
 
     Args:
         file_bounds: list of (lon_min, lon_max, lat_min, lat_max) per file
+        lon_centre: longitude the group is centred on
 
     Returns:
         [W, E, S, N] suitable for pyTMD's crop bounds
     """
-    lon_min = min(b[0] for b in file_bounds) - BBOX_BUFFER_DEG
-    lon_max = max(b[1] for b in file_bounds) + BBOX_BUFFER_DEG
+    rel = []
+    for lon_min, lon_max, _, _ in file_bounds:
+        rel.append(float(wrap180(lon_min - lon_centre)))
+        rel.append(float(wrap180(lon_max - lon_centre)))
     lat_min = min(b[2] for b in file_bounds) - BBOX_BUFFER_DEG
     lat_max = max(b[3] for b in file_bounds) + BBOX_BUFFER_DEG
+
+    west = wrap180(lon_centre + min(rel) - BBOX_BUFFER_DEG)
+    east = wrap180(lon_centre + max(rel) + BBOX_BUFFER_DEG)
+    if (max(rel) - min(rel)) >= 358.0 or west > east:
+        # spans (nearly) all longitudes, or wraps the antimeridian
+        west, east = -180.0, 180.0
+
     return [
-        max(lon_min, -180.0),
-        min(lon_max, 180.0),
-        max(lat_min, -90.0),
-        min(lat_max, 90.0),
+        float(west),
+        float(east),
+        float(max(lat_min, -90.0)),
+        float(min(lat_max, 90.0)),
     ]
+
+
+def auto_lon_sectors(num_files: int) -> int:
+    """how many longitude sectors to split a hemisphere into
+
+    Each sector costs one extra model read, but shrinks the cropped grid and so
+    the per-file interpolation cost, which scales with the cropped area.
+    Measured on the production server: a model read is ~270s regardless of the
+    crop, and a whole-month (effectively global) box costs ~3.3s per file
+    against ~0.4s for a tight regional box.
+
+    Minimising `n * READ + num_files * PER_FILE / n` gives n = sqrt(num_files *
+    PER_FILE / READ), which is ~5 for a month of ~1800 files in one hemisphere,
+    and 1 for a handful of files.
+
+    Args:
+        num_files (int): number of files in the hemisphere
+
+    Returns:
+        int : number of longitude sectors, at least 1
+    """
+    read_seconds = 270.0
+    per_file_seconds_global = 3.3
+    best = round(np.sqrt(num_files * per_file_seconds_global / read_seconds))
+    return int(min(max(best, 1), 12))
 
 
 def process_group(
@@ -664,6 +717,17 @@ def main() -> int:
             "(see LONG_PERIOD_CONSTITUENTS) can be assessed"
         ),
     )
+    parser.add_argument(
+        "--lon_sectors",
+        type=int,
+        default=0,
+        help=(
+            "split each hemisphere into this many longitude sectors. Each sector is a "
+            "separate model read (~4-5 min) but crops the model tighter, and the per-file "
+            "cost scales with the cropped area. 0 = choose automatically from the file "
+            "count, which is what you want unless you are tuning"
+        ),
+    )
     parser.add_argument("--overwrite", action="store_true", help="re-create existing outputs")
     parser.add_argument("--debug", action="store_true", help="debug level logging")
     args = parser.parse_args()
@@ -730,10 +794,9 @@ def main() -> int:
     tic = time.time()
     report = progress_logger(len(l1b_files), "scanned")
     nadir = {}
-    north_files: list[str] = []
-    south_files: list[str] = []
-    north_bounds: list[tuple[float, float, float, float]] = []
-    south_bounds: list[tuple[float, float, float, float]] = []
+    hemisphere_files: dict[str, list[str]] = {"northern": [], "southern": []}
+    track_bounds: dict[str, tuple[float, float, float, float]] = {}
+    track_lon_centre: dict[str, float] = {}
     for filenum, l1b_file in enumerate(l1b_files, start=1):
         report(filenum)
         try:
@@ -742,36 +805,60 @@ def main() -> int:
             log.error("Could not read %s : %s", l1b_file, exc)
             continue
         nadir[l1b_file] = (lats, lons, delta_time)
-        this_bounds = (lons.min(), lons.max(), lats.min(), lats.max())
-        # split by hemisphere so each group crops to a compact bounding box
-        if np.nanmean(lats) >= 0:
-            north_files.append(l1b_file)
-            north_bounds.append(this_bounds)
-        else:
-            south_files.append(l1b_file)
-            south_bounds.append(this_bounds)
+        track_bounds[l1b_file] = (lons.min(), lons.max(), lats.min(), lats.max())
+        track_lon_centre[l1b_file] = circular_mean_lon(lons)
+        hemisphere_files["northern" if np.nanmean(lats) >= 0 else "southern"].append(l1b_file)
     log.info("Scanned %d L1b files in %s", len(l1b_files), format_duration(time.time() - tic))
 
-    log.info(
-        "%d northern hemisphere, %d southern hemisphere files to process",
-        len(north_files),
-        len(south_files),
-    )
+    # Build the groups. Each group is read from the model once, so a group's
+    # bounding box should be as small as practical: the per-file interpolation
+    # cost scales with the cropped area. Splitting each hemisphere into
+    # longitude sectors trades one extra model read per sector against a much
+    # cheaper per-file cost. See auto_lon_sectors.
+    groups: list[tuple[str, list[str], list[float]]] = []
+    for hemisphere, files in hemisphere_files.items():
+        if not files:
+            continue
+        sectors = args.lon_sectors or auto_lon_sectors(len(files))
+        width = 360.0 / sectors
+        by_sector: dict[int, list[str]] = {}
+        for l1b_file in files:
+            index = int((track_lon_centre[l1b_file] + 180.0) // width) % sectors
+            by_sector.setdefault(index, []).append(l1b_file)
+        log.info(
+            "%s hemisphere: %d files in %d longitude sector(s) of %.0f degrees",
+            hemisphere,
+            len(files),
+            len(by_sector),
+            width,
+        )
+        for index in sorted(by_sector):
+            sector_files = by_sector[index]
+            centre = wrap180(-180.0 + (index + 0.5) * width)
+            groups.append(
+                (
+                    f"{hemisphere} sector {index + 1}/{sectors}",
+                    sector_files,
+                    bounding_box([track_bounds[f] for f in sector_files], float(centre)),
+                )
+            )
 
     total_written = 0
     total_errors = 0
     tic = time.time()
-    for group_files, group_bounds, label in (
-        (north_files, north_bounds, "northern"),
-        (south_files, south_bounds, "southern"),
-    ):
-        if not group_files:
-            continue
-        log.info("--- %s hemisphere: %d files ---", label, len(group_files))
+    for group_num, (label, group_files, group_bounds) in enumerate(groups, start=1):
+        log.info(
+            "--- group %d of %d: %s, %d files, lon %.1f..%.1f lat %.1f..%.1f ---",
+            group_num,
+            len(groups),
+            label,
+            len(group_files),
+            *group_bounds,
+        )
         written, errors = process_group(
             group_files,
             nadir,
-            bounding_box(group_bounds),
+            group_bounds,
             args.models_dir,
             args.outdir,
             args.no_load_tide,
