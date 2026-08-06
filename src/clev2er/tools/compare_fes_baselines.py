@@ -10,8 +10,15 @@ systematic bias, or one sample of a slowly varying difference? A distribution
 straddling zero means the latter.
 
 Usage:
-    compare_fes.py [glob-under-FES2022_BASE_DIR]
-    compare_fes.py 'SIN/2020/01/*.fes2022.nc'      # default
+    compare_fes_baselines.py [glob-under-FES2022_BASE_DIR] [--min_abs_lat DEG]
+
+    # every SARIn granule in January 2020
+    compare_fes_baselines.py 'SIN/2020/01/*.fes2022.nc'
+
+    # only the records CryoTEMPO actually uses, ie the polar ones. Needs
+    # $L1B_BASE_DIR, as the tide files hold no coordinates and the latitudes
+    # are read back from the L1b.
+    compare_fes_baselines.py 'SIN/2020/01/*.fes2022.nc' --min_abs_lat 58
 """
 
 import glob
@@ -37,18 +44,49 @@ def read_vars(path: str) -> dict[str, np.ndarray]:
         return {v: np.ma.filled(nc.variables[v][:], 0.0).astype(np.float64) for v in VARIABLES}
 
 
+def read_l1b_latitudes(tide_file: str, tide_base: str) -> np.ndarray | None:
+    """nadir latitudes for the L1b granule a tide file was made from
+
+    The tide files hold no coordinates, so the L1b is located by mirroring the
+    tide file's path under $L1B_BASE_DIR.
+
+    Args:
+        tide_file (str): path of the FES2022 tide file
+        tide_base (str): the FES2022 base directory
+
+    Returns:
+        np.ndarray of latitudes, or None if the L1b can not be read
+    """
+    rel = os.path.relpath(tide_file, tide_base).replace(".fes2022.nc", ".nc")
+    l1b_file = os.path.join(os.environ["L1B_BASE_DIR"], rel)
+    if not os.path.exists(l1b_file):
+        return None
+    try:
+        with Dataset(l1b_file) as nc:
+            return nc.variables["lat_20_ku"][:].data.astype(np.float64)
+    except (OSError, KeyError):
+        return None
+
+
 def main() -> int:
     """compare every FES2022 tide file with its FES2014b counterpart
 
     Returns:
         int : 0 on success, 1 if no comparable granules were found
     """
+    args = [a for a in sys.argv[1:] if not a.startswith("--")]
+    min_abs_lat = 0.0
+    if "--min_abs_lat" in sys.argv:
+        min_abs_lat = float(sys.argv[sys.argv.index("--min_abs_lat") + 1])
+
     new_base = os.environ["FES2022_BASE_DIR"]
     old_base = os.environ["FES2014B_BASE_DIR"]
-    pattern = sys.argv[1] if len(sys.argv) > 1 else "SIN/2020/01/*.fes2022.nc"
+    pattern = args[0] if args else "SIN/2020/01/*.fes2022.nc"
 
     new_files = sorted(glob.glob(os.path.join(new_base, pattern)))
     print(f"{len(new_files)} FES2022 files matching {pattern}")
+    if min_abs_lat:
+        print(f"restricting to records with |latitude| >= {min_abs_lat} degrees")
 
     # accumulate per-granule means, and all point differences
     per_granule: dict[str, list[float]] = {v: [] for v in (*VARIABLES, "applied_sum")}
@@ -83,6 +121,11 @@ def main() -> int:
 
         # valid in BOTH ocean tides: the points the chain would actually correct
         mask = (old_v["ocean_tide_20"] != 0) & (new_v["ocean_tide_20"] != 0)
+        if min_abs_lat:
+            lats = read_l1b_latitudes(new_f, new_base)
+            if lats is None or lats.size != mask.size:
+                continue
+            mask &= np.abs(lats) >= min_abs_lat
         if not mask.any():
             continue
         for v in VARIABLES:
@@ -119,6 +162,19 @@ def main() -> int:
             f"{v:18s} {pts.size:9d} {pts.mean():9.3f} {np.sqrt((pts**2).mean()):8.3f} "
             f"{gran.mean():8.3f} {gran.std():8.3f} {gran.min():8.3f} {gran.max():8.3f}"
         )
+
+    # Is a large rms a broad disagreement or a tail of extreme points? For a
+    # model version change the bulk should agree closely.
+    pts = np.abs(np.concatenate(all_points["ocean_tide_20"]))
+    print("\n|ocean_tide_20 difference| percentiles, cm:")
+    print(
+        "  "
+        + "  ".join(f"p{p}={np.percentile(pts, p):.2f}" for p in (50, 75, 90, 95, 99, 99.9))
+        + f"  max={pts.max():.2f}"
+    )
+    for threshold in (5.0, 20.0, 50.0):
+        frac = float((pts > threshold).mean())
+        print(f"  {100 * frac:6.3f}% of points differ by more than {threshold:.0f} cm")
 
     gran = np.array(per_granule["ocean_tide_eq_20"])
     frac_neg = float((gran < 0).mean())
