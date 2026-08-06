@@ -26,6 +26,20 @@ box of the files being processed, after which each file costs ~0.4s. That is
 ~200x faster than calling pyTMD.compute.tide_elevations per file, and gives
 bit-identical results.
 
+**Memory**
+
+Cropping bounds the run time, but NOT the peak memory. Measured, peak is
+essentially independent of the bbox area (2.1 GB for a 5x5 degree crop versus
+1.8 GB for 50x30) and scales instead with the number of constituents, of which
+FES2022 has 34: a full read needs many GB. The two models are therefore read
+and released one at a time, and a `--max_memory_gb` guard (default 60% of
+physical RAM) aborts the run rather than letting the machine go into swap and
+be killed by the OS.
+
+On a large production server the guard never triggers and the defaults are
+right. On a workstation, use `--constituents m2 s2 n2 k1` to develop and test
+cheaply - noting that output is then incomplete and not for production.
+
 Example use, for one month of SARIn L1b files:
 
     compute_fes2022_tides.py -id $L1B_BASE_DIR/SIN/2019/05 \\
@@ -38,10 +52,14 @@ The output directory is the one the chain expects for that mode/year/month, ie
 """
 
 import argparse
+import gc
 import glob
 import logging
 import os
+import resource
+import subprocess
 import sys
+import threading
 import time
 from pathlib import Path
 from typing import Any
@@ -65,6 +83,63 @@ SCALE_FACTOR = 0.001
 
 # padding (degrees) added around the bounding box the model is cropped to
 BBOX_BUFFER_DEG = 1.0
+
+# fraction of physical RAM used as the default memory budget
+DEFAULT_MEMORY_FRACTION = 0.6
+
+
+def peak_memory_gb() -> float:
+    """peak resident memory of this process, in GB
+
+    ru_maxrss is bytes on macOS and kilobytes on Linux.
+    """
+    peak = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+    return peak / 1024**3 if sys.platform == "darwin" else peak / 1024**2
+
+
+def physical_memory_gb() -> float:
+    """total physical RAM in GB, or 0.0 if it cannot be determined"""
+    try:
+        if sys.platform == "darwin":
+            out = subprocess.check_output(["sysctl", "-n", "hw.memsize"], text=True)
+            return int(out.strip()) / 1024**3
+        return (
+            os.sysconf("SC_PAGE_SIZE") * os.sysconf("SC_PHYS_PAGES") / 1024**3
+        )  # pragma: no cover - linux only
+    except (OSError, ValueError, subprocess.SubprocessError):
+        return 0.0
+
+
+def start_memory_guard(budget_gb: float) -> None:
+    """abort the process if peak memory exceeds `budget_gb`
+
+    Reading the FES2022 constituents is memory hungry and, importantly,
+    cropping does NOT bound it. On a workstation an unbounded run can drive the
+    machine into swap and get the process (or the desktop) killed by the OS. It
+    is far better to fail here, with a message saying what to do about it.
+
+    On a large production server the budget will simply never be reached.
+
+    Args:
+        budget_gb (float): abort if peak resident memory exceeds this
+    """
+
+    def _watch() -> None:
+        while True:
+            peak = peak_memory_gb()
+            if peak > budget_gb:
+                log.error(
+                    "MEMORY GUARD: peak memory %.1f GB exceeded the %.1f GB budget - aborting. "
+                    "Re-run with a larger --max_memory_gb if the machine has the RAM, or "
+                    "reduce --constituents, or run on a larger machine.",
+                    peak,
+                    budget_gb,
+                )
+                sys.stderr.flush()
+                os._exit(2)  # pylint: disable=protected-access
+            time.sleep(0.25)
+
+    threading.Thread(target=_watch, daemon=True).start()
 
 
 def read_l1b_nadir(l1b_file: str) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
@@ -245,11 +320,19 @@ def process_group(
     no_load_tide: bool,
     extrapolate: bool = False,
     cutoff_km: float = 10.0,
+    constituents: list[str] | None = None,
 ) -> tuple[int, int]:
     """compute and write tide files for one group of L1b files
 
-    The FES2022 ocean and load models are read once each, cropped to `bounds`,
-    then applied to every file in the group.
+    Each model is read once, cropped to `bounds`, and applied to every file in
+    the group. The two models are read and released **one at a time**: peak
+    memory is dominated by holding one model's constituents, so overlapping
+    them would roughly double it for no benefit.
+
+    Note that cropping bounds the *time* cost, not the peak memory: measured,
+    peak is essentially independent of the bbox area (2.1 GB for a 5x5 degree
+    crop vs 1.8 GB for 50x30) and scales instead with the number of
+    constituents. See --max_memory_gb.
 
     Args:
         l1b_files: L1b file paths in this group
@@ -260,31 +343,47 @@ def process_group(
         no_load_tide: if True, write zeros for load_tide_20
         extrapolate: nearest-neighbour extrapolation beyond the model grid
         cutoff_km: extrapolation cutoff, only used if extrapolate
+        constituents: subset of constituents to use, or None for all 34
 
     Returns:
         (num_written, num_errors)
     """
-    log.info(
-        "Reading FES2022 ocean tide model cropped to "
-        "lon %.1f..%.1f lat %.1f..%.1f (this takes a couple of minutes)",
-        *bounds,
-    )
-    tic = time.time()
-    ocean_model = pyTMD.io.model(models_dir).elevation("FES2022")
-    ocean_constants = ocean_model.read_constants(
-        type=ocean_model.type, crop=True, bounds=bounds, method="linear"
-    )
-    log.info("FES2022 ocean tide model read in %.1fs", time.time() - tic)
 
-    load_model = None
-    load_constants = None
-    if not no_load_tide:
-        tic = time.time()
-        load_model = pyTMD.io.model(models_dir).elevation("FES2022_load")
-        load_constants = load_model.read_constants(
-            type=load_model.type, crop=True, bounds=bounds, method="linear"
+    def tides_for_all_files(model_name: str) -> dict[str, np.ndarray]:
+        """read one model, apply it to every file in the group, then release it"""
+        log.info(
+            "Reading %s cropped to lon %.1f..%.1f lat %.1f..%.1f (takes a few minutes)",
+            model_name,
+            *bounds,
         )
-        log.info("FES2022 load tide model read in %.1fs", time.time() - tic)
+        tic = time.time()
+        model = pyTMD.io.model(models_dir).elevation(model_name)
+        constants = model.read_constants(
+            type=model.type,
+            crop=True,
+            bounds=bounds,
+            method="linear",
+            constituents=constituents,
+        )
+        log.info(
+            "%s read in %.1fs (peak memory so far %.1f GB)",
+            model_name,
+            time.time() - tic,
+            peak_memory_gb(),
+        )
+        out = {}
+        for l1b_file in l1b_files:
+            lats, lons, delta_time = nadir[l1b_file]
+            out[l1b_file] = tide_from_constants(
+                model, constants, lons, lats, delta_time, extrapolate, cutoff_km
+            )
+        # release before the next model is read
+        del constants, model
+        gc.collect()
+        return out
+
+    ocean_tides = tides_for_all_files("FES2022")
+    load_tides = {} if no_load_tide else tides_for_all_files("FES2022_load")
 
     num_written = 0
     num_errors = 0
@@ -292,14 +391,9 @@ def process_group(
         lats, lons, delta_time = nadir[l1b_file]
         out_file = os.path.join(out_dir, f"{Path(l1b_file).name[:-3]}.fes2022.nc")
         try:
-            ocean_tide = tide_from_constants(
-                ocean_model, ocean_constants, lons, lats, delta_time, extrapolate, cutoff_km
-            )
-            if load_model is not None:
-                load_tide = tide_from_constants(
-                    load_model, load_constants, lons, lats, delta_time, extrapolate, cutoff_km
-                )
-            else:
+            ocean_tide = ocean_tides[l1b_file]
+            load_tide = load_tides.get(l1b_file)
+            if load_tide is None:
                 load_tide = np.zeros_like(ocean_tide)
             ocean_tide_eq = equilibrium_tide(lons, lats, delta_time)
 
@@ -366,14 +460,52 @@ def main() -> int:
         default=10.0,
         help="extrapolation cutoff in km, only used with --extrapolate",
     )
+    parser.add_argument(
+        "--max_memory_gb",
+        type=float,
+        default=0.0,
+        help=(
+            "abort if peak memory exceeds this. Default is "
+            f"{DEFAULT_MEMORY_FRACTION:.0%} of physical RAM. Reading the FES2022 "
+            "constituents is memory hungry and cropping does not bound it, so this "
+            "guard stops a run taking a workstation down. On a large server it "
+            "will never trigger"
+        ),
+    )
+    parser.add_argument(
+        "--constituents",
+        nargs="+",
+        default=None,
+        help=(
+            "only use these constituents, eg 'm2 s2 n2 k1'. Peak memory and run time "
+            "scale with the number of constituents, so this makes local testing on a "
+            "small machine practical. NOT for production: the output is incomplete"
+        ),
+    )
     parser.add_argument("--overwrite", action="store_true", help="re-create existing outputs")
     parser.add_argument("--debug", action="store_true", help="debug level logging")
     args = parser.parse_args()
 
+    # force=True: something in the import chain (pyTMD/clev2er) already
+    # configures the root logger, which would otherwise make this a no-op and
+    # silence the whole run - including the memory guard's abort message.
     logging.basicConfig(
         level=logging.DEBUG if args.debug else logging.INFO,
         format="%(levelname)s: %(message)s",
+        force=True,
     )
+
+    budget_gb = args.max_memory_gb
+    if budget_gb <= 0:
+        physical_gb = physical_memory_gb()
+        budget_gb = physical_gb * DEFAULT_MEMORY_FRACTION if physical_gb else 8.0
+    log.info(
+        "Memory budget %.1f GB (physical RAM %.1f GB). Peak scales with the number of "
+        "constituents, not the area processed.",
+        budget_gb,
+        physical_memory_gb(),
+    )
+    start_memory_guard(budget_gb)
 
     if not args.models_dir:
         log.error("no tide models directory: pass --models_dir or set PYTMD_TIDE_MODELS_DIR")
@@ -458,6 +590,7 @@ def main() -> int:
             args.no_load_tide,
             args.extrapolate,
             args.cutoff_km,
+            args.constituents,
         )
         total_written += written
         total_errors += errors

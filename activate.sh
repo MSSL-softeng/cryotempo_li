@@ -70,7 +70,15 @@ export PATH="$CLEV2ER_BASE_DIR/src/clev2er/tools:${PATH}"
 #   3. the generic CPOM production server defaults
 # Host-specific settings only need to name the paths that differ; the
 # rest are derived from CPDATA_DIR by the generic defaults.
-_ct_host=$(hostname -s 2>/dev/null || hostname)
+#
+# Note on host detection: on macOS `hostname` returns UNKNOWN whenever the
+# network has not settled (eg straight after a reboot, or off the network),
+# which silently drops the per-host settings and falls back to the production
+# Linux paths. scutil's LocalHostName is stable, so prefer it where available.
+_ct_host=$(scutil --get LocalHostName 2>/dev/null || true)
+if [ -z "$_ct_host" ] || [ "$_ct_host" = "UNKNOWN" ]; then
+    _ct_host=$(hostname -s 2>/dev/null || hostname)
+fi
 case "$_ct_host" in
     lec-cpom)
         export CT_PRODUCT_BASEDIR="${CT_PRODUCT_BASEDIR:-$HOME/cryotempo/products}"
