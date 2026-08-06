@@ -12,9 +12,19 @@ environment, as pyTMD is now a project dependency.
 
 Three components are computed at each L1b 20Hz nadir location:
 
-    ocean_tide_20     FES2022 ocean tide
+    ocean_tide_20     FES2022 ocean tide, SHORT-PERIOD constituents only
     load_tide_20      FES2022 ocean tide loading (a separate pyTMD model)
     ocean_tide_eq_20  long-period equilibrium tide (analytic, no model files)
+
+This split matches baselines B-E, which used pyfes:
+
+    ocean_tide_20, ocean_tide_eq_20, _ = short_tide.calculate(...)
+
+where pyfes returns (short period tide, long period equilibrium tide, n). The 7
+long-period constituents FES2022 provides are therefore excluded from
+ocean_tide_20 - alg_geo_corrections adds ocean_tide_20 + ocean_tide_eq_20 over
+northern floating ice and ocean, so including them in both would double count
+the long-period tide. See LONG_PERIOD_CONSTITUENTS.
 
 **Why this is a pre-processor and not an on-the-fly chain algorithm**
 
@@ -86,6 +96,32 @@ BBOX_BUFFER_DEG = 1.0
 
 # fraction of physical RAM used as the default memory budget
 DEFAULT_MEMORY_FRACTION = 0.6
+
+# FES2022's 34 constituents include these 7 long-period ones. They are excluded
+# from ocean_tide_20, which must hold the SHORT-PERIOD tide only, because the
+# long-period tide is supplied separately as ocean_tide_eq_20.
+#
+# This matches baselines B-E, which used pyfes:
+#     ocean_tide_20, ocean_tide_eq_20, _ = short_tide.calculate(...)
+# where pyfes returns (short period tide, long period equilibrium tide, n).
+#
+# Including them in both would double count: measured over Greenland, the
+# FES2022 dynamic long-period tide (rms 2.7cm) and the analytic equilibrium
+# tide (rms 2.9cm) are 0.95 correlated, so alg_geo_corrections - which adds
+# ocean_tide_20 + ocean_tide_eq_20 over northern floating ice and ocean - would
+# apply ~3cm rms of spurious correction.
+LONG_PERIOD_CONSTITUENTS = ("mf", "mm", "msf", "msqm", "mtm", "sa", "ssa")
+
+# Ocean tide model. Baselines B-E used FES2014's *extrapolated* ocean tide
+# (ocean_tide_extrapolated.ini), so the extrapolated FES2022 product is the
+# like-for-like successor: using the plain one instead loses ~55% of the valid
+# records over Greenland, because FES2022's finer coastal land mask is much
+# stricter than FES2014's.
+#
+# The load tide is deliberately NOT the extrapolated variant: B-E used the
+# plain load_tide.ini.
+DEFAULT_OCEAN_MODEL = "FES2022_extrapolated"
+LOAD_MODEL = "FES2022_load"
 
 
 def peak_memory_gb() -> float:
@@ -321,6 +357,7 @@ def process_group(
     extrapolate: bool = False,
     cutoff_km: float = 10.0,
     constituents: list[str] | None = None,
+    ocean_model: str = DEFAULT_OCEAN_MODEL,
 ) -> tuple[int, int]:
     """compute and write tide files for one group of L1b files
 
@@ -344,6 +381,7 @@ def process_group(
         extrapolate: nearest-neighbour extrapolation beyond the model grid
         cutoff_km: extrapolation cutoff, only used if extrapolate
         constituents: subset of constituents to use, or None for all 34
+        ocean_model: pyTMD ocean tide model name
 
     Returns:
         (num_written, num_errors)
@@ -351,19 +389,29 @@ def process_group(
 
     def tides_for_all_files(model_name: str) -> dict[str, np.ndarray]:
         """read one model, apply it to every file in the group, then release it"""
+        model = pyTMD.io.model(models_dir).elevation(model_name)
+
+        # Short-period constituents only: the long-period tide is supplied
+        # separately as ocean_tide_eq_20. See LONG_PERIOD_CONSTITUENTS.
+        wanted = list(constituents) if constituents else list(model.constituents)
+        short_period = [c for c in wanted if c not in LONG_PERIOD_CONSTITUENTS]
+        dropped = [c for c in wanted if c in LONG_PERIOD_CONSTITUENTS]
+
         log.info(
-            "Reading %s cropped to lon %.1f..%.1f lat %.1f..%.1f (takes a few minutes)",
+            "Reading %s cropped to lon %.1f..%.1f lat %.1f..%.1f "
+            "(%d short-period constituents, excluding long-period %s)",
             model_name,
             *bounds,
+            len(short_period),
+            ",".join(dropped) if dropped else "none",
         )
         tic = time.time()
-        model = pyTMD.io.model(models_dir).elevation(model_name)
         constants = model.read_constants(
             type=model.type,
             crop=True,
             bounds=bounds,
             method="linear",
-            constituents=constituents,
+            constituents=short_period,
         )
         log.info(
             "%s read in %.1fs (peak memory so far %.1f GB)",
@@ -382,8 +430,8 @@ def process_group(
         gc.collect()
         return out
 
-    ocean_tides = tides_for_all_files("FES2022")
-    load_tides = {} if no_load_tide else tides_for_all_files("FES2022_load")
+    ocean_tides = tides_for_all_files(ocean_model)
+    load_tides = {} if no_load_tide else tides_for_all_files(LOAD_MODEL)
 
     num_written = 0
     num_errors = 0
@@ -414,6 +462,56 @@ def process_group(
         )
 
     return num_written, num_errors
+
+
+def directories_valid(models_dir: str, l1b_dir: str) -> bool:
+    """check the input directories exist
+
+    Args:
+        models_dir (str): pyTMD tide models directory
+        l1b_dir (str): directory holding the input L1b files
+
+    Returns:
+        bool : True if both are usable
+    """
+    if not models_dir:
+        log.error("no tide models directory: pass --models_dir or set PYTMD_TIDE_MODELS_DIR")
+        return False
+    if not os.path.isdir(models_dir):
+        log.error("tide models directory %s not found", models_dir)
+        return False
+    if not os.path.isdir(l1b_dir):
+        log.error("L1b directory %s not found", l1b_dir)
+        return False
+    return True
+
+
+def models_available(models_dir: str, ocean_model: str, no_load_tide: bool) -> bool:
+    """check the required tide models resolve, before starting a long run
+
+    Args:
+        models_dir (str): pyTMD tide models directory
+        ocean_model (str): ocean tide model name
+        no_load_tide (bool): if True the load tide model is not needed
+
+    Returns:
+        bool : True if every required model resolves
+    """
+    for model_name in [ocean_model] + ([] if no_load_tide else [LOAD_MODEL]):
+        try:
+            pyTMD.io.model(models_dir).elevation(model_name)
+        except FileNotFoundError as exc:
+            log.error("Model %s is not available: missing %s", model_name, exc)
+            if model_name == DEFAULT_OCEAN_MODEL:
+                log.error(
+                    "Download the extrapolated FES2022 ocean tide from AVISO into "
+                    "%s/fes2022b/ocean_tide_extrapolated/ (34 files, decompress any .xz), "
+                    "or pass --ocean_model FES2022 to use the non-extrapolated product "
+                    "- noting that loses roughly half the valid records near the coast",
+                    models_dir,
+                )
+            return False
+    return True
 
 
 def main() -> int:
@@ -484,6 +582,16 @@ def main() -> int:
             "small machine practical. NOT for production: the output is incomplete"
         ),
     )
+    parser.add_argument(
+        "--ocean_model",
+        default=DEFAULT_OCEAN_MODEL,
+        help=(
+            "pyTMD ocean tide model. The default is the extrapolated product, which is "
+            "the like-for-like successor to the extrapolated FES2014 ocean tide used by "
+            "baselines B-E. Pass FES2022 to use the non-extrapolated one, which loses "
+            "roughly half the valid records near the Greenland coast"
+        ),
+    )
     parser.add_argument("--overwrite", action="store_true", help="re-create existing outputs")
     parser.add_argument("--debug", action="store_true", help="debug level logging")
     args = parser.parse_args()
@@ -509,14 +617,10 @@ def main() -> int:
     )
     start_memory_guard(budget_gb)
 
-    if not args.models_dir:
-        log.error("no tide models directory: pass --models_dir or set PYTMD_TIDE_MODELS_DIR")
+    if not directories_valid(args.models_dir, args.l1b_dir):
         return 1
-    if not os.path.isdir(args.models_dir):
-        log.error("tide models directory %s not found", args.models_dir)
-        return 1
-    if not os.path.isdir(args.l1b_dir):
-        log.error("L1b directory %s not found", args.l1b_dir)
+
+    if not models_available(args.models_dir, args.ocean_model, args.no_load_tide):
         return 1
 
     l1b_files = sorted(glob.glob(os.path.join(args.l1b_dir, "**", "CS_*1B*.nc"), recursive=True))
@@ -593,6 +697,7 @@ def main() -> int:
             args.extrapolate,
             args.cutoff_km,
             args.constituents,
+            args.ocean_model,
         )
         total_written += written
         total_errors += errors
