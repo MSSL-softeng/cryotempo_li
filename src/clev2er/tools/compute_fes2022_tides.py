@@ -60,6 +60,12 @@ The output directory is the one the chain expects for that mode/year/month, ie
 
 """
 
+# This module has outgrown pylint's 1000 line limit, largely through comments
+# recording measured behaviour and tide convention decisions that would be
+# expensive to rediscover. It would be better split into the tide computation
+# helpers and the run orchestration.
+# pylint: disable=too-many-lines
+
 import argparse
 import gc
 import glob
@@ -74,6 +80,7 @@ from pathlib import Path
 from typing import Any, Callable
 
 import numpy as np
+import pyTMD.arguments
 import pyTMD.compute
 import pyTMD.io
 import pyTMD.predict
@@ -116,6 +123,28 @@ DEFAULT_MEMORY_FRACTION = 0.6
 # with B-E, but it is worth a science review. --exclude_long_period exists so
 # the alternative can be generated and assessed without editing code.
 LONG_PERIOD_CONSTITUENTS = ("mf", "mm", "msf", "msqm", "mtm", "sa", "ssa")
+
+# The 15 Cartwright-Tayler-Edden spectral lines that pyTMD's equilibrium tide
+# sums by default (pyTMD.predict.equilibrium_tide, its internal `cindex`).
+# test_lpet_default_constituents asserts this still matches pyTMD's default, so
+# a change in pyTMD cannot silently alter what we exclude.
+CTE_LONG_PERIOD_LINES = (
+    "node",
+    "sa",
+    "ssa",
+    "msm",
+    "065.445",
+    "mm",
+    "065.465",
+    "msf",
+    "075.355",
+    "mf",
+    "mf+",
+    "075.575",
+    "mst",
+    "mt",
+    "085.465",
+)
 
 # Generous boxes around the CryoTEMPO domains, as (W, E, S, N).
 #
@@ -278,17 +307,71 @@ def tide_from_constants(
     return np.ma.filled(tide, np.nan).astype(np.float64).flatten()
 
 
-def equilibrium_tide(lons: np.ndarray, lats: np.ndarray, delta_time: np.ndarray) -> np.ndarray:
+def doodson_key(name: str) -> float | None:
+    """normalised Doodson number for a constituent name or number string
+
+    Constituents are matched between the FES atlas and the equilibrium tide's
+    spectral lines by Doodson number, not by name: the two use different
+    naming (FES 'mtm' is the line pyTMD calls 'mt'), and some lines are named
+    only by their Doodson number.
+
+    Args:
+        name (str): constituent name, eg 'mf', or a number string, eg '065.445'
+
+    Returns:
+        float : the Doodson number, or None if it can not be determined
+    """
+    try:
+        return round(float(pyTMD.arguments.doodson_number(name)), 3)
+    except (ValueError, KeyError, TypeError):
+        try:
+            return round(float(name), 3)
+        except ValueError:
+            return None
+
+
+def equilibrium_constituents(models_dir: str, ocean_model: str) -> list[str]:
+    """which equilibrium tide lines to keep, given what the atlas already models
+
+    The FES2022 atlas contains long-period constituents, so summing all 15
+    Cartwright-Tayler-Edden lines on top of the modelled ocean tide counts
+    those twice. AVISO's own PyFES exposes the same exclusion, documenting its
+    `constituents` argument as the "list of constituents to remove from the
+    inferred table of long period waves".
+
+    Note the opposite sense: PyFES takes the lines to REMOVE, pyTMD takes the
+    lines to KEEP, which is what this returns.
+
+    Args:
+        models_dir (str): pyTMD tide models directory
+        ocean_model (str): ocean tide model name
+
+    Returns:
+        list : the spectral lines not already represented in the atlas
+    """
+    model = pyTMD.io.model(models_dir).elevation(ocean_model)
+    in_atlas = {doodson_key(c) for c in (model.constituents or [])}
+    return [c for c in CTE_LONG_PERIOD_LINES if doodson_key(c) not in in_atlas]
+
+
+def equilibrium_tide(
+    lons: np.ndarray,
+    lats: np.ndarray,
+    delta_time: np.ndarray,
+    constituents: list[str] | None = None,
+) -> np.ndarray:
     """long-period equilibrium tide (analytic, requires no model files)
 
     Args:
         lons (np.ndarray): longitudes in degrees
         lats (np.ndarray): latitudes in degrees
         delta_time (np.ndarray): TAI seconds since CS2_EPOCH
+        constituents (list): spectral lines to sum, or None for all 15
 
     Returns:
         np.ndarray : equilibrium tide in metres
     """
+    kwargs = {} if constituents is None else {"constituents": constituents}
     with np.errstate(under="ignore"):
         lpet = pyTMD.compute.LPET_elevations(
             x=lons,
@@ -298,6 +381,7 @@ def equilibrium_tide(lons: np.ndarray, lats: np.ndarray, delta_time: np.ndarray)
             EPOCH=CS2_EPOCH,
             TYPE="drift",
             TIME=CS2_TIME_STANDARD,
+            **kwargs,
         )
     return np.ma.filled(lpet, np.nan).astype(np.float64).flatten()
 
@@ -308,6 +392,7 @@ def write_tide_file(
     ocean_tide_eq: np.ndarray,
     load_tide: np.ndarray,
     omitted: list[str] | None = None,
+    lpet_exclude_atlas: bool = False,
 ) -> None:
     """write the per-L1b tide file
 
@@ -323,6 +408,9 @@ def write_tide_file(
         omitted (list): variables deliberately written as zero rather than
             computed. Recorded in the file so a zeroed variable can never be
             mistaken for a computed one.
+        lpet_exclude_atlas (bool): whether ocean_tide_eq_20 excludes the lines
+            the ocean atlas already models. Recorded, because the two
+            conventions differ by ~2cm rms and are otherwise indistinguishable.
     """
     os.makedirs(os.path.dirname(out_file), exist_ok=True)
 
@@ -348,6 +436,11 @@ def write_tide_file(
         nc_out.reference = "https://doi.org/10.24400/527896/A01-2024.004"
         nc_out.created_by = "clev2er.tools.compute_fes2022_tides"
         nc_out.not_computed = ",".join(omitted) if omitted else "none"
+        nc_out.equilibrium_tide_convention = (
+            "atlas long-period constituents excluded (no double count)"
+            if lpet_exclude_atlas
+            else "all 15 Cartwright-Tayler-Edden lines (as baselines B-E)"
+        )
 
 
 def track_in_regions(lats: np.ndarray, lons: np.ndarray, regions: list[str]) -> bool:
@@ -462,6 +555,7 @@ def process_group(
     ocean_model: str = DEFAULT_OCEAN_MODEL,
     exclude_long_period: bool = False,
     skip_ocean_tide: bool = False,
+    lpet_exclude_atlas: bool = False,
 ) -> tuple[int, int]:
     """compute and write tide files for one group of L1b files
 
@@ -491,6 +585,9 @@ def process_group(
         skip_ocean_tide: write zeros for ocean_tide_20 instead of reading the
             ocean model. Only valid where the chain does not use it, ie the
             southern hemisphere, where it applies CATS2023 instead
+        lpet_exclude_atlas: exclude from ocean_tide_eq_20 the long-period lines
+            the ocean atlas already models, removing the double count. Not the
+            baselines B-E behaviour. See equilibrium_constituents
 
     Returns:
         (num_written, num_errors)
@@ -543,6 +640,19 @@ def process_group(
         gc.collect()
         return out
 
+    lpet_lines = None
+    if lpet_exclude_atlas:
+        lpet_lines = equilibrium_constituents(models_dir, ocean_model)
+        excluded = [c for c in CTE_LONG_PERIOD_LINES if c not in lpet_lines]
+        log.info(
+            "ocean_tide_eq_20 will sum %d of the %d long-period lines, excluding %s "
+            "which %s already models (removes the long-period double count)",
+            len(lpet_lines),
+            len(CTE_LONG_PERIOD_LINES),
+            ",".join(excluded),
+            ocean_model,
+        )
+
     if skip_ocean_tide:
         log.info(
             "Skipping the %s read: the chain applies CATS2023 over the southern "
@@ -564,14 +674,16 @@ def process_group(
             zeros = np.zeros_like(lats)
             ocean_tide = ocean_tides.get(l1b_file, zeros)
             load_tide = load_tides.get(l1b_file, zeros)
-            ocean_tide_eq = equilibrium_tide(lons, lats, delta_time)
+            ocean_tide_eq = equilibrium_tide(lons, lats, delta_time, lpet_lines)
 
             omitted = []
             if skip_ocean_tide:
                 omitted.append("ocean_tide_20")
             if no_load_tide:
                 omitted.append("load_tide_20")
-            write_tide_file(out_file, ocean_tide, ocean_tide_eq, load_tide, omitted)
+            write_tide_file(
+                out_file, ocean_tide, ocean_tide_eq, load_tide, omitted, lpet_exclude_atlas
+            )
         except (OSError, ValueError, KeyError) as exc:
             log.error("Failed for %s : %s", l1b_file, exc)
             num_errors += 1
@@ -810,6 +922,17 @@ def main() -> int:
             "for southern groups. The output records this in its 'not_computed' attribute"
         ),
     )
+    parser.add_argument(
+        "--lpet_exclude_atlas",
+        action="store_true",
+        help=(
+            "exclude from ocean_tide_eq_20 the long-period lines the ocean atlas already "
+            "models, so that ocean_tide_20 + ocean_tide_eq_20 does not count them twice. "
+            "This is the convention AVISO's own PyFES exposes. NOT the baselines B-E "
+            "behaviour: it lowers the equilibrium tide by roughly 2cm rms, so it changes "
+            "the product independently of the FES2014b to FES2022 model change"
+        ),
+    )
     parser.add_argument("--overwrite", action="store_true", help="re-create existing outputs")
     parser.add_argument("--debug", action="store_true", help="debug level logging")
     args = parser.parse_args()
@@ -963,6 +1086,7 @@ def main() -> int:
             args.ocean_model,
             args.exclude_long_period,
             skip_ocean,
+            args.lpet_exclude_atlas,
         )
         total_written += written
         total_errors += errors

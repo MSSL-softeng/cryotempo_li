@@ -18,9 +18,12 @@ from netCDF4 import Dataset  # pylint: disable=E0611
 
 from clev2er.algorithms.cryotempo.alg_fes2022_tide_correction import Algorithm
 from clev2er.tools.compute_fes2022_tides import (
+    CTE_LONG_PERIOD_LINES,
     auto_lon_sectors,
     bounding_box,
     circular_mean_lon,
+    doodson_key,
+    equilibrium_tide,
     write_tide_file,
 )
 from clev2er.utils.config.load_config_settings import load_config_files
@@ -165,6 +168,47 @@ def test_auto_lon_sectors_scales_with_file_count() -> None:
     assert auto_lon_sectors(1828) > 1, "a month of files should be split"
     assert auto_lon_sectors(1828) <= 12, "but never split without limit"
     assert auto_lon_sectors(100000) <= 12, "capped for very large runs"
+
+
+def test_lpet_default_constituents() -> None:
+    """CTE_LONG_PERIOD_LINES must still match pyTMD's own default set
+
+    The double-count fix works by subtracting the atlas constituents from this
+    list. If pyTMD ever changed its default, our list would silently stop being
+    the full set and the exclusion would be wrong. Rather than scrape pyTMD's
+    source, assert behaviourally: summing our list must equal summing pyTMD's
+    default.
+    """
+    rng = np.random.default_rng(0)
+    n = 200
+    lat = rng.uniform(58.0, 84.0, n)
+    lon = rng.uniform(-60.0, -20.0, n)
+    delta_time = rng.uniform(6.3e8, 6.3e8 + 365 * 86400.0, n)
+
+    default = equilibrium_tide(lon, lat, delta_time)
+    explicit = equilibrium_tide(lon, lat, delta_time, list(CTE_LONG_PERIOD_LINES))
+    assert np.allclose(default, explicit, atol=1e-12), (
+        "CTE_LONG_PERIOD_LINES no longer matches pyTMD's default equilibrium "
+        "tide constituents - the double-count exclusion would be incorrect"
+    )
+
+
+def test_doodson_matching_across_naming_schemes() -> None:
+    """FES and pyTMD name the same spectral lines differently
+
+    Matching by name alone gets this wrong: FES 'mtm' is pyTMD's 'mt', and
+    'msqm' is not one of the 15 lines at all.
+    """
+    assert doodson_key("mtm") == doodson_key("mt"), "mtm and mt are the same line"
+    assert doodson_key("mf") == doodson_key("mf"), "sanity"
+    assert doodson_key("065.445") == 65.445, "bare Doodson numbers must parse"
+    assert doodson_key("not_a_constituent") is None, "unknown names give None"
+
+    # msqm is in the FES2022 atlas but is not among the 15 CTE lines
+    cte_keys = {doodson_key(c) for c in CTE_LONG_PERIOD_LINES}
+    assert doodson_key("msqm") not in cte_keys, "msqm is not one of the 15 CTE lines"
+    for name in ("mf", "mm", "msf", "sa", "ssa", "mtm"):
+        assert doodson_key(name) in cte_keys, f"{name} should match a CTE line"
 
 
 def test_compute_fes2022_tides_help() -> None:
