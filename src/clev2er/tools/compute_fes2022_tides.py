@@ -117,6 +117,20 @@ DEFAULT_MEMORY_FRACTION = 0.6
 # the alternative can be generated and assessed without editing code.
 LONG_PERIOD_CONSTITUENTS = ("mf", "mm", "msf", "msqm", "mtm", "sa", "ssa")
 
+# Generous boxes around the CryoTEMPO domains, as (W, E, S, N).
+#
+# These are deliberately wider than the chain's own area test in
+# alg_skip_on_area_bounds, which cuts on the FIRST record latitude only (LRM
+# outside 62N/-69S, SIN outside 58N/-59S) and then applies Greenland and
+# Antarctic masks. Testing every nadir record against a wider box can only keep
+# more files than the chain will process, never fewer, so a granule the chain
+# wants can never end up without a tide file.
+REGION_BOXES = {
+    "greenland": (-90.0, 0.0, 55.0, 90.0),
+    "antarctica": (-180.0, 180.0, -90.0, -55.0),
+}
+
+
 # Ocean tide model. Baselines B-E used FES2014's *extrapolated* ocean tide
 # (ocean_tide_extrapolated.ini), so the extrapolated FES2022 product is the
 # like-for-like successor: using the plain one instead loses ~55% of the valid
@@ -293,6 +307,7 @@ def write_tide_file(
     ocean_tide: np.ndarray,
     ocean_tide_eq: np.ndarray,
     load_tide: np.ndarray,
+    omitted: list[str] | None = None,
 ) -> None:
     """write the per-L1b tide file
 
@@ -305,6 +320,9 @@ def write_tide_file(
         ocean_tide (np.ndarray): ocean tide, metres
         ocean_tide_eq (np.ndarray): equilibrium long period tide, metres
         load_tide (np.ndarray): ocean tide loading, metres
+        omitted (list): variables deliberately written as zero rather than
+            computed. Recorded in the file so a zeroed variable can never be
+            mistaken for a computed one.
     """
     os.makedirs(os.path.dirname(out_file), exist_ok=True)
 
@@ -329,6 +347,26 @@ def write_tide_file(
         nc_out.tide_model = "FES2022"
         nc_out.reference = "https://doi.org/10.24400/527896/A01-2024.004"
         nc_out.created_by = "clev2er.tools.compute_fes2022_tides"
+        nc_out.not_computed = ",".join(omitted) if omitted else "none"
+
+
+def track_in_regions(lats: np.ndarray, lons: np.ndarray, regions: list[str]) -> bool:
+    """does any nadir record fall inside one of the named region boxes?
+
+    Args:
+        lats (np.ndarray): nadir latitudes, degrees
+        lons (np.ndarray): nadir longitudes, degrees in -180..180
+        regions (list): region names, keys of REGION_BOXES
+
+    Returns:
+        bool : True if the granule should be processed
+    """
+    for name in regions:
+        west, east, south, north = REGION_BOXES[name]
+        inside = (lats >= south) & (lats <= north) & (lons >= west) & (lons <= east)
+        if inside.any():
+            return True
+    return False
 
 
 def wrap180(lon: np.ndarray | float) -> np.ndarray | float:
@@ -423,6 +461,7 @@ def process_group(
     constituents: list[str] | None = None,
     ocean_model: str = DEFAULT_OCEAN_MODEL,
     exclude_long_period: bool = False,
+    skip_ocean_tide: bool = False,
 ) -> tuple[int, int]:
     """compute and write tide files for one group of L1b files
 
@@ -449,6 +488,9 @@ def process_group(
         ocean_model: pyTMD ocean tide model name
         exclude_long_period: drop the long-period constituents (not the B-E
             behaviour; for assessing the possible double count only)
+        skip_ocean_tide: write zeros for ocean_tide_20 instead of reading the
+            ocean model. Only valid where the chain does not use it, ie the
+            southern hemisphere, where it applies CATS2023 instead
 
     Returns:
         (num_written, num_errors)
@@ -501,7 +543,15 @@ def process_group(
         gc.collect()
         return out
 
-    ocean_tides = tides_for_all_files(ocean_model)
+    if skip_ocean_tide:
+        log.info(
+            "Skipping the %s read: the chain applies CATS2023 over the southern "
+            "hemisphere, so ocean_tide_20 is unused there and is written as zero",
+            ocean_model,
+        )
+        ocean_tides: dict[str, np.ndarray] = {}
+    else:
+        ocean_tides = tides_for_all_files(ocean_model)
     load_tides = {} if no_load_tide else tides_for_all_files(LOAD_MODEL)
 
     num_written = 0
@@ -511,13 +561,17 @@ def process_group(
         lats, lons, delta_time = nadir[l1b_file]
         out_file = os.path.join(out_dir, f"{Path(l1b_file).name[:-3]}.fes2022.nc")
         try:
-            ocean_tide = ocean_tides[l1b_file]
-            load_tide = load_tides.get(l1b_file)
-            if load_tide is None:
-                load_tide = np.zeros_like(ocean_tide)
+            zeros = np.zeros_like(lats)
+            ocean_tide = ocean_tides.get(l1b_file, zeros)
+            load_tide = load_tides.get(l1b_file, zeros)
             ocean_tide_eq = equilibrium_tide(lons, lats, delta_time)
 
-            write_tide_file(out_file, ocean_tide, ocean_tide_eq, load_tide)
+            omitted = []
+            if skip_ocean_tide:
+                omitted.append("ocean_tide_20")
+            if no_load_tide:
+                omitted.append("load_tide_20")
+            write_tide_file(out_file, ocean_tide, ocean_tide_eq, load_tide, omitted)
         except (OSError, ValueError, KeyError) as exc:
             log.error("Failed for %s : %s", l1b_file, exc)
             num_errors += 1
@@ -734,6 +788,28 @@ def main() -> int:
             "count, which is what you want unless you are tuning"
         ),
     )
+    parser.add_argument(
+        "--regions",
+        nargs="+",
+        default=[],
+        choices=sorted(REGION_BOXES),
+        help=(
+            "only process granules with at least one nadir record inside these region "
+            "boxes. A large speed up for LRM, where most granules are nowhere near the "
+            "ice sheets. The boxes are wider than the chain's own area test, so a "
+            "granule the chain processes can never be skipped. Default: process all"
+        ),
+    )
+    parser.add_argument(
+        "--south_load_tide_only",
+        action="store_true",
+        help=(
+            "for southern hemisphere groups, skip the ocean tide model and write "
+            "ocean_tide_20 as zero. Valid because alg_geo_corrections applies CATS2023 "
+            "over the south and never uses ocean_tide_20 there. Halves the model reads "
+            "for southern groups. The output records this in its 'not_computed' attribute"
+        ),
+    )
     parser.add_argument("--overwrite", action="store_true", help="re-create existing outputs")
     parser.add_argument("--debug", action="store_true", help="debug level logging")
     args = parser.parse_args()
@@ -803,6 +879,7 @@ def main() -> int:
     hemisphere_files: dict[str, list[str]] = {"northern": [], "southern": []}
     track_bounds: dict[str, tuple[float, float, float, float]] = {}
     track_lon_centre: dict[str, float] = {}
+    num_outside = 0
     for filenum, l1b_file in enumerate(l1b_files, start=1):
         report(filenum)
         try:
@@ -810,18 +887,29 @@ def main() -> int:
         except (OSError, KeyError) as exc:
             log.error("Could not read %s : %s", l1b_file, exc)
             continue
+        if args.regions and not track_in_regions(lats, lons, args.regions):
+            num_outside += 1
+            continue
         nadir[l1b_file] = (lats, lons, delta_time)
         track_bounds[l1b_file] = (lons.min(), lons.max(), lats.min(), lats.max())
         track_lon_centre[l1b_file] = circular_mean_lon(lons)
         hemisphere_files["northern" if np.nanmean(lats) >= 0 else "southern"].append(l1b_file)
     log.info("Scanned %d L1b files in %s", len(l1b_files), format_duration(time.time() - tic))
+    if args.regions:
+        log.info(
+            "Skipped %d of %d granules with no nadir record in %s; %d to process",
+            num_outside,
+            len(l1b_files),
+            "/".join(args.regions),
+            len(l1b_files) - num_outside,
+        )
 
     # Build the groups. Each group is read from the model once, so a group's
     # bounding box should be as small as practical: the per-file interpolation
     # cost scales with the cropped area. Splitting each hemisphere into
     # longitude sectors trades one extra model read per sector against a much
     # cheaper per-file cost. See auto_lon_sectors.
-    groups: list[tuple[str, list[str], list[float]]] = []
+    groups: list[tuple[str, list[str], list[float], bool]] = []
     for hemisphere, files in hemisphere_files.items():
         if not files:
             continue
@@ -846,13 +934,14 @@ def main() -> int:
                     f"{hemisphere} sector {index + 1}/{sectors}",
                     sector_files,
                     bounding_box([track_bounds[f] for f in sector_files], float(centre)),
+                    args.south_load_tide_only and hemisphere == "southern",
                 )
             )
 
     total_written = 0
     total_errors = 0
     tic = time.time()
-    for group_num, (label, group_files, group_bounds) in enumerate(groups, start=1):
+    for group_num, (label, group_files, group_bounds, skip_ocean) in enumerate(groups, start=1):
         log.info(
             "--- group %d of %d: %s, %d files, lon %.1f..%.1f lat %.1f..%.1f ---",
             group_num,
@@ -873,6 +962,7 @@ def main() -> int:
             args.constituents,
             args.ocean_model,
             args.exclude_long_period,
+            skip_ocean,
         )
         total_written += written
         total_errors += errors
