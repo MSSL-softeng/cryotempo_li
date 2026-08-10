@@ -230,6 +230,38 @@ def phase_to_angle(
     return angle
 
 
+def ambiguity_phase_offsets(phase, num_ambiguities):
+    """phase offsets of the alternative solutions to test for this record
+
+    The SARIn phase difference is only known modulo 2pi, so the POCA could lie
+    in any of a series of across-track bands. With CryoSat's baseline one 2pi
+    is 1.114 degrees of look angle, about 14.5km across track and 120-700m in
+    height, so the candidates are well separated and a 1km DEM discriminates
+    them easily.
+
+    num_ambiguities = 0 reproduces the baselines B to F010 behaviour: a single
+    alternative at -2pi or +2pi chosen by the sign of the phase. Because
+    angle = -phase * wavelength / (2 pi * baseline), that alternative always
+    has the opposite angle sign, ie it is the band on the far side of nadir.
+    The band further out on the SAME side was never tested.
+
+    num_ambiguities = N tests every band from -N to +N, so both neighbours are
+    considered rather than only the one that crosses nadir.
+
+    Args:
+        phase (float): fitted phase difference in radians, |phase| <= pi
+        num_ambiguities (int): 0 for the legacy single alternative, else the
+            number of 2pi bands to search either side
+
+    Returns:
+        list : phase offsets in radians, excluding the zero offset which is
+        the primary solution
+    """
+    if num_ambiguities <= 0:
+        return [-2.0 * np.pi if phase > 0 else 2.0 * np.pi]
+    return [k * 2.0 * np.pi for k in range(-num_ambiguities, num_ambiguities + 1) if k != 0]
+
+
 def geolocate_sin(l1b, config, dem_ant, dem_grn, range_cor_20_ku, ind_wfm_retrack_20_ku):
     """djb to document
 
@@ -274,12 +306,19 @@ def geolocate_sin(l1b, config, dem_ant, dem_grn, range_cor_20_ku, ind_wfm_retrac
 
     lat_initial_20_ku = np.zeros(nrec)
     lon_initial_20_ku = np.zeros(nrec)
-    lat_unwrap_20_ku = np.zeros(nrec)
-    lon_unwrap_20_ku = np.zeros(nrec)
-    dem_unwrap_20_ku = np.zeros(nrec)
-    angle_unwrap_20_ku = np.zeros(nrec)
-    delta_unwrap_h = np.zeros(nrec)
-    height_unwrap_20_ku = np.zeros(nrec)
+
+    # Alternative 2pi ambiguity solutions. num_ambiguities = 0 keeps the single
+    # sign-selected alternative used by baselines B to F010; N tests bands -N
+    # to +N. See ambiguity_phase_offsets.
+    num_ambiguities = int(config["sin_geolocation"].get("unwrap_ambiguities", 0))
+    num_alternatives = 1 if num_ambiguities <= 0 else 2 * num_ambiguities
+    # reject a record if even the best candidate is this far from the DEM.
+    # 0 disables, which is the baselines B to F010 behaviour.
+    max_dem_diff = float(config["sin_geolocation"].get("unwrap_max_dem_diff_m", 0.0))
+
+    lat_alt_20_ku = np.full((num_alternatives, nrec), np.nan)
+    lon_alt_20_ku = np.full((num_alternatives, nrec), np.nan)
+    height_alt_20_ku = np.full((num_alternatives, nrec), np.nan)
 
     config_fitter = config["sin_geolocation"]["phase_method"]
     if config_fitter == 1:
@@ -356,30 +395,21 @@ def geolocate_sin(l1b, config, dem_ant, dem_grn, range_cor_20_ku, ind_wfm_retrac
             height_20_ku[i] = elev_poca
 
             if config["sin_geolocation"]["unwrap"]:
-                if phase > 0:
-                    unwrap_phase = -2.0 * np.pi + phase
-                else:
-                    unwrap_phase = 2.0 * np.pi + phase
-
-                angle_unwrap_20_ku[i] = phase_to_angle(unwrap_phase)
-                log.debug("-- GEOLOCATING  unwrapped --")
-                lat_poca, lon_poca, elev_poca = angle_to_poca(
-                    angle_unwrap_20_ku[i],
-                    lat_20_ku[i],
-                    lon_20_ku[i],
-                    alt_20_ku[i],
-                    range_cor_20_ku[i],
-                    sat_vel_vec_20_ku[i],
-                    inter_base_vec_20_ku[i],
-                )
-                lat_unwrap_20_ku[i] = lat_poca
-                lon_unwrap_20_ku[i] = lon_poca
-                height_unwrap_20_ku[i] = elev_poca
-            else:
-                lat_unwrap_20_ku[i] = np.nan
-                lon_unwrap_20_ku[i] = np.nan
-                dem_unwrap_20_ku[i] = np.nan
-                delta_unwrap_h[i] = np.nan
+                offsets = ambiguity_phase_offsets(phase, num_ambiguities)
+                for alt, offset in enumerate(offsets):
+                    log.debug("-- GEOLOCATING  ambiguity offset %+.3f rad --", offset)
+                    lat_poca, lon_poca, elev_poca = angle_to_poca(
+                        phase_to_angle(phase + offset),
+                        lat_20_ku[i],
+                        lon_20_ku[i],
+                        alt_20_ku[i],
+                        range_cor_20_ku[i],
+                        sat_vel_vec_20_ku[i],
+                        inter_base_vec_20_ku[i],
+                    )
+                    lat_alt_20_ku[alt, i] = lat_poca
+                    lon_alt_20_ku[alt, i] = lon_poca
+                    height_alt_20_ku[alt, i] = elev_poca
 
             if (
                 height_20_ku[i] > config["sin_geolocation"]["height_max"]
@@ -401,40 +431,57 @@ def geolocate_sin(l1b, config, dem_ant, dem_grn, range_cor_20_ku, ind_wfm_retrac
     # --------------------------------------------------------------------------
     # --------------------------------------------------------------------------
     if config["sin_geolocation"]["unwrap"]:
-        # Get the DEM height at both locations
-        if lat_20_ku[0] < 0:
-            unwrap_dem = dem_ant.interp_dem(
-                lat_unwrap_20_ku, lon_unwrap_20_ku, method="linear", xy_is_latlon=True
-            )
+        dem = dem_ant if lat_20_ku[0] < 0 else dem_grn
 
-            orig_dem = dem_ant.interp_dem(
-                final_lat_20_ku, final_lon_20_ku, method="linear", xy_is_latlon=True
-            )
-        else:
-            unwrap_dem = dem_grn.interp_dem(
-                lat_unwrap_20_ku, lon_unwrap_20_ku, method="linear", xy_is_latlon=True
-            )
-            orig_dem = dem_grn.interp_dem(
-                final_lat_20_ku, final_lon_20_ku, method="linear", xy_is_latlon=True
-            )
+        def dem_at(lats, lons):
+            """reference DEM elevation at the candidate locations"""
+            return dem.interp_dem(lats, lons, method="linear", xy_is_latlon=True)
 
-        # Work out which is best
-        idx = np.where(
-            np.bitwise_and(
-                np.abs(height_unwrap_20_ku - unwrap_dem) < np.abs(height_20_ku - orig_dem),
-                np.abs(height_20_ku - orig_dem) >= config["sin_geolocation"]["unwrap_trigger_m"],
-            )
-        )[0]
+        # Deviation from the DEM for the primary solution and each alternative.
+        # The trigger is evaluated against the PRIMARY deviation, as it was
+        # when there was only one alternative.
+        orig_dem = dem_at(final_lat_20_ku, final_lon_20_ku)
+        orig_diff = np.abs(height_20_ku - orig_dem)
+        best_diff = orig_diff.copy()
 
         lat_initial_20_ku[:] = final_lat_20_ku[:]
         lon_initial_20_ku[:] = final_lon_20_ku[:]
 
-        # Use the alternate solution if better
-        if len(idx) > 0:
-            height_20_ku[idx] = height_unwrap_20_ku[idx]
-            final_lat_20_ku[idx] = lat_unwrap_20_ku[idx]
-            final_lon_20_ku[idx] = lon_unwrap_20_ku[idx]
-            log.info("Phase unwrapping replaced %d measurements", len(idx))
+        triggered = orig_diff >= config["sin_geolocation"]["unwrap_trigger_m"]
+        num_replaced = 0
+        for alt in range(num_alternatives):
+            alt_dem = dem_at(lat_alt_20_ku[alt], lon_alt_20_ku[alt])
+            alt_diff = np.abs(height_alt_20_ku[alt] - alt_dem)
+            # np.less treats NaN as False, so candidates that failed to
+            # geolocate can never win
+            idx = np.where(np.bitwise_and(np.less(alt_diff, best_diff), triggered))[0]
+            if idx.size > 0:
+                height_20_ku[idx] = height_alt_20_ku[alt][idx]
+                final_lat_20_ku[idx] = lat_alt_20_ku[alt][idx]
+                final_lon_20_ku[idx] = lon_alt_20_ku[alt][idx]
+                best_diff[idx] = alt_diff[idx]
+                num_replaced += idx.size
+        log.info(
+            "Phase unwrapping: %d replacements from %d alternative solution(s) per record",
+            num_replaced,
+            num_alternatives,
+        )
+
+        # Reject records whose best candidate is still implausibly far from the
+        # DEM. Widening the search gives more chances for a spurious solution
+        # to sit closer to the DEM than the true one, so this bounds the damage.
+        if max_dem_diff > 0:
+            reject = np.where(best_diff > max_dem_diff)[0]
+            if reject.size > 0:
+                height_20_ku[reject] = np.nan
+                final_lat_20_ku[reject] = np.nan
+                final_lon_20_ku[reject] = np.nan
+                log.info(
+                    "Rejected %d of %d measurements more than %.1fm from the DEM",
+                    reject.size,
+                    nrec,
+                    max_dem_diff,
+                )
 
     log.debug("bad counts 1=%d 2=%d 3=%d", bad_1, bad_2, bad_3)
     log.info("Processed %d records", i + 1)

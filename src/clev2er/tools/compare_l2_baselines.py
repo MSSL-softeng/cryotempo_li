@@ -214,10 +214,22 @@ def main() -> int:
         label = names.get(value, f"surface_type {value}")
         describe(f"{value}: {label}", diff[stype == value])
 
+    # count only records with a valid elevation in BOTH, so records dropped by
+    # one baseline do not dilute the percentage
+    comparable = np.isfinite(diff)
+    changed = comparable & (np.abs(diff) > 1e-4)
     print(
-        "\nThe tide evolutions only change ocean and floating ice, so grounded ice\n"
-        "and ice free land should be unchanged - any difference there indicates a\n"
-        "correction being applied where it should not be."
+        f"\n{int(changed.sum())} of {int(comparable.sum())} records with a valid elevation "
+        f"in both changed ({100.0 * changed.sum() / max(comparable.sum(), 1):.2f}%)"
+    )
+    if changed.any():
+        moved = np.abs(diff[changed]) * 100.0
+        print(f"  of those: median |change| {np.median(moved):.2f} cm, max {moved.max():.2f} cm")
+    print(
+        "\nWhich surface types should move depends on the evolution. The tide\n"
+        "evolutions touch only ocean and floating ice, so a difference over grounded\n"
+        "ice would indicate a correction applied where it should not be; a geolocation\n"
+        "change can legitimately move any surface type."
     )
     return 0
 
