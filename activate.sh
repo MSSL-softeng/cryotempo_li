@@ -109,7 +109,7 @@ export CATS2008A_BASE_DIR="${CATS2008A_BASE_DIR:-${CPDATA_DIR}/SATS/RA/CRY/L1B/C
 export CS2_UNCERTAINTY_BASE_DIR="${CS2_UNCERTAINTY_BASE_DIR:-/raid6/cryo-tempo/land_ice/uncertainty}"
 export TESTDATA_EXTERNAL_DIR="${TESTDATA_EXTERNAL_DIR:-/home/clopr/software/clevops/testdata_external}"
 # pyTMD tide model directory, holding CATS2008_v2023/ and fes2022b/ (baseline-F onwards)
-export PYTMD_TIDE_MODELS_DIR="${PYTMD_TIDE_MODELS_DIR:-${HOME}/software/clev2er_liiw/testdata_external/adf/landice_swath/pytmd_tide_models"
+export PYTMD_TIDE_MODELS_DIR="${PYTMD_TIDE_MODELS_DIR:-${HOME}/software/clev2er_liiw/testdata_external/adf/landice_swath/pytmd_tide_models}"
 # pre-computed FES2022 tide files (baseline-F onwards), containing LRM,SIN/<YYYY>/<MM>/
 export FES2022_BASE_DIR="${FES2022_BASE_DIR:-${CPDATA_DIR}/SATS/RA/CRY/L1B/FES2022b}"
 
