@@ -11,8 +11,13 @@
         <alg_skip_on_area_bounds>Enable</alg_skip_on_area_bounds> <!--fast area check, skip files outside Ant and Grn-->
         <alg_surface_type>Enable</alg_surface_type>          <!--get surface type from Bedmachine, skip file if no grounded or floating ice-->
         <alg_dilated_coastal_mask>Enable</alg_dilated_coastal_mask> <!-- mask records > 10km from Ant/Grn coast, skip if no records in mask -->
-        <alg_fes2022_tide_correction>Enable</alg_fes2022_tide_correction>  <!-- get FES2022 tide corrections (baseline-F evolution, replaces FES2014b) -->
-        <alg_cats2023_tide_correction>Enable</alg_cats2023_tide_correction> <!-- compute CATS2023 tide corrections (baseline-F evolution, replaces CATS2008a) -->
+        <!-- F013 isolates the phase ambiguity evolution, so the tides are deliberately
+             left as baseline E001 (FES2014b + CATS2008a). The FES2022/CATS2023
+             algorithms exist in this branch but are not enabled here: that evolution is
+             tested separately by F010. This lets the validation team compare each
+             evolution against E001 on its own. -->
+        <alg_fes2014b_tide_correction>Enable</alg_fes2014b_tide_correction>  <!-- get FES2014b tide corrections (as E001) -->
+        <alg_cats2008a_tide_correction>Enable</alg_cats2008a_tide_correction> <!-- get CATS2008a tide corrections (as E001) -->
         <alg_geo_corrections>Enable</alg_geo_corrections>    <!--calculate sum of geo-corrections-->
         <alg_waveform_quality>Enable</alg_waveform_quality>  <!--waveform quality checks for LRM & SIN-->      
         <alg_retrack>Enable</alg_retrack>                    <!--calls LRM (TCOG) or SIN (MC) retrackers-->
