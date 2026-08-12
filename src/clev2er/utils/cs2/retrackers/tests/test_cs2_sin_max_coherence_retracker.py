@@ -200,3 +200,72 @@ def test_retrack_cs2_sin_max_coherence_at_index(
         assert np.isnan(dr_bin_mc[measurement_index])
         # Leadinge Edge start bin should be Nan
         assert np.isnan(leading_edge_start[measurement_index][0])
+
+
+# ---------------------------------------------------------------------------------------------
+# Coherence threshold (baseline-F evolution 4)
+#   - default (0.0) must leave the retracker exactly as it was
+#   - a threshold can only REJECT measurements, never move the retracking point
+# ---------------------------------------------------------------------------------------------
+
+
+def test_coherence_threshold_default_is_inactive(sin_file):  # pylint: disable=W0621
+    """coherence_threshold=0.0 must reproduce the pre-evolution behaviour
+
+    Args:
+        sin_file (str): path
+    """
+    without = retrack_cs2_sin_max_coherence(sin_file)
+    explicit_off = retrack_cs2_sin_max_coherence(sin_file, coherence_threshold=0.0)
+
+    assert without[6] == explicit_off[6], "failure count must be unchanged"
+    assert np.array_equal(
+        np.asarray(without[0], dtype=float),
+        np.asarray(explicit_off[0], dtype=float),
+        equal_nan=True,
+    ), "retracking bins must be unchanged when the threshold is disabled"
+
+
+def test_coherence_threshold_only_rejects(sin_file):  # pylint: disable=W0621
+    """a threshold must never move a retracking point, only remove measurements
+
+    The retracker takes the maximum coherence in its search window, so if that
+    maximum fails the threshold no other bin in the window can pass it. Every
+    measurement that survives must therefore be identical to the unthresholded
+    result.
+
+    Args:
+        sin_file (str): path
+    """
+    base = retrack_cs2_sin_max_coherence(sin_file)
+    thresholded = retrack_cs2_sin_max_coherence(sin_file, coherence_threshold=0.6)
+
+    base_bins = np.asarray(base[0], dtype=float)
+    new_bins = np.asarray(thresholded[0], dtype=float)
+
+    survivors = np.isfinite(new_bins)
+    assert np.array_equal(
+        base_bins[survivors], new_bins[survivors]
+    ), "surviving retracking points must be identical to the unthresholded result"
+
+    # nothing may be gained: a threshold cannot rescue a failed retrack
+    gained = np.isfinite(new_bins) & ~np.isfinite(base_bins)
+    assert not gained.any(), "a coherence threshold cannot create new retrack points"
+
+    # rejections must be counted as failures and flagged in column index 4
+    rejected = np.isfinite(base_bins) & ~np.isfinite(new_bins)
+    assert thresholded[6] == base[6] + int(rejected.sum()), "rejections must count as failures"
+    for i in np.where(rejected)[0]:
+        assert thresholded[7][i][4] == 1, f"waveform {i} should carry the coherence flag"
+        assert np.isnan(thresholded[5][i]), "coherence at the retracking point should be NaN"
+
+
+def test_coherence_threshold_above_one_rejects_everything(sin_file):  # pylint: disable=W0621
+    """coherence cannot exceed 1, so a threshold above it must reject every waveform
+
+    Args:
+        sin_file (str): path
+    """
+    result = retrack_cs2_sin_max_coherence(sin_file, coherence_threshold=1.01)
+    bins = np.asarray(result[0], dtype=float)
+    assert not np.isfinite(bins).any(), "no retracking point should survive"

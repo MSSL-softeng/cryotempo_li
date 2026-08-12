@@ -101,6 +101,7 @@ def retrack_cs2_sin_max_coherence(
     le_id_threshold: float = 0.05,
     le_dp_threshold: float = 0.20,
     coherence_smoothing_width=9,
+    coherence_threshold: float = 0.0,
 ) -> Tuple[
     np.ndarray,
     np.ndarray,
@@ -152,6 +153,15 @@ def retrack_cs2_sin_max_coherence(
         le_dp_threshold (float, def=0.2): define threshold on normalised amplitude change which is
                                           required to be accepted as lead edge
         coherence_smoothing_width (int, def-9): coherence boxcar average smoothing width
+        coherence_threshold (float, def=0.0): if > 0, reject the measurement when the
+                                maximum SMOOTHED coherence in the search window is below
+                                this value. The smoothed waveform is the one the
+                                retracker maximises, so this is the value tested.
+                                Because the retracker already takes the maximum, no other
+                                bin in the window can satisfy the threshold if the maximum
+                                does not, so the only possible effect is rejection - the
+                                retracking point is never moved. 0.0 disables the test,
+                                which is the baselines B to F013 behaviour.
 
 
     Returns:
@@ -178,7 +188,8 @@ def retrack_cs2_sin_max_coherence(
                                 column 3 (index 2): 0 or 1 if no peak identified
                                 column 4 (index 3): 0 or 1 if no leading edge found by end of
                                 waveform
-                                column 5 (index 4): 0 (currently unused)
+                                column 5 (index 4): 0 or 1 if the maximum coherence in the
+                                search window is below coherence_threshold
                                 column 6 (index 5): 0 or 1 if  No retracking point retrieved
 
     """
@@ -499,6 +510,26 @@ def retrack_cs2_sin_max_coherence(
                     # smoothed coherence is only used to locate index_of_max_coherence
                     coherence_at_rtrk_point_mc[i] = coherence[i][index_of_max_coherence]
 
+                    # Coherence threshold. Tested against the SMOOTHED coherence because
+                    # that is the waveform the retracker maximises. As the retracking
+                    # point is already the maximum of that window, no other bin can pass
+                    # a threshold the maximum fails, so the only possible effect is to
+                    # reject the measurement - the retracking point is never moved.
+                    if (
+                        coherence_threshold > 0.0
+                        and coherence_sm[index_of_max_coherence] < coherence_threshold
+                    ):
+                        retrack_point_mc[i][0] = np.nan
+                        retrack_point_mc[i][1] = np.nan
+                        retrack_point_mc[i][2] = np.nan
+                        coherence_at_rtrk_point_mc[i] = np.nan
+                        log.debug(
+                            "max smoothed coherence %.3f below threshold %.3f",
+                            coherence_sm[index_of_max_coherence],
+                            coherence_threshold,
+                        )
+                        retrack_flag[i][4] = 1
+
                     if retrack_point_mc[i][2] == 0:
                         retrack_point_mc[i][0] = np.nan
                         retrack_point_mc[i][1] = np.nan
@@ -654,13 +685,9 @@ def retrack_cs2_sin_max_coherence(
 
     for i in range(n_waveforms):
         # Check MC retracker flags
-        if (
-            retrack_flag[i][5]
-            or retrack_flag[i][3]
-            or retrack_flag[i][2]
-            or retrack_flag[i][1]
-            or retrack_flag[i][0]
-        ):
+        # every flag now indicates a failure, including index 4 (maximum coherence
+        # below coherence_threshold), which was previously unused
+        if any(retrack_flag[i]):
             n_retrack_mc_failed += 1
 
     log.debug("Number of waveforms = %d", n_waveforms)

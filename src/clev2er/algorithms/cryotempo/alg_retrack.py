@@ -164,6 +164,10 @@ class Algorithm(BaseAlgorithm):
                 coherence_smoothing_width=self.config["mc_retracker"][
                     "coherence_smoothing_width"
                 ],  # define coherence boxcar average smoothing width
+                coherence_threshold=self.config["mc_retracker"].get(
+                    "coherence_threshold", 0.0
+                ),  # reject the measurement if the maximum smoothed coherence in the
+                # search window is below this. 0.0 disables, as in baselines B to F013
                 include_measurements_array=waveforms_to_include,
             )  # if not None, pass a boolean array to indicate which waveforms to retrack
 
