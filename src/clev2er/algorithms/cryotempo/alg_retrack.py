@@ -163,7 +163,13 @@ class Algorithm(BaseAlgorithm):
                 # be accepted as lead edge
                 coherence_smoothing_width=self.config["mc_retracker"][
                     "coherence_smoothing_width"
-                ],  # define coherence boxcar average smoothing width
+                ],  # define coherence smoothing window width
+                coherence_smoothing_method=self.config["mc_retracker"].get(
+                    "coherence_smoothing_method", "boxcar"
+                ),  # 'boxcar' (baselines B to E001) or 'savgol'
+                coherence_smoothing_poly_order=self.config["mc_retracker"].get(
+                    "coherence_smoothing_poly_order", 3
+                ),  # Savitzky-Golay polynomial order, 'savgol' only
                 include_measurements_array=waveforms_to_include,
             )  # if not None, pass a boolean array to indicate which waveforms to retrack
 

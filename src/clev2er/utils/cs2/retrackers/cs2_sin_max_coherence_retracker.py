@@ -84,6 +84,55 @@ class InvalidArraySizeError(Exception):
     """Exception for invalid array sizes"""
 
 
+def smooth_coherence(
+    coherence_waveform: np.ndarray,
+    width: int,
+    method: str = "boxcar",
+    poly_order: int = 3,
+) -> np.ndarray:
+    """smooth a coherence waveform prior to locating the maximum
+
+    The retracker takes the argmax of the smoothed coherence, so the smoother
+    determines where the retracking point lands.
+
+    'boxcar' is the baselines B to E001 behaviour: a running mean (fastsmooth).
+    It broadens and flattens peaks, which biases the position of the maximum.
+
+    'savgol' fits a local polynomial (Savitzky-Golay), as is already done for
+    the power waveform, and preserves peak position and amplitude far better.
+
+    Neither result is clipped. Note that the L1b coherence waveform is NOT
+    confined to [0,1]: the trailing bins carry a single out-of-range pad value
+    of 9.786 (scale_factor 0.001 already applied). Those bins sit well beyond
+    the leading edge, so the retracker's search window never reaches them, and
+    clipping them to 1.0 would disguise an obvious pad value as perfect
+    coherence.
+
+    Args:
+        coherence_waveform (np.ndarray): coherence waveform for one record
+        width (int): smoothing window width in bins
+        method (str): 'boxcar' or 'savgol'
+        poly_order (int): polynomial order, 'savgol' only
+
+    Returns:
+        np.ndarray : the smoothed coherence waveform
+
+    Raises:
+        ValueError : if the method is unknown, or the savgol window is not
+            wider than the polynomial order
+    """
+    if method == "boxcar":
+        return fastsmooth(coherence_waveform, width)
+    if method != "savgol":
+        raise ValueError(f"unknown coherence smoothing method '{method}', use boxcar or savgol")
+
+    if width <= poly_order:
+        raise ValueError(
+            f"savgol window ({width}) must be wider than the polynomial order ({poly_order})"
+        )
+    return savgol_filter(coherence_waveform, width, poly_order)
+
+
 def retrack_cs2_sin_max_coherence(
     l1b_file: str = "",
     waveforms: Union[np.ndarray, None] = None,
@@ -101,6 +150,8 @@ def retrack_cs2_sin_max_coherence(
     le_id_threshold: float = 0.05,
     le_dp_threshold: float = 0.20,
     coherence_smoothing_width=9,
+    coherence_smoothing_method: str = "boxcar",
+    coherence_smoothing_poly_order: int = 3,
 ) -> Tuple[
     np.ndarray,
     np.ndarray,
@@ -151,7 +202,13 @@ def retrack_cs2_sin_max_coherence(
                                             identified as a leading edge
         le_dp_threshold (float, def=0.2): define threshold on normalised amplitude change which is
                                           required to be accepted as lead edge
-        coherence_smoothing_width (int, def-9): coherence boxcar average smoothing width
+        coherence_smoothing_width (int, def-9): coherence smoothing window width
+        coherence_smoothing_method (str, def='boxcar'): 'boxcar' for the running mean
+                                used by baselines B to E001, or 'savgol' for a
+                                Savitzky-Golay polynomial fit. The retracker takes the
+                                argmax of the smoothed coherence, so this determines
+                                where the retracking point lands
+        coherence_smoothing_poly_order (int, def=3): polynomial order, 'savgol' only
 
 
     Returns:
@@ -449,7 +506,12 @@ def retrack_cs2_sin_max_coherence(
                 # Smooth the coherence waveform using a running average window
                 # Coherence waveform is not oversampled
                 if coherence is not None:
-                    coherence_sm = fastsmooth(coherence[i], coherence_smoothing_width)
+                    coherence_sm = smooth_coherence(
+                        coherence[i],
+                        coherence_smoothing_width,
+                        method=coherence_smoothing_method,
+                        poly_order=coherence_smoothing_poly_order,
+                    )
                 else:
                     raise ValueError("coherence is None instead of np.ndarray")
                 # Find indices of 50% up the leading edge to start search for max coherence
