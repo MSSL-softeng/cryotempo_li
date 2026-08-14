@@ -164,6 +164,12 @@ class Algorithm(BaseAlgorithm):
                 coherence_smoothing_width=self.config["mc_retracker"][
                     "coherence_smoothing_width"
                 ],  # define coherence boxcar average smoothing width
+                coherence_subbin_method=self.config["mc_retracker"].get(
+                    "coherence_subbin_method", "none"
+                ),  # sub-bin location of the coherence max: none|parabolic|spline
+                coherence_subbin_oversampling=self.config["mc_retracker"].get(
+                    "coherence_subbin_oversampling", 100
+                ),  # fine grid factor used by the 'spline' sub-bin method
                 include_measurements_array=waveforms_to_include,
             )  # if not None, pass a boolean array to indicate which waveforms to retrack
 

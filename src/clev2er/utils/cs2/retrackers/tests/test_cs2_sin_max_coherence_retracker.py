@@ -9,6 +9,7 @@ import numpy as np
 import pytest
 
 from clev2er.utils.cs2.retrackers.cs2_sin_max_coherence_retracker import (
+    refine_coherence_peak,
     retrack_cs2_sin_max_coherence,
 )
 
@@ -83,6 +84,151 @@ def test_retrack_cs2_sin_max_coherence(sin_file):  # pylint: disable=W0621
     valid_coherence = coherence_at_rtrk_point[np.isfinite(coherence_at_rtrk_point)]
     assert valid_coherence.size > 0
     assert np.all(valid_coherence >= 0.0)
+
+
+# ---------------------------------------------------------------------------------------------
+# Sub-bin location of the coherence maximum (F018 evolution)
+# ---------------------------------------------------------------------------------------------
+
+
+def test_refine_coherence_peak_none_is_whole_bin():
+    """default method must reproduce the whole-bin argmax exactly (E001 behaviour)"""
+    coherence = np.array([0.1, 0.3, 0.9, 0.4, 0.2])
+    assert refine_coherence_peak(coherence, 2) == 2.0
+    assert refine_coherence_peak(coherence, 2, method="none") == 2.0
+
+
+def test_refine_coherence_peak_parabolic_symmetric():
+    """a symmetric peak has its maximum on the sample, so must not be moved"""
+    coherence = np.array([0.1, 0.5, 0.9, 0.5, 0.1])
+    assert refine_coherence_peak(coherence, 2, method="parabolic") == pytest.approx(2.0)
+
+
+def test_refine_coherence_peak_parabolic_shifts_towards_higher_neighbour():
+    """an asymmetric peak must move towards the higher of the two neighbours"""
+    # left neighbour higher -> peak moves left
+    left_heavy = np.array([0.1, 0.8, 0.9, 0.2, 0.1])
+    assert refine_coherence_peak(left_heavy, 2, method="parabolic") < 2.0
+    # right neighbour higher -> peak moves right
+    right_heavy = np.array([0.1, 0.2, 0.9, 0.8, 0.1])
+    assert refine_coherence_peak(right_heavy, 2, method="parabolic") > 2.0
+
+
+def test_refine_coherence_peak_parabolic_recovers_known_offset():
+    """sampling a known parabola must recover its vertex"""
+    true_peak = 2.3
+    bins = np.arange(5.0)
+    coherence = 0.9 - 0.1 * (bins - true_peak) ** 2
+    assert refine_coherence_peak(coherence, 2, method="parabolic") == pytest.approx(true_peak)
+
+
+def test_refine_coherence_peak_parabolic_bounded_to_half_bin():
+    """the parabolic estimator must never move the point by more than half a bin
+
+    Includes triples where the centre is NOT the maximum, which occur in practice
+    because the MC argmax is taken within the leading edge search window and a
+    neighbouring bin outside that window can be higher.
+    """
+    rng = np.random.default_rng(42)
+    for _ in range(2000):
+        coherence = rng.random(3)
+        offset = refine_coherence_peak(coherence, 1, method="parabolic") - 1.0
+        assert abs(offset) <= 0.5
+
+
+def test_refine_coherence_peak_parabolic_declines_when_not_a_maximum():
+    """where the samples do not bracket a maximum the whole bin must be kept
+
+    Refining here would extrapolate outside the sampled bins, and a near-zero
+    curvature makes the vertex formula diverge. Pinning such cases to the +/-0.5
+    boundary instead would relocate the retracking point rather than refine it.
+    """
+    # centre lower than a neighbour: on a rising run, not a peak
+    assert refine_coherence_peak(np.array([0.2, 0.5, 0.9]), 1, method="parabolic") == 1.0
+    # flat: no curvature, formula would divide by zero
+    assert refine_coherence_peak(np.array([0.5, 0.5, 0.5]), 1, method="parabolic") == 1.0
+    # near-zero curvature with an asymmetric pair: vertex diverges
+    assert (
+        refine_coherence_peak(np.array([0.9, 0.9 + 1e-13, 0.9 + 2e-13]), 1, method="parabolic")
+        == 1.0
+    )
+
+
+def test_refine_coherence_peak_at_array_edge_is_not_refined():
+    """a peak with no neighbour on one side has no sub-bin information"""
+    coherence = np.array([0.9, 0.5, 0.3, 0.1])
+    for method in ("parabolic", "spline"):
+        assert refine_coherence_peak(coherence, 0, method=method) == 0.0
+        assert refine_coherence_peak(coherence, coherence.size - 1, method=method) == 3.0
+
+
+def test_refine_coherence_peak_spline_recovers_known_offset():
+    """the spline must also find the vertex of a smooth peak"""
+    true_peak = 5.3
+    bins = np.arange(11.0)
+    coherence = 0.9 - 0.01 * (bins - true_peak) ** 2
+    assert refine_coherence_peak(coherence, 5, method="spline") == pytest.approx(
+        true_peak, abs=0.02
+    )
+
+
+def test_refine_coherence_peak_spline_is_not_bounded():
+    """unlike the parabolic fit, the spline can move the point beyond half a bin
+
+    This is the reason 'parabolic' is the F018 default: on a flat, asymmetric top the
+    spline overshoot relocates the retracking point rather than refining it.
+    """
+    coherence = np.array([0.1, 0.2, 0.3, 0.88, 0.9, 0.89, 0.89, 0.5, 0.2])
+    offset = refine_coherence_peak(coherence, 4, method="spline") - 4.0
+    assert abs(offset) > 0.5
+
+
+def test_refine_coherence_peak_rejects_unknown_method():
+    """an unrecognised method must be an error, not a silent no-op"""
+    with pytest.raises(ValueError):
+        refine_coherence_peak(np.array([0.1, 0.9, 0.1]), 1, method="oversample")
+
+
+def test_retrack_subbin_method_none_matches_default(sin_file):  # pylint: disable=W0621
+    """the E001-equivalent path must be bit-identical to the shipped default"""
+    dr_bin_default = retrack_cs2_sin_max_coherence(sin_file)[0]
+    dr_bin_none = retrack_cs2_sin_max_coherence(sin_file, coherence_subbin_method="none")[0]
+    np.testing.assert_array_equal(dr_bin_default, dr_bin_none)
+    # and the default must be whole-bin, ie no fractional part anywhere
+    finite = dr_bin_default[np.isfinite(dr_bin_default)]
+    assert finite.size > 0
+    np.testing.assert_array_equal(finite, np.rint(finite))
+
+
+def test_retrack_subbin_parabolic_is_subbin_and_bounded(sin_file):  # pylint: disable=W0621
+    """parabolic refinement must produce fractional bins within half a bin of E001"""
+    dr_bin_none = retrack_cs2_sin_max_coherence(sin_file, coherence_subbin_method="none")[0]
+    dr_bin_parabolic = retrack_cs2_sin_max_coherence(sin_file, coherence_subbin_method="parabolic")[
+        0
+    ]
+
+    finite = np.isfinite(dr_bin_none) & np.isfinite(dr_bin_parabolic)
+    assert finite.sum() > 0
+    # the same waveforms must succeed or fail either way
+    np.testing.assert_array_equal(np.isfinite(dr_bin_none), np.isfinite(dr_bin_parabolic))
+
+    shift = dr_bin_parabolic[finite] - dr_bin_none[finite]
+    assert np.all(np.abs(shift) <= 0.5)
+    # the refinement must actually do something on a real file
+    assert np.any(np.abs(shift) > 0.0)
+
+
+def test_retrack_subbin_does_not_change_power_or_coherence(sin_file):  # pylint: disable=W0621
+    """only the retracking point is refined; backscatter inputs must be untouched"""
+    _, _, _, _, pwr_none, coh_none, fails_none, _ = retrack_cs2_sin_max_coherence(
+        sin_file, coherence_subbin_method="none"
+    )
+    _, _, _, _, pwr_parab, coh_parab, fails_parab, _ = retrack_cs2_sin_max_coherence(
+        sin_file, coherence_subbin_method="parabolic"
+    )
+    np.testing.assert_array_equal(pwr_none, pwr_parab)
+    np.testing.assert_array_equal(coh_none, coh_parab)
+    assert fails_none == fails_parab
 
 
 # Test the MC retracker runs without error with a sample LRM file on all waveforms

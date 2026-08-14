@@ -65,6 +65,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib import gridspec
 from netCDF4 import Dataset  # pylint: disable=E0611
+from scipy.interpolate import CubicSpline
 from scipy.signal import savgol_filter
 
 from clev2er.utils.cs2.retrackers.fastsmooth import (  # waveform smoothing filter (option 2)
@@ -84,6 +85,108 @@ class InvalidArraySizeError(Exception):
     """Exception for invalid array sizes"""
 
 
+def parabolic_vertex_offset(left: float, centre: float, right: float) -> float:
+    """sub-bin offset of the vertex of the parabola through three samples
+
+    Returns 0.0 unless the three samples bracket a maximum, in which case the
+    offset is confined to +/-0.5 bin. Two cases are declined:
+
+    * curvature >= 0, ie the centre sample is not a local maximum. This happens
+      because the MC retracking point is the argmax within the leading edge
+      search window, so an immediate neighbour outside that window can be
+      higher. The vertex formula would extrapolate away from the sampled
+      points, and a curvature near zero makes it diverge.
+    * the vertex falls outside the centre bin. Refining there would relocate
+      the retracking point rather than refine it, so the whole bin is kept
+      instead of pinning the offset to the +/-0.5 boundary.
+
+    Args:
+        left (float): sample below the peak
+        centre (float): sample at the peak
+        right (float): sample above the peak
+
+    Returns:
+        float : offset in bins, in [-0.5, 0.5], or 0.0 if no refinement applies
+    """
+    curvature = left - 2.0 * centre + right
+    if curvature >= 0.0:
+        return 0.0
+    offset = 0.5 * (left - right) / curvature
+    return offset if abs(offset) <= 0.5 else 0.0
+
+
+def refine_coherence_peak(
+    coherence_sm: np.ndarray,
+    peak_index: int,
+    method: str = "none",
+    oversampling: int = 100,
+    half_window: int = 3,
+) -> float:
+    """sub-bin position of the coherence maximum
+
+    The MC retracking point is the argmax of the smoothed coherence, which on
+    the original bin grid is quantised to whole bins. At 0.2342m per SARIn
+    range bin that is a uniform quantisation error of sigma = 6.8cm in
+    elevation, whereas everything else in the retracker works on the power
+    waveform oversampled by a factor of 100.
+
+    Note that literally oversampling the coherence with linear interpolation,
+    as the power waveform is oversampled, does NOT help: linear interpolation
+    cannot create a maximum between two samples, so the interpolated argmax is
+    always back at an original sample. Sub-bin information requires either a
+    local polynomial fit or an interpolant with curvature.
+
+    'none'      : the whole-bin argmax, ie the baselines B to E001 behaviour.
+    'parabolic' : vertex of the parabola through the maximum and its two
+                  neighbours. The classic sub-bin peak estimator. It is applied
+                  only where the three samples actually bracket a maximum, so
+                  it is confined to +/-0.5 bin and can only refine the existing
+                  retracking point, never relocate it.
+    'spline'    : cubic spline through a local window, evaluated on a grid
+                  oversampled by `oversampling`. Can place the peak anywhere in
+                  the window, so it is NOT bounded and can move the point
+                  several bins where the peak is flat or double-topped.
+
+    Args:
+        coherence_sm (np.ndarray): smoothed coherence waveform
+        peak_index (int): bin index of the discrete maximum
+        method (str): 'none', 'parabolic' or 'spline'
+        oversampling (int): fine grid factor, 'spline' only
+        half_window (int): bins either side of the peak used by 'spline'
+
+    Returns:
+        float : the refined, possibly fractional, bin position
+
+    Raises:
+        ValueError : if the method is unknown
+    """
+    if method == "none":
+        return float(peak_index)
+    if method not in ("parabolic", "spline"):
+        raise ValueError(
+            f"unknown coherence sub-bin method '{method}', use none, parabolic or spline"
+        )
+
+    # a peak against either end of the array has no neighbour to refine against
+    if peak_index <= 0 or peak_index >= coherence_sm.size - 1:
+        return float(peak_index)
+
+    if method == "parabolic":
+        return peak_index + parabolic_vertex_offset(
+            float(coherence_sm[peak_index - 1]),
+            float(coherence_sm[peak_index]),
+            float(coherence_sm[peak_index + 1]),
+        )
+
+    start = max(peak_index - half_window, 0)
+    stop = min(peak_index + half_window + 1, coherence_sm.size)
+    bins = np.arange(start, stop)
+    if bins.size < 4:  # CubicSpline needs at least 4 points
+        return refine_coherence_peak(coherence_sm, peak_index, "parabolic")
+    fine = np.linspace(bins[0], bins[-1], bins.size * oversampling)
+    return float(fine[int(np.argmax(CubicSpline(bins, coherence_sm[bins])(fine)))])
+
+
 def retrack_cs2_sin_max_coherence(
     l1b_file: str = "",
     waveforms: Union[np.ndarray, None] = None,
@@ -101,6 +204,8 @@ def retrack_cs2_sin_max_coherence(
     le_id_threshold: float = 0.05,
     le_dp_threshold: float = 0.20,
     coherence_smoothing_width=9,
+    coherence_subbin_method: str = "none",
+    coherence_subbin_oversampling: int = 100,
 ) -> Tuple[
     np.ndarray,
     np.ndarray,
@@ -152,6 +257,15 @@ def retrack_cs2_sin_max_coherence(
         le_dp_threshold (float, def=0.2): define threshold on normalised amplitude change which is
                                           required to be accepted as lead edge
         coherence_smoothing_width (int, def-9): coherence boxcar average smoothing width
+        coherence_subbin_method (str, def='none'): sub-bin location of the coherence
+                                          maximum: 'none' (whole bin, as baselines B to
+                                          E001), 'parabolic' or 'spline'. See
+                                          refine_coherence_peak(). Only the retracking
+                                          point is refined; the returned power and
+                                          coherence at the retracking point remain those
+                                          of the nearest whole bin.
+        coherence_subbin_oversampling (int, def=100): fine grid factor used by the
+                                          'spline' sub-bin method
 
 
     Returns:
@@ -482,8 +596,19 @@ def retrack_cs2_sin_max_coherence(
                         np.argmax(coherence_sm[top_of_le_indices])
                     ]
 
+                    # optionally locate the coherence maximum to sub-bin precision. Only
+                    # the retracking point itself is refined, so the range (and hence the
+                    # elevation) gains sub-bin precision while the power and coherence
+                    # reported at the retracking point stay those of the whole bin.
+                    retrack_bin_mc = refine_coherence_peak(
+                        coherence_sm,
+                        index_of_max_coherence,
+                        method=coherence_subbin_method,
+                        oversampling=coherence_subbin_oversampling,
+                    )
+
                     if retrack_smooth_wf:
-                        retrack_point_mc[i][0] = index_of_max_coherence
+                        retrack_point_mc[i][0] = retrack_bin_mc
                         retrack_point_mc[i][1] = wfi_sm[
                             index_of_max_coherence * wf_oversampling_factor
                         ]
@@ -491,7 +616,7 @@ def retrack_cs2_sin_max_coherence(
                             wfi_sm[index_of_max_coherence * wf_oversampling_factor] * wf_max
                         )
                     else:
-                        retrack_point_mc[i][0] = index_of_max_coherence
+                        retrack_point_mc[i][0] = retrack_bin_mc
                         retrack_point_mc[i][1] = waveform[index_of_max_coherence] / wf_max
                         retrack_point_mc[i][2] = waveform[index_of_max_coherence]
 
